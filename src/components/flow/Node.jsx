@@ -470,8 +470,19 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
 
                 {/* Display Value for Group Input */}
                 {type === 'GROUP_INPUT' && (
-                    <div className="text-xs font-mono text-center text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/50 rounded p-1 mt-1 border border-slate-200 dark:border-slate-600 break-words whitespace-pre-wrap max-w-[200px] overflow-x-auto text-left">
-                        {formatResult(result)}
+                    <div className="pt-1 border-t border-slate-100 dark:border-slate-700/50">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">VALUE</span>
+                            {typeof result === 'object' && result !== null ? (
+                                <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-1 rounded border border-slate-100 dark:border-slate-700 break-all whitespace-pre-wrap max-h-20 overflow-y-auto">
+                                    {JSON.stringify(result, null, 1).replace(/"/g, '')}
+                                </div>
+                            ) : (
+                                <span className="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono">
+                                    {formatResult(result)}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 )}
 

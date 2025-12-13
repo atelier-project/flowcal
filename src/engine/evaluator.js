@@ -31,8 +31,7 @@ export const ENGINE_SCRIPT = `
 ${serializeRegistry()}
 
 function evaluateGraph(nodes, edges, contextInputs = {}) {
-    const results = {};
-    const memo = new Set(); 
+    const results = {}; 
 
     const getNodeValue = (nodeId, stack = []) => {
         if (stack.includes(nodeId)) return NaN; 
@@ -42,9 +41,6 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
         if (!node) return 0;
         
         const def = NODE_LOGIC[node.type] || {};
-        
-        // Log evaluation start for relevant nodes
-        // if (node.id === 'some-id') console.log(...) 
 
         if (node.type === 'GROUP_INPUT') {
              return contextInputs[node.id] !== undefined ? contextInputs[node.id] : (node.data.value || 0);
@@ -53,18 +49,16 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
         const connectedEdges = edges.filter(e => e.target === node.id);
         
         const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
-            // console.log('Resolve:', { handle, sourceType, rawVal });
+            // Whitelist target nodes that need raw objects
             if (targetType === 'GET_KEY' || targetType === 'GET') return rawVal;
-            
+            // Whitelist source types that pass through raw objects
+            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT') return rawVal;
+            // Extract specific handle from object if requested
             if (typeof rawVal === 'object' && rawVal !== null && handle) {
                 return rawVal[handle] ?? 0;
             }
-            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT') {
-               // console.log('Whitelisted Object Pass:', rawVal);
-               return rawVal; 
-            }
+            // Unwrap single-value objects
             if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {
-                 // console.log('Unwrapping Object:', rawVal);
                 return Object.values(rawVal)[0] ?? 0;
             }
             return rawVal;
@@ -73,13 +67,24 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
         // Robust Input Mapping
         const getInputs = () => {
             // Map based on specific handle definitions to ensure order
-            const mapInput = (handleId) => {
+            const mapInput = (handleId, inputIndex) => {
                 // Try to find edge by exact handle match first
                 let edge = connectedEdges.find(e => e.targetHandle === handleId);
                 
                 // Fallback: if only one input defined and only one edge, use that edge
                 if (!edge && def.inputs?.length === 1 && connectedEdges.length === 1) {
                     edge = connectedEdges[0];
+                }
+                
+                // Fallback: for multi-input nodes, try positional matching with edges that have null targetHandle
+                if (!edge && inputIndex !== undefined) {
+                    const nullHandleEdges = connectedEdges.filter(e => !e.targetHandle || e.targetHandle === 'in_' + inputIndex);
+                    if (nullHandleEdges.length > inputIndex) {
+                        edge = nullHandleEdges[inputIndex];
+                    } else if (connectedEdges.length > inputIndex) {
+                        // Last resort: use edge at same index
+                        edge = connectedEdges[inputIndex];
+                    }
                 }
 
                 if (!edge) return undefined; 
@@ -111,15 +116,18 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
             }
 
             if (def.inputs && !def.inputs.includes('*')) {
-                return def.inputs.map(inputName => mapInput(inputName));
+                const args = {};
+                def.inputs.forEach((inputName, index) => {
+                    args[inputName] = mapInput(inputName, index);
+                });
+                return args;
             }
 
             // Default linear mapping for variable inputs ('*')
             return connectedEdges.map(e => {
                 const sourceNode = nodes.find(n => n.id === e.source);
                 const raw = getNodeValue(e.source, [...stack, nodeId]);
-                const resolved = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type);
-                return resolved;
+                return resolveSourceValue(raw, e.sourceHandle, sourceNode?.type, node.type);
             });
         };
 
@@ -178,7 +186,6 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
     // In a real build step we might strip this, but keeping it simple here.
 
     const results = {};
-    const memo = new Set();
 
     const getNodeValue = (nodeId, stack = []) => {
         if (stack.includes(nodeId)) return NaN;
@@ -219,14 +226,23 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
         };
 
         const getInputs = () => {
-            const mapInput = (handleId) => {
+            const mapInput = (handleId, inputIndex) => {
                 // Try to find edge by exact handle match first
                 let edge = connectedEdges.find(e => e.targetHandle === handleId);
 
                 // Fallback: if only one input defined and only one edge, use that edge
-                // This handles legacy edges with null targetHandle
                 if (!edge && def.inputs?.length === 1 && connectedEdges.length === 1) {
                     edge = connectedEdges[0];
+                }
+
+                // Fallback: for multi-input nodes, try positional matching
+                if (!edge && inputIndex !== undefined) {
+                    const nullHandleEdges = connectedEdges.filter(e => !e.targetHandle || e.targetHandle === 'in_' + inputIndex);
+                    if (nullHandleEdges.length > inputIndex) {
+                        edge = nullHandleEdges[inputIndex];
+                    } else if (connectedEdges.length > inputIndex) {
+                        edge = connectedEdges[inputIndex];
+                    }
                 }
 
                 if (!edge) return undefined;
@@ -258,16 +274,17 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
 
             if (def.inputs && !def.inputs.includes('*')) {
                 const args = {};
-                def.inputs.forEach(inputName => {
-                    args[inputName] = mapInput(inputName);
+                def.inputs.forEach((inputName, index) => {
+                    args[inputName] = mapInput(inputName, index);
                 });
                 return args;
             }
 
+            // Default linear mapping for variable inputs ('*')
             return connectedEdges.map(e => {
                 const sourceNode = nodes.find(n => n.id === e.source);
                 const raw = getNodeValue(e.source, [...stack, nodeId]);
-                return resolveSourceValue(raw, e.sourceHandle, sourceNode?.type);
+                return resolveSourceValue(raw, e.sourceHandle, sourceNode?.type, node.type);
             });
         };
 
