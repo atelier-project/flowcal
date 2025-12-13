@@ -435,6 +435,20 @@ export const NODE_LOGIC = {
             return Math.round(v * factor) / factor;
         }
     },
+    FLOOR: {
+        type: 'FLOOR',
+        label: 'Floor',
+        category: 'Math',
+        inputs: ['val'],
+        compute: ({ val }) => Math.floor(val ?? 0)
+    },
+    CEIL: {
+        type: 'CEIL',
+        label: 'Ceil',
+        category: 'Math',
+        inputs: ['val'],
+        compute: ({ val }) => Math.ceil(val ?? 0)
+    },
     RANDOM: {
         type: 'RANDOM',
         label: 'Random',
@@ -514,7 +528,8 @@ export const NODE_LOGIC = {
         label: 'Final Result',
         category: 'Visuals',
         inputs: ['val'],
-        compute: (inputs) => inputs.length > 0 ? inputs[0] : 0
+        compute: (inputs) => inputs.length > 0 ? inputs[0] : 0,
+        data: { width: 200 }
     },
 
     // Advanced & Grouping

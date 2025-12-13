@@ -631,17 +631,17 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 ))
             }
 
-            {/* Resize Handle for FORM */}
+            {/* Resize Handle for FORM and FINAL */}
             {
-                type === 'FORM' && (
+                (type === 'FORM' || type === 'FINAL') && (
                     <div
-                        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 hover:bg-slate-200 rounded-tl"
+                        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-tl"
                         onMouseDown={(e) => {
                             e.stopPropagation();
                             const startX = e.clientX;
-                            const startWidth = data.width || 256;
+                            const startWidth = data.width || 200;
                             const handleMouseMove = (moveEvent) => {
-                                const newWidth = Math.max(200, startWidth + (moveEvent.clientX - startX));
+                                const newWidth = Math.max(150, startWidth + (moveEvent.clientX - startX));
                                 handleChange('width', newWidth);
                             };
                             const handleMouseUp = () => {
@@ -652,7 +652,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                             window.addEventListener('mouseup', handleMouseUp);
                         }}
                     >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 text-slate-400 absolute bottom-0.5 right-0.5 pointer-events-none">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 text-slate-400 dark:text-slate-500 absolute bottom-0.5 right-0.5 pointer-events-none">
                             <path d="M21 15L15 21M21 8L8 21" />
                         </svg>
                     </div>
