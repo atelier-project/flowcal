@@ -49,11 +49,17 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
 
         const connectedEdges = edges.filter(e => e.target === node.id);
         
-        const resolveSourceValue = (rawVal, handle) => {
+        const resolveSourceValue = (rawVal, handle, sourceType) => {
+            // console.log('Resolve:', { handle, sourceType, rawVal });
             if (typeof rawVal === 'object' && rawVal !== null && handle) {
                 return rawVal[handle] ?? 0;
             }
+            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT') {
+               // console.log('Whitelisted Object Pass:', rawVal);
+               return rawVal; 
+            }
             if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {
+                 // console.log('Unwrapping Object:', rawVal);
                 return Object.values(rawVal)[0] ?? 0;
             }
             return rawVal;
@@ -65,18 +71,27 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
             const mapInput = (handleId) => {
                 const edge = connectedEdges.find(e => e.targetHandle === handleId);
                 if (!edge) return 0; // Default 0 if unconnected
+                const sourceNode = nodes.find(n => n.id === edge.source);
                 const raw = getNodeValue(edge.source, [...stack, nodeId]);
-                return resolveSourceValue(raw, edge.sourceHandle);
+                return resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type);
             };
 
-            if (def.dynamicInputs || node.type === 'COLLECTOR') { // Use registry flag or fallback
-                const count = node.data.inputCount || 2;
-                const arr = new Array(count).fill(0);
+            if (def.dynamicInputs || node.type === 'COLLECTOR') {
+                let count = node.data.inputCount || 2;
+                let fillVal = 0;
+
+                if (node.type === 'FORM') {
+                    count = (node.data.fields || []).length;
+                    fillVal = undefined; // Use undefined to allow fallback to internal defaults
+                }
+
+                const arr = new Array(count).fill(fillVal);
                 connectedEdges.forEach(e => {
                     const idx = parseInt(e.targetHandle?.split('_')[1] || '0', 10);
                     if (!isNaN(idx)) {
+                        const sourceNode = nodes.find(n => n.id === e.source);
                         const raw = getNodeValue(e.source, [...stack, nodeId]);
-                        arr[idx] = resolveSourceValue(raw, e.sourceHandle);
+                        arr[idx] = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type);
                     }
                 });
                 return arr;
@@ -88,8 +103,10 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
 
             // Default linear mapping for variable inputs ('*')
             return connectedEdges.map(e => {
+                const sourceNode = nodes.find(n => n.id === e.source);
                 const raw = getNodeValue(e.source, [...stack, nodeId]);
-                return resolveSourceValue(raw, e.sourceHandle);
+                const resolved = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type);
+                return resolved;
             });
         };
 
@@ -101,7 +118,8 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
                 const subGraph = node.data.subGraph || { nodes: [], edges: [] };
                 const subContext = {};
                 connectedEdges.forEach((edge) => {
-                    const sourceVal = resolveSourceValue(getNodeValue(edge.source, [...stack, nodeId]), edge.sourceHandle);
+                    const sourceNode = nodes.find(n => n.id === edge.source);
+                    const sourceVal = resolveSourceValue(getNodeValue(edge.source, [...stack, nodeId]), edge.sourceHandle, sourceNode?.type);
                     if (edge.targetHandle) {
                         subContext[edge.targetHandle] = sourceVal;
                     } else {
@@ -165,10 +183,16 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
 
         const connectedEdges = edges.filter(e => e.target === node.id);
 
-        const resolveSourceValue = (rawVal, handle) => {
+        const resolveSourceValue = (rawVal, handle, sourceType) => {
+            // Priority: Whitelisted types pass through raw value (Objects)
+            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT') {
+                return rawVal;
+            }
+            // Logic: If specific handle requested and exists on object, return it
             if (typeof rawVal === 'object' && rawVal !== null && handle) {
                 return rawVal[handle] ?? 0;
             }
+            // Fallback: Unwrap single valid object values
             if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {
                 return Object.values(rawVal)[0] ?? 0;
             }
@@ -179,18 +203,27 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
             const mapInput = (handleId) => {
                 const edge = connectedEdges.find(e => e.targetHandle === handleId);
                 if (!edge) return 0;
+                const sourceNode = nodes.find(n => n.id === edge.source);
                 const raw = getNodeValue(edge.source, [...stack, nodeId]);
-                return resolveSourceValue(raw, edge.sourceHandle);
+                return resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type);
             };
 
             if (def.dynamicInputs || node.type === 'COLLECTOR') {
-                const count = node.data.inputCount || 2;
-                const arr = new Array(count).fill(0);
+                let count = node.data.inputCount || 2;
+                let fillVal = 0;
+
+                if (node.type === 'FORM') {
+                    count = (node.data.fields || []).length;
+                    fillVal = undefined;
+                }
+
+                const arr = new Array(count).fill(fillVal);
                 connectedEdges.forEach(e => {
                     const idx = parseInt(e.targetHandle?.split('_')[1] || '0', 10);
                     if (!isNaN(idx)) {
+                        const sourceNode = nodes.find(n => n.id === e.source);
                         const raw = getNodeValue(e.source, [...stack, nodeId]);
-                        arr[idx] = resolveSourceValue(raw, e.sourceHandle);
+                        arr[idx] = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type);
                     }
                 });
                 return arr;
@@ -201,8 +234,9 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
             }
 
             return connectedEdges.map(e => {
+                const sourceNode = nodes.find(n => n.id === e.source);
                 const raw = getNodeValue(e.source, [...stack, nodeId]);
-                return resolveSourceValue(raw, e.sourceHandle);
+                return resolveSourceValue(raw, e.sourceHandle, sourceNode?.type);
             });
         };
 
@@ -214,7 +248,8 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                 const subGraph = node.data.subGraph || { nodes: [], edges: [] };
                 const subContext = {};
                 connectedEdges.forEach((edge) => {
-                    const sourceVal = resolveSourceValue(getNodeValue(edge.source, [...stack, nodeId]), edge.sourceHandle);
+                    const sourceNode = nodes.find(n => n.id === edge.source);
+                    const sourceVal = resolveSourceValue(getNodeValue(edge.source, [...stack, nodeId]), edge.sourceHandle, sourceNode?.type);
                     if (edge.targetHandle) {
                         subContext[edge.targetHandle] = sourceVal;
                     } else {

@@ -3,7 +3,7 @@ import {
     Gauge, Percent, TrendingUp, BarChart as BarChartIcon,
     Table as TableIcon, FileText, Flag, Box, ArrowRight, ArrowLeft,
     GitBranch, ArrowLeftRight, Divide,
-    Filter, ListOrdered, Scissors, Hash, List
+    Filter, ListOrdered, Scissors, Hash, List, LayoutTemplate
 } from 'lucide-react';
 
 export const NODE_UI = {
@@ -11,6 +11,7 @@ export const NODE_UI = {
     INPUT: { icon: GripVertical, color: 'green', colorClass: 'bg-green-100 text-green-600' },
     RANGE: { icon: Activity, color: 'green', colorClass: 'bg-green-100 text-green-600' },
     COLLECTOR: { icon: ListPlus, color: 'green', colorClass: 'bg-green-100 text-green-600' },
+    FORM: { icon: LayoutTemplate, color: 'purple', colorClass: 'bg-purple-100 text-purple-600' },
 
     // Logic
     COMPARE: { icon: ArrowLeftRight, color: 'orange', colorClass: 'bg-orange-100 text-orange-600' },

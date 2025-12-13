@@ -1,4 +1,5 @@
 import { getNodeHeight } from './layout';
+import { getDefinition } from '../engine/nodeDefinitions';
 
 /**
  * Utility: Calculate Bezier Curve Path for connections
@@ -19,21 +20,42 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
     let y = node.position.y;
     let x = node.position.x;
 
+    // Helpers to sort handles consistent with Node.jsx
+    const getSortedOrder = (items, order) => {
+        if (!order || !Array.isArray(order)) return items;
+        return [...items].sort((a, b) => {
+            const idxA = order.indexOf(a);
+            const idxB = order.indexOf(b);
+            if (idxA === -1 && idxB === -1) return 0;
+            if (idxA === -1) return 1;
+            if (idxB === -1) return -1;
+            return idxA - idxB;
+        });
+    };
+
     if (type === 'input') {
+        const def = getDefinition(node.type);
+
         if (node.type === 'GROUP' && handleId) {
-            const handles = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT') || [];
-            const idx = handles.findIndex(h => h.id === handleId);
+            let handles = node.data.subGraph?.nodes
+                .filter(n => n.type === 'GROUP_INPUT')
+                .map(n => n.id) || [];
+
+            // Apply Order
+            handles = getSortedOrder(handles, node.data.inputOrder);
+
+            const idx = handles.indexOf(handleId);
             if (idx !== -1) y += 40 + (idx * 24);
             else y += 50;
         } else if (node.type === 'COLLECTOR') {
             const idx = parseInt(handleId?.split('_')[1] || '0', 10);
             y += 40 + (idx * 24);
-        } else if (node.type === 'RANGE') {
-            if (handleId === 'start') y += 40;
-            else if (handleId === 'end') y += 64;
-            else if (handleId === 'step') y += 88;
-            else y += 40;
+        } else if (node.type === 'FORM') {
+            const idx = parseInt(handleId?.split('_')[1] || '0', 10);
+            // Matched with Node.jsx: 48 + (i * 30)
+            y += 48 + (idx * 30);
         } else if (node.type === 'GAUGE') {
+            // Hardcoded legacy
             if (handleId === 'val') y += 40;
             else if (handleId === 'min') y += 64;
             else if (handleId === 'max') y += 88;
@@ -43,23 +65,44 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             else if (handleId === 'max') y += 64;
             else y += 40;
         } else if (node.type === 'CUSTOM') {
-            y += 100;
+            y += 100; // Custom usually has textarea above
+        } else if (def.inputs && !def.inputs.includes('*')) {
+            // Registry Defined
+            let handles = [...def.inputs];
+            handles = getSortedOrder(handles, node.data.inputOrder);
+            const idx = handles.indexOf(handleId);
+            if (idx !== -1) y += 40 + (idx * 24);
+            else y += 40;
         } else if (node.type !== 'INPUT' && node.type !== 'GROUP_INPUT') {
-            // For generic nodes without named input handles, center vertically
-            // The visual handle is at "top: 50%" relative to the node
+            // Default center
             const h = getNodeHeight(node);
             y += h / 2;
         } else {
+            // Input nodes main port
             y += 20;
         }
+
     } else {
         // Output
         x += NODE_WIDTH;
+        const def = getDefinition(node.type);
+
         if (node.type === 'GROUP' && handleId) {
-            const handles = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_OUTPUT') || [];
-            const idx = handles.findIndex(h => h.id === handleId);
+            let handles = node.data.subGraph?.nodes
+                .filter(n => n.type === 'GROUP_OUTPUT')
+                .map(n => n.id) || [];
+
+            handles = getSortedOrder(handles, node.data.outputOrder);
+
+            const idx = handles.indexOf(handleId);
             if (idx !== -1) y += 40 + (idx * 24);
             else y += 50;
+        } else if (def.outputs) {
+            let handles = [...def.outputs];
+            handles = getSortedOrder(handles, node.data.outputOrder);
+            const idx = handles.indexOf(handleId);
+            if (idx !== -1) y += 40 + (idx * 24);
+            else y += 40; // Fallback
         } else {
             const height = getNodeHeight(node);
             y += height / 2;

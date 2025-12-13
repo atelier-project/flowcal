@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronRight, Undo, Redo } from 'lucide-react';
+import { ChevronRight, Undo, Redo, Moon, Sun } from 'lucide-react';
 
 import { Node } from './components/flow/Node';
 import { ConnectionLine } from './components/flow/ConnectionLine';
@@ -60,6 +60,25 @@ export default function NodeCalcApp() {
   const debouncedNodes = useDebounce(nodes, 50);
   const debouncedEdges = useDebounce(edges, 50);
 
+  // Dark Mode State
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('flowcal-theme');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('flowcal-theme', JSON.stringify(true));
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('flowcal-theme', JSON.stringify(false));
+    }
+  }, [darkMode]);
+
   // --- Engine Integration ---
   useEffect(() => {
     // Reuse evaluateGraph logic for consistent results
@@ -78,8 +97,11 @@ export default function NodeCalcApp() {
           const connectedEdges = frame.edges.filter(e => e.target === groupId);
           connectedEdges.forEach(edge => {
             const rawVal = frameResults[edge.source];
+            const sourceNode = frame.nodes.find(n => n.id === edge.source);
             let val = rawVal;
-            if (typeof rawVal === 'object' && rawVal !== null && edge.sourceHandle) {
+            if (sourceNode?.type === 'FORM' || sourceNode?.type === 'GROUP_INPUT') {
+              val = rawVal;
+            } else if (typeof rawVal === 'object' && rawVal !== null && edge.sourceHandle) {
               val = rawVal[edge.sourceHandle];
             } else if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {
               val = Object.values(rawVal)[0];
@@ -277,6 +299,15 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
     setScale(newScale); setPan(newPan);
   }, [scale, pan]);
 
+  // Fix for "Unable to preventDefault inside passive event listener"
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const onWheel = (e) => handleWheel(e);
+    container.addEventListener('wheel', onWheel, { passive: false });
+    return () => container.removeEventListener('wheel', onWheel);
+  }, [handleWheel]);
+
   const handleMouseDown = (e) => {
     if (e.button === 0 && e.target === containerRef.current) {
       if (!e.shiftKey) setSelectedIds(new Set());
@@ -428,6 +459,14 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         } else if (targetNode.type === 'PROGRESS') {
           if (Math.abs(my - (targetNode.position.y + 40)) < 20) targetHandle = 'val';
           else targetHandle = 'max';
+        } else if (targetNode.type === 'FORM' && targetNode.data.showInputs) {
+          const fields = targetNode.data.fields || [];
+          let minDist = 1000;
+          fields.forEach((_, i) => {
+            const hy = targetNode.position.y + 48 + (i * 30);
+            const dist = Math.abs(my - hy);
+            if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = `field_${i}`; }
+          });
         }
 
         const exists = edges.some(edge =>
@@ -471,7 +510,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
   };
 
   return (
-    <div className="flex w-full h-screen bg-slate-50 overflow-hidden font-sans text-slate-800">
+    <div className="flex w-full h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden font-sans text-slate-800 dark:text-slate-100 transition-colors duration-200">
       <CodeEditorModal isOpen={editor.isOpen} initialCode={editor.code} onClose={() => setEditor({ ...editor, isOpen: false })} onSave={handleSaveEditor} />
 
       <Sidebar
@@ -486,30 +525,35 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
       {/* Canvas */}
       <div
         ref={containerRef}
-        className="flex-1 relative overflow-hidden bg-slate-50 cursor-grab active:cursor-grabbing"
+        className="flex-1 relative overflow-hidden bg-slate-50 dark:bg-slate-900 cursor-grab active:cursor-grabbing transition-colors duration-200"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onWheel={handleWheel}
       >
         <BackgroundGrid offset={pan} />
         {selectionBox && (
           <SelectionBox rect={selectionBox} />
         )}
 
-        {/* Top Bar: Breadcrumbs + Undo/Redo */}
+        {/* Top Bar: Breadcrumbs + Undo/Redo + Theme */}
         <div className="absolute top-4 left-4 z-40 flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-white/90 backdrop-blur px-2 py-1 rounded-lg shadow-sm border border-slate-200 text-sm">
-            <button onClick={undo} disabled={!canUndo} className={`p - 1 rounded hover: bg - slate - 100 ${!canUndo ? 'text-slate-300' : 'text-slate-600'} `} title="Undo (Ctrl+Z)"><Undo size={16} /></button>
-            <button onClick={redo} disabled={!canRedo} className={`p - 1 rounded hover: bg - slate - 100 ${!canRedo ? 'text-slate-300' : 'text-slate-600'} `} title="Redo (Ctrl+Y)"><Redo size={16} /></button>
+          <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur px-2 py-1 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 text-sm">
+            <button onClick={undo} disabled={!canUndo} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 ${!canUndo ? 'text-slate-300 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300'}`} title="Undo (Ctrl+Z)"><Undo size={16} /></button>
+            <button onClick={redo} disabled={!canRedo} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 ${!canRedo ? 'text-slate-300 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300'}`} title="Redo (Ctrl+Y)"><Redo size={16} /></button>
           </div>
 
-          <div className="flex items-center gap-2 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-sm border border-slate-200 text-sm">
-            <button onClick={() => jumpToPath(-1)} className={`hover: text - blue - 600 ${path.length === 0 ? 'font-bold text-blue-600' : 'text-slate-500'} `}>Root</button>
+          <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur px-2 py-1 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 text-sm">
+            <button onClick={() => setDarkMode(!darkMode)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300" title="Toggle Theme">
+              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur px-4 py-2 rounded-full shadow-sm border border-slate-200 dark:border-slate-700 text-sm">
+            <button onClick={() => jumpToPath(-1)} className={`hover:text-blue-600 dark:hover:text-blue-400 ${path.length === 0 ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>Root</button>
             {path.map((item, idx) => (
               <React.Fragment key={item.id}>
-                <ChevronRight size={14} className="text-slate-300" />
-                <button onClick={() => jumpToPath(idx)} className={`hover: text - blue - 600 ${idx === path.length - 1 ? 'font-bold text-blue-600' : 'text-slate-500'} `}>{item.label}</button>
+                <ChevronRight size={14} className="text-slate-300 dark:text-slate-600" />
+                <button onClick={() => jumpToPath(idx)} className={`hover:text-blue-600 dark:hover:text-blue-400 ${idx === path.length - 1 ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>{item.label}</button>
               </React.Fragment>
             ))}
           </div>
@@ -544,9 +588,9 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
           ))}
         </div>
         <div className="absolute bottom-4 right-4 flex gap-2">
-          <button onClick={() => setScale(s => Math.min(s + 0.1, 2))} className="p-2 bg-white rounded shadow text-slate-600 hover:text-blue-600">+</button>
-          <button onClick={() => setScale(1)} className="p-2 bg-white rounded shadow text-slate-600 hover:text-blue-600 text-xs font-bold w-8">{Math.round(scale * 100)}%</button>
-          <button onClick={() => setScale(s => Math.max(s - 0.1, 0.5))} className="p-2 bg-white rounded shadow text-slate-600 hover:text-blue-600">-</button>
+          <button onClick={() => setScale(s => Math.min(s + 0.1, 2))} className="p-2 bg-white dark:bg-slate-800 rounded shadow text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors">+</button>
+          <button onClick={() => setScale(1)} className="p-2 bg-white dark:bg-slate-800 rounded shadow text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-bold w-12 border border-slate-200 dark:border-slate-700 transition-colors">{Math.round(scale * 100)}%</button>
+          <button onClick={() => setScale(s => Math.max(s - 0.1, 0.5))} className="p-2 bg-white dark:bg-slate-800 rounded shadow text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors">-</button>
         </div>
       </div>
       <style>{`@keyframes dash { to { stroke - dashoffset: -20; } } .animate - dash { animation: dash 1s linear infinite; } `}</style>

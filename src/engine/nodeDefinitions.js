@@ -35,6 +35,25 @@ export const NODE_LOGIC = {
         dynamicInputs: true,
         compute: (inputs) => Array.isArray(inputs) ? inputs : []
     },
+    FORM: {
+        type: 'FORM',
+        label: 'Form / Object',
+        category: 'Data',
+        dynamicInputs: true,
+        compute: (inputs, data) => {
+            const fields = data.fields || [];
+            const result = {};
+            fields.forEach((field, i) => {
+                // If input is connected, use it. Otherwise use default value.
+                // Inputs are passed as an array matching the order of dynamic inputs.
+                // Note: The evaluator passes `node.inputs` array. We need to ensure mapping is correct.
+                // Our dynamic inputs logic relies on index. 
+                result[field.key || `field_${i}`] = inputs[i] !== undefined ? inputs[i] : (field.value ?? 0);
+            });
+            return result;
+        },
+        data: { fields: [], showInputs: false } // Array of { key: 'name', value: 0 }
+    },
 
     // Logic
     COMPARE: {
@@ -213,8 +232,12 @@ export const NODE_LOGIC = {
         category: 'Math',
         inputs: ['*'],
         compute: (inputs, data) => {
-            const fn = new Function('inputs', data.func || 'return 0');
-            return fn(inputs);
+            try {
+                const fn = new Function('inputs', data.func || 'return 0');
+                return fn(inputs);
+            } catch (e) {
+                return `Error: ${e.message}`;
+            }
         },
         data: { func: 'return inputs.reduce((a,b) => a+b, 0);' }
     },
