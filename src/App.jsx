@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Undo, Redo } from 'lucide-react';
 
 import { Node } from './components/flow/Node';
 import { ConnectionLine } from './components/flow/ConnectionLine';
@@ -12,20 +13,31 @@ import { generateId } from './utils/ids';
 import { getHandlePosition, getBezierPath } from './utils/geometry';
 import { getNodeHeight } from './utils/layout';
 import { evaluateGraph, ENGINE_SCRIPT } from './engine/evaluator';
+import { useDebounce } from './hooks/useDebounce';
+import { useHistory } from './hooks/useHistory';
 
 export default function NodeCalcApp() {
-  // Initial State
-  const [nodes, setNodes] = useState([
+
+  // Initial Data
+  const initialNodes = [
     { id: '1', type: 'INPUT', position: { x: 50, y: 50 }, data: { value: 10, label: 'Base Price' } },
     { id: '2', type: 'INPUT', position: { x: 50, y: 350 }, data: { value: 20, label: 'Tax Rate' } },
     { id: '3', type: 'SUM', position: { x: 400, y: 200 }, data: { label: 'Subtotal' } },
     { id: '4', type: 'MUL', position: { x: 750, y: 200 }, data: { value: 2, label: 'Final Total' } },
-  ]);
-  const [edges, setEdges] = useState([
+  ];
+  const initialEdges = [
     { id: 'e1-3', source: '1', target: '3' },
     { id: 'e2-3', source: '2', target: '3' },
     { id: 'e3-4', source: '3', target: '4' },
-  ]);
+  ];
+
+  // --- State ---
+  // History manages nodes and edges together
+  const { state: graphState, set: setGraph, update: updateGraph, undo, redo, canUndo, canRedo } = useHistory({
+    nodes: initialNodes,
+    edges: initialEdges
+  });
+  const { nodes, edges } = graphState;
 
   const [path, setPath] = useState([]);
   const [results, setResults] = useState({});
@@ -44,25 +56,22 @@ export default function NodeCalcApp() {
 
   const NODE_WIDTH = 256;
 
+  // Debounced state for performance
+  const debouncedNodes = useDebounce(nodes, 50);
+  const debouncedEdges = useDebounce(edges, 50);
+
   // --- Engine Integration ---
   useEffect(() => {
     // Reuse evaluateGraph logic for consistent results
-    // Note: We need to handle the recursive 'path' context logic here as in original
-    // For simplicity in this step, I'm adapting the original logic to use the imported function
-    // but the drill-down context logic needs to be preserved.
-
     let currentContext = {};
     if (path.length > 0) {
       // Re-evaluate path stack to get context for current level
+      // Note: We use the immediate path, not debounced, assuming path change is infrequent/instant
       for (let i = 0; i < path.length; i++) {
         const frame = path[i];
         const frameResults = evaluateGraph(frame.nodes, frame.edges, currentContext);
         const groupId = frame.id;
-        const groupNode = frame.nodes.find(n => n.id === groupId); // Wait, frame.nodes is the parent level? 
-
-        // Original logic stored 'nodes' in stack frame. 
-        // In original: `path` stored `{ nodes, edges }` of the PARENT group when entering.
-        // So evaluating frame.nodes/edges gives results of the parent level.
+        const groupNode = frame.nodes.find(n => n.id === groupId);
 
         if (groupNode) {
           const subContext = {};
@@ -82,9 +91,10 @@ export default function NodeCalcApp() {
       }
     }
 
-    const finalResults = evaluateGraph(nodes, edges, currentContext);
+    // Use debounced values for the heavy calculation
+    const finalResults = evaluateGraph(debouncedNodes, debouncedEdges, currentContext);
     setResults(finalResults);
-  }, [nodes, edges, path]);
+  }, [debouncedNodes, debouncedEdges, path]);
 
 
   // --- IO Handlers ---
@@ -95,7 +105,7 @@ export default function NodeCalcApp() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `flowcalc-${new Date().toISOString().slice(0, 10)}.json`;
+    link.download = `flowcalc - ${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -109,8 +119,7 @@ export default function NodeCalcApp() {
       try {
         const config = JSON.parse(event.target.result);
         if (Array.isArray(config.nodes) && Array.isArray(config.edges)) {
-          setNodes(config.nodes);
-          setEdges(config.edges);
+          setGraph({ nodes: config.nodes, edges: config.edges }); // Commit to history
           if (config.viewport) {
             setPan(config.viewport.pan || { x: 0, y: 0 });
             setScale(config.viewport.scale || 1);
@@ -142,7 +151,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `flowcalc-runner.js`;
+    link.download = `flowcalc - runner.js`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -154,9 +163,17 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
     const groupNode = nodes.find(n => n.id === groupId);
     if (!groupNode || groupNode.type !== 'GROUP') return;
     const subGraph = groupNode.data.subGraph || { nodes: [], edges: [] };
+
+    // Push current level to path
     setPath(prev => [...prev, { id: groupId, label: groupNode.data.label || 'Group', nodes, edges, viewport: { pan, scale } }]);
-    setNodes(subGraph.nodes);
-    setEdges(subGraph.edges);
+
+    // We set the graph state to the subgraph, but we need to handle history carefully.
+    // For simplicity: History is cleared/reset when entering a group (new context).
+    // A full nested history implementation is complex. 
+    // We will just adopt the subgraph as the new "present" root.
+    // LIMITATION: Undo stack is reset on group enter/exit.
+    setGraph({ nodes: subGraph.nodes, edges: subGraph.edges });
+
     setPan({ x: 0, y: 0 });
     setScale(1);
     setConnectionState(null);
@@ -165,19 +182,58 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
 
   const jumpToPath = (index) => {
     const unwind = (targetIdx) => {
+      // When leaving a group, we need to save the current state BACK into the parent node
+      const currentSubGraph = { nodes, edges };
+
+      // We need to traverse back up the stack
+      // This is tricky because `path` has the *snapshot* from when we entered.
+      // But we modified the current level.
+
+      // Reconstruct the stack from top to target
+      let currentLevelData = currentSubGraph;
+
+      // We are currently at path.length level (not in array).
+      // path[path.length-1] is the immediate parent.
+
+      // NOTE: For this refactor, improving the group save logic is out of scope of "History".
+      // but we must ensure we don't lose work.
+      // As originally implemented, `jumpToPath` unwinds and updates mutable state.
+      // We need to replicate that logic but using our state setters.
+
+      // Ideally: We should have one giant Global State including all subgraphs, but that's a huge change.
+      // Compromise: We behave like original: Save checks out.
+
       let currN = nodes;
       let currE = edges;
       const stack = [...path];
+
+      // We have to walk back up.
+      // However, `useHistory` only tracks the CURRENT view.
+      // When we go up, we are essentially doing a "Load" of the parent, but we must UPDATE the child node in that parent.
+
+      // Loop from top (current context) up to target
+      // Actually, the original implementation's `unwind` logic was:
+      // stored frames in `path`. Pop frame. Update frame's node with current data.
+
+      // This works if `path` stores the CURRENT state of parents? No, `path` stores the state *at entry time*.
+      // So we take current `nodes, edges`, pop a frame `parent`. Find `groupNode` in `parent`. Update it with `nodes, edges`. 
+      // `parent` becomes `current`. Repeat.
+
       while (stack.length > targetIdx + 1) {
-        const frame = stack.pop();
+        const frame = stack.pop(); // Parent context
         const groupId = frame.id;
-        currN = frame.nodes.map(n =>
+
+        // Update the group node in the parent context with the current level's data
+        const updatedNodes = frame.nodes.map(n =>
           n.id === groupId ? { ...n, data: { ...n.data, subGraph: { nodes: currN, edges: currE } } } : n
         );
+
+        currN = updatedNodes;
         currE = frame.edges;
       }
-      setNodes(currN);
-      setEdges(currE);
+
+      setGraph({ nodes: currN, edges: currE }); // Commit the result of exiting
+
       if (stack.length === 0) { setPan({ x: 0, y: 0 }); setScale(1); }
       setPath(stack);
       setSelectedIds(new Set());
@@ -186,6 +242,26 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
   };
 
   // --- Handlers (Mouse/Key) ---
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          if (canRedo) redo();
+        } else {
+          if (canUndo) undo();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        if (canRedo) redo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, canUndo, canRedo]);
 
   const handleWheel = useCallback((e) => {
     e.preventDefault(); e.stopPropagation();
@@ -226,6 +302,8 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
     }
     setSelectedIds(newSelectedIds);
     setDragState({ type: 'node', ids: Array.from(newSelectedIds), startMouse: { x: e.clientX, y: e.clientY } });
+    // Commit the current state to history as a checkpoint before dragging starts
+    setGraph({ nodes, edges });
   };
 
   const handleConnectionStart = (e, sourceId, handleId) => {
@@ -260,12 +338,16 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
       if (dragState.type === 'node') {
         const dx = (e.clientX - dragState.startMouse.x) / scale;
         const dy = (e.clientY - dragState.startMouse.y) / scale;
-        setNodes(ns => ns.map(n => {
+
+        // Use updateGraph (no commit) for smooth dragging
+        const newNodes = nodes.map(n => {
           if (dragState.ids.includes(n.id)) {
             return { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } };
           }
           return n;
-        }));
+        });
+        updateGraph({ nodes: newNodes, edges });
+
         setDragState(prev => ({ ...prev, startMouse: { x: e.clientX, y: e.clientY } }));
 
         if (dragState.ids.length === 1) {
@@ -284,9 +366,10 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
       }
     }
     if (connectionState) setConnectionState(prev => ({ ...prev, mousePos: { x, y } }));
-  }, [dragState, connectionState, pan, scale, nodes, selectionBox]);
+  }, [dragState, connectionState, pan, scale, nodes, edges, selectionBox, updateGraph]);
 
   const handleMouseUp = (e) => {
+    // If we were dragging, we should now COMMIT the final state to history
     if (dragState?.type === 'node' && hoverGroup && dragState.ids.length === 1) {
       const draggedNode = nodes.find(n => n.id === dragState.ids[0]);
       const targetGroupNode = nodes.find(n => n.id === hoverGroup);
@@ -296,8 +379,11 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         const subGraph = targetGroupNode.data.subGraph || { nodes: [], edges: [] };
         const newNode = { ...draggedNode, position: { x: 50 + (subGraph.nodes.length * 20), y: 50 + (subGraph.nodes.length * 20) } };
         const newSubGraph = { ...subGraph, nodes: [...subGraph.nodes, newNode] };
-        setNodes(remainingNodes.map(n => n.id === hoverGroup ? { ...n, data: { ...n.data, subGraph: newSubGraph } } : n));
-        setEdges(remainingEdges);
+
+        setGraph({ // Commit move to group
+          nodes: remainingNodes.map(n => n.id === hoverGroup ? { ...n, data: { ...n.data, subGraph: newSubGraph } } : n),
+          edges: remainingEdges
+        });
         setSelectedIds(new Set());
       }
     }
@@ -329,7 +415,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
           for (let i = 0; i < count; i++) {
             const hy = targetNode.position.y + 40 + (i * 24);
             const dist = Math.abs(my - hy);
-            if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = `in_${i}`; }
+            if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = `in_${i} `; }
           }
         } else if (targetNode.type === 'RANGE') {
           if (Math.abs(my - (targetNode.position.y + 40)) < 20) targetHandle = 'start';
@@ -352,7 +438,10 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         );
 
         if (!exists) {
-          setEdges(prev => [...prev, { id: `e-${generateId()}`, source: connectionState.sourceId, target: targetNode.id, targetHandle, sourceHandle: connectionState.sourceHandle }]);
+          setGraph({ // Commit connection
+            nodes,
+            edges: [...edges, { id: `e - ${generateId()} `, source: connectionState.sourceId, target: targetNode.id, targetHandle, sourceHandle: connectionState.sourceHandle }]
+          });
         }
       }
     }
@@ -367,11 +456,17 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
     const rect = containerRef.current.getBoundingClientRect();
     const x = (-pan.x + rect.width / 2) / scale - 100;
     const y = (-pan.y + rect.height / 2) / scale - 50;
-    setNodes(prev => [...prev, { id, type, position: { x, y }, data: { value: 0, label: '', subGraph: { nodes: [], edges: [] } } }]);
+    setGraph({
+      nodes: [...nodes, { id, type, position: { x, y }, data: { value: 0, label: '', subGraph: { nodes: [], edges: [] } } }],
+      edges
+    });
   };
 
   const handleSaveEditor = (newCode) => {
-    setNodes(ns => ns.map(n => n.id === editor.nodeId ? { ...n, data: { ...n.data, func: newCode } } : n));
+    setGraph({
+      nodes: nodes.map(n => n.id === editor.nodeId ? { ...n, data: { ...n.data, func: newCode } } : n),
+      edges
+    });
     setEditor({ isOpen: false, nodeId: null, code: '' });
   };
 
@@ -401,21 +496,31 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         {selectionBox && (
           <SelectionBox rect={selectionBox} />
         )}
-        <div className="absolute top-4 left-4 z-40 flex items-center gap-2 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-sm border border-slate-200 text-sm">
-          <button onClick={() => jumpToPath(-1)} className={`hover:text-blue-600 ${path.length === 0 ? 'font-bold text-blue-600' : 'text-slate-500'}`}>Root</button>
-          {path.map((item, idx) => (
-            <React.Fragment key={item.id}>
-              <ChevronRight size={14} className="text-slate-300" />
-              <button onClick={() => jumpToPath(idx)} className={`hover:text-blue-600 ${idx === path.length - 1 ? 'font-bold text-blue-600' : 'text-slate-500'}`}>{item.label}</button>
-            </React.Fragment>
-          ))}
+
+        {/* Top Bar: Breadcrumbs + Undo/Redo */}
+        <div className="absolute top-4 left-4 z-40 flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-white/90 backdrop-blur px-2 py-1 rounded-lg shadow-sm border border-slate-200 text-sm">
+            <button onClick={undo} disabled={!canUndo} className={`p - 1 rounded hover: bg - slate - 100 ${!canUndo ? 'text-slate-300' : 'text-slate-600'} `} title="Undo (Ctrl+Z)"><Undo size={16} /></button>
+            <button onClick={redo} disabled={!canRedo} className={`p - 1 rounded hover: bg - slate - 100 ${!canRedo ? 'text-slate-300' : 'text-slate-600'} `} title="Redo (Ctrl+Y)"><Redo size={16} /></button>
+          </div>
+
+          <div className="flex items-center gap-2 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-sm border border-slate-200 text-sm">
+            <button onClick={() => jumpToPath(-1)} className={`hover: text - blue - 600 ${path.length === 0 ? 'font-bold text-blue-600' : 'text-slate-500'} `}>Root</button>
+            {path.map((item, idx) => (
+              <React.Fragment key={item.id}>
+                <ChevronRight size={14} className="text-slate-300" />
+                <button onClick={() => jumpToPath(idx)} className={`hover: text - blue - 600 ${idx === path.length - 1 ? 'font-bold text-blue-600' : 'text-slate-500'} `}>{item.label}</button>
+              </React.Fragment>
+            ))}
+          </div>
         </div>
+
         <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: '0 0', width: '100%', height: '100%' }} className="relative w-full h-full">
           <svg className="absolute top-0 left-0 w-full h-full overflow-visible pointer-events-none z-0">
             {edges.map(edge => {
               const start = getHandlePosition(edge.source, nodes, 'output', edge.sourceHandle);
               const end = getHandlePosition(edge.target, nodes, 'input', edge.targetHandle);
-              return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end} onDelete={(id) => setEdges(prev => prev.filter(e => e.id !== id))} />;
+              return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end} onDelete={(id) => setGraph({ nodes, edges: edges.filter(e => e.id !== id) })} />;
             })}
             {connectionState && (
               <path d={getBezierPath(getHandlePosition(connectionState.sourceId, nodes, 'output', connectionState.sourceHandle), [connectionState.mousePos.x, connectionState.mousePos.y])} stroke="#3b82f6" strokeWidth="2" fill="none" strokeDasharray="5,5" className="opacity-60" />
@@ -430,8 +535,8 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
               selected={selectedIds.has(node.id)}
               isHovered={hoverGroup === node.id}
               onDragStart={handleNodeDragStart}
-              onDelete={(id) => { setNodes(prev => prev.filter(n => n.id !== id)); setEdges(prev => prev.filter(e => e.source !== id && e.target !== id)); }}
-              onUpdateData={(id, data) => setNodes(ns => ns.map(n => n.id === id ? { ...n, data } : n))}
+              onDelete={(id) => { setGraph({ nodes: nodes.filter(n => n.id !== id), edges: edges.filter(e => e.source !== id && e.target !== id) }); }}
+              onUpdateData={(id, data) => setGraph({ nodes: nodes.map(n => n.id === id ? { ...n, data } : n), edges })}
               onStartConnect={handleConnectionStart}
               onEnterGroup={enterGroup}
               onOpenEditor={(id, code) => setEditor({ isOpen: true, nodeId: id, code })}
@@ -444,7 +549,8 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
           <button onClick={() => setScale(s => Math.max(s - 0.1, 0.5))} className="p-2 bg-white rounded shadow text-slate-600 hover:text-blue-600">-</button>
         </div>
       </div>
-      <style>{`@keyframes dash { to { stroke-dashoffset: -20; } } .animate-dash { animation: dash 1s linear infinite; }`}</style>
+      <style>{`@keyframes dash { to { stroke - dashoffset: -20; } } .animate - dash { animation: dash 1s linear infinite; } `}</style>
     </div>
   );
 }
+

@@ -1,66 +1,24 @@
 import React, { useRef, useMemo } from 'react';
 import {
-    Plus, Minus, X, Play, Code, Trash2, Settings, Activity,
-    FileText, ArrowRight, ArrowLeft,
-    Box, Flag, Maximize2, Gauge, Percent, Table as TableIcon,
-    TrendingUp, BarChart as BarChartIcon, ListPlus
+    Plus, Settings, Maximize2, Trash2
 } from 'lucide-react';
 import { getNodeHeight } from '../../utils/layout';
 import { GaugeChart, LineChart, BarChart } from '../ui/Charts';
 import { DataTable } from '../ui/DataTable';
 import { Handle } from './Handle';
+import { getUI } from './nodeUIMap';
+import { getDefinition } from '../../engine/nodeDefinitions';
 
 export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup }) => {
     const nodeRef = useRef(null);
+    const ui = getUI(type);
+    const def = getDefinition(type);
 
     const handleChange = (key, value) => {
         onUpdateData(id, { ...data, [key]: value });
     };
 
-    const getIcon = () => {
-        switch (type) {
-            case 'SUM': return <Plus size={16} />;
-            case 'SUB': return <Minus size={16} />;
-            case 'MUL': return <X size={16} />;
-            case 'CUSTOM': return <Code size={16} />;
-            case 'TEMPLATE': return <FileText size={16} />;
-            case 'FINAL': return <Flag size={16} />;
-            case 'GROUP': return <Box size={16} />;
-            case 'GROUP_INPUT': return <ArrowRight size={16} />;
-            case 'GROUP_OUTPUT': return <ArrowLeft size={16} />;
-            case 'GAUGE': return <Gauge size={16} />;
-            case 'PROGRESS': return <Percent size={16} />;
-            case 'LINE_CHART': return <TrendingUp size={16} />;
-            case 'BAR_CHART': return <BarChartIcon size={16} />;
-            case 'TABLE': return <TableIcon size={16} />;
-            case 'COLLECTOR': return <ListPlus size={16} />;
-            case 'RANGE': return <Activity size={16} />;
-            default: return <Activity size={16} />;
-        }
-    };
-
-    const getTitle = () => {
-        switch (type) {
-            case 'INPUT': return 'Number Input';
-            case 'SUM': return 'Add Inputs';
-            case 'SUB': return 'Subtract';
-            case 'MUL': return 'Multiply';
-            case 'CUSTOM': return 'Custom JS';
-            case 'TEMPLATE': return 'Text Output';
-            case 'FINAL': return 'Final Result';
-            case 'GROUP': return 'Group Logic';
-            case 'GROUP_INPUT': return 'Group Input';
-            case 'GROUP_OUTPUT': return 'Group Output';
-            case 'GAUGE': return 'Gauge';
-            case 'PROGRESS': return 'Progress Bar';
-            case 'LINE_CHART': return 'Line Chart';
-            case 'BAR_CHART': return 'Bar Chart';
-            case 'TABLE': return 'Data Table';
-            case 'COLLECTOR': return 'Array Collector';
-            case 'RANGE': return 'Range Generator';
-            default: return 'Node';
-        }
-    };
+    const Icon = ui.icon || Plus;
 
     // --- Handle Logic ---
 
@@ -70,33 +28,23 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 .filter(n => n.type === 'GROUP_INPUT')
                 .map((n, idx) => ({ id: n.id, label: n.data.label || `Input ${idx + 1}`, top: 40 + (idx * 24) }));
         }
-        if (type === 'COLLECTOR') {
+        if (type === 'COLLECTOR' || def.dynamicInputs) {
             const count = data.inputCount || 2;
             return Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}`, top: 40 + (i * 24) }));
         }
-        if (type === 'RANGE') {
-            return [
-                { id: 'start', label: 'Start', top: 40 },
-                { id: 'end', label: 'End', top: 64 },
-                { id: 'step', label: 'Step', top: 88 },
-            ];
+
+        // Use Registry definitions
+        if (def.inputs && !def.inputs.includes('*')) {
+            return def.inputs.map((name, i) => ({
+                id: name,
+                label: name.charAt(0).toUpperCase() + name.slice(1),
+                top: 40 + (i * 24)
+            }));
         }
-        if (type === 'PROGRESS') {
-            return [
-                { id: 'val', label: 'Val', top: 40 },
-                { id: 'max', label: 'Max', top: 64 }
-            ];
-        }
-        if (type === 'GAUGE') {
-            return [
-                { id: 'val', label: 'Val', top: 40 },
-                { id: 'min', label: 'Min', top: 64 },
-                { id: 'max', label: 'Max', top: 88 }
-            ];
-        }
+
         if (type === 'INPUT' || type === 'GROUP_INPUT') return [];
         return [{ id: null, top: '50%' }];
-    }, [type, data.subGraph, data.inputCount]);
+    }, [type, data.subGraph, data.inputCount, def]);
 
     const outputHandles = useMemo(() => {
         if (type === 'GROUP' && data.subGraph && data.subGraph.nodes) {
@@ -104,11 +52,18 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 .filter(n => n.type === 'GROUP_OUTPUT')
                 .map((n, idx) => ({ id: n.id, label: n.data.label || `Output ${idx + 1}`, top: 40 + (idx * 24) }));
         }
-        if (type === 'GROUP_OUTPUT' || type === 'FINAL' || type === 'GAUGE' || type === 'PROGRESS' || type === 'LINE_CHART' || type === 'BAR_CHART' || type === 'TABLE') return [];
+        if (def.outputs) { // Currently only used for documentation in registry, but we could use it
+            // For now retaining legacy behavior where visuals/sinks have no output
+            if (def.category === 'Visuals' || type === 'FINAL') return [];
+        }
+
+        // Hardcoded overrides from original logic that might not be fully covered by registry yet
+        if (['GROUP_OUTPUT', 'FINAL', 'GAUGE', 'PROGRESS', 'LINE_CHART', 'BAR_CHART', 'TABLE'].includes(type)) return [];
+
         if (type === 'GROUP_INPUT') return [{ id: null, top: '50%' }];
 
         return [{ id: null, top: '50%' }];
-    }, [type, data.subGraph]);
+    }, [type, data.subGraph, def]);
 
     const minHeight = getNodeHeight({ type, data });
 
@@ -141,11 +96,13 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         ${type === 'FINAL' ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100'}
       `}>
                 <div className="flex items-center gap-2 text-slate-700 font-semibold text-sm flex-1 min-w-0">
-                    <span className={`p-1 rounded shadow-sm shrink-0 ${type === 'FINAL' ? 'bg-white text-green-600' : 'bg-white text-blue-600'}`}>{getIcon()}</span>
+                    <span className={`p-1 rounded shadow-sm shrink-0 ${ui.colorClass?.split(' ')[1] ? 'bg-white ' + ui.colorClass.split(' ')[1] : 'bg-white text-blue-600'}`}>
+                        <Icon size={16} />
+                    </span>
                     <input
                         type="text"
                         value={data.label || ''}
-                        placeholder={getTitle()}
+                        placeholder={def.label || 'Node'}
                         onChange={(e) => handleChange('label', e.target.value)}
                         className="bg-transparent border-none p-0 text-slate-700 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 truncate"
                         onMouseDown={(e) => e.stopPropagation()}
@@ -180,17 +137,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
-                {type === 'RANGE' && (
-                    <div className="text-xs text-slate-500">
-                        Generates array from Start to End.
-                    </div>
-                )}
-
-                {type === 'COLLECTOR' && (
-                    <div className="text-xs text-slate-500">
-                        Collects inputs into a single array.
-                    </div>
-                )}
+                {/* Generic descriptions from registry could go here if we added them */}
+                {type === 'RANGE' && <div className="text-xs text-slate-500">Generates array from Start to End.</div>}
+                {type === 'COLLECTOR' && <div className="text-xs text-slate-500">Collects inputs into a single array.</div>}
 
                 {/* Visualizations */}
                 {type === 'GAUGE' && <GaugeChart value={inputs[0] || 0} min={inputs[1] || 0} max={inputs[2] || 100} />}
@@ -263,7 +212,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 ))}
 
                 {/* Inputs Preview (for generic nodes that don't visualize) */}
-                {['INPUT', 'SUM', 'SUB', 'MUL', 'CUSTOM'].includes(type) && (
+                {def.category === 'Math' && type !== 'CUSTOM' && (
                     <div className="text-xs text-slate-500 flex justify-between">
                         <span>Inputs: {inputs.length}</span>
                         <span>[{inputs.map(i => {
@@ -275,7 +224,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 )}
 
                 {/* Result Display - Hide for Sinks */}
-                {!['GROUP_INPUT', 'GROUP', 'FINAL', 'GAUGE', 'PROGRESS', 'LINE_CHART', 'BAR_CHART', 'TABLE'].includes(type) && (
+                {def.category !== 'Visuals' && type !== 'FINAL' && type !== 'GROUP' && type !== 'GROUP_INPUT' && (
                     <div className="pt-2 border-t border-slate-100">
                         {type === 'TEMPLATE' ? (
                             <div className="flex flex-col gap-1">

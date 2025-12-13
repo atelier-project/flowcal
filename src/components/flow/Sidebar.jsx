@@ -1,11 +1,47 @@
-import React from 'react';
-import {
-    Download, Upload, FileJson, GripVertical, Activity, ListPlus,
-    Plus, Minus, X, Code, Gauge, Percent, TrendingUp, BarChart as BarChartIcon,
-    Table as TableIcon, FileText, Flag, Box, ArrowRight, ArrowLeft
-} from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Download, Upload, FileJson } from 'lucide-react';
+import { NODE_LOGIC } from '../../engine/nodeDefinitions';
+import { getUI } from './nodeUIMap';
 
 export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, pathLength }) => {
+
+    const categories = useMemo(() => {
+        const cats = {};
+        Object.values(NODE_LOGIC).forEach(def => {
+            if (!cats[def.category]) cats[def.category] = [];
+            cats[def.category].push(def);
+        });
+        return cats;
+    }, []);
+
+    const CategorySection = ({ title, nodes }) => {
+        if (!nodes || nodes.length === 0) return null;
+        return (
+            <>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4 first:mt-0">{title}</p>
+                {nodes.map(def => {
+                    if (def.type === 'GROUP_INPUT' || def.type === 'GROUP_OUTPUT') {
+                        if (pathLength === 0) return null; // Show only inside groups
+                    }
+                    const ui = getUI(def.type);
+                    const Icon = ui.icon;
+                    return (
+                        <button
+                            key={def.type}
+                            onClick={() => onAddNode(def.type)}
+                            className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium mb-2"
+                        >
+                            <div className={`p-1 rounded ${ui.colorClass?.split(' ')[1] ? 'bg-white ' + ui.colorClass.split(' ')[1] : 'bg-slate-100 text-slate-600'}`}>
+                                <Icon size={14} />
+                            </div>
+                            {def.label}
+                        </button>
+                    );
+                })}
+            </>
+        );
+    };
+
     return (
         <div className="w-64 bg-white border-r border-slate-200 flex flex-col z-30 shadow-xl overflow-hidden">
             <div className="p-4 border-b border-slate-100">
@@ -19,35 +55,11 @@ export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, p
                 <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={onLoad} />
             </div>
 
-            <div className="p-4 space-y-2 overflow-y-auto flex-1">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Data</p>
-                <button onClick={() => onAddNode('INPUT')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-green-100 text-green-600 rounded"><GripVertical size={14} /></div> Number Input</button>
-                <button onClick={() => onAddNode('RANGE')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-green-100 text-green-600 rounded"><Activity size={14} /></div> Range Generator</button>
-                <button onClick={() => onAddNode('COLLECTOR')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-green-100 text-green-600 rounded"><ListPlus size={14} /></div> Array Collector</button>
-
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4">Math</p>
-                <button onClick={() => onAddNode('SUM')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-blue-100 text-blue-600 rounded"><Plus size={14} /></div> Sum</button>
-                <button onClick={() => onAddNode('SUB')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-orange-100 text-orange-600 rounded"><Minus size={14} /></div> Subtract</button>
-                <button onClick={() => onAddNode('MUL')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-purple-100 text-purple-600 rounded"><X size={14} /></div> Multiply</button>
-                <button onClick={() => onAddNode('CUSTOM')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-slate-800 text-white rounded"><Code size={14} /></div> Custom JS</button>
-
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4">Visuals</p>
-                <button onClick={() => onAddNode('GAUGE')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-teal-100 text-teal-600 rounded"><Gauge size={14} /></div> Gauge</button>
-                <button onClick={() => onAddNode('PROGRESS')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-teal-100 text-teal-600 rounded"><Percent size={14} /></div> Progress Bar</button>
-                <button onClick={() => onAddNode('LINE_CHART')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-teal-100 text-teal-600 rounded"><TrendingUp size={14} /></div> Line Chart</button>
-                <button onClick={() => onAddNode('BAR_CHART')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-teal-100 text-teal-600 rounded"><BarChartIcon size={14} /></div> Bar Chart</button>
-                <button onClick={() => onAddNode('TABLE')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-teal-100 text-teal-600 rounded"><TableIcon size={14} /></div> Data Table</button>
-                <button onClick={() => onAddNode('TEMPLATE')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-yellow-100 text-yellow-600 rounded"><FileText size={14} /></div> Text Template</button>
-                <button onClick={() => onAddNode('FINAL')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-green-100 text-green-600 rounded"><Flag size={14} /></div> Final Result</button>
-
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 mt-4">Advanced</p>
-                <button onClick={() => onAddNode('GROUP')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-indigo-100 text-indigo-600 rounded"><Box size={14} /></div> Group Logic</button>
-                {pathLength > 0 && (
-                    <>
-                        <button onClick={() => onAddNode('GROUP_INPUT')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-pink-100 text-pink-600 rounded"><ArrowRight size={14} /></div> Group Input</button>
-                        <button onClick={() => onAddNode('GROUP_OUTPUT')} className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-all text-sm font-medium"><div className="p-1 bg-pink-100 text-pink-600 rounded"><ArrowLeft size={14} /></div> Group Output</button>
-                    </>
-                )}
+            <div className="p-4 flex-1 overflow-y-auto">
+                <CategorySection title="Data" nodes={categories['Data']} />
+                <CategorySection title="Math" nodes={categories['Math']} />
+                <CategorySection title="Visuals" nodes={categories['Visuals']} />
+                <CategorySection title="Advanced" nodes={categories['Advanced']} />
             </div>
         </div>
     );
