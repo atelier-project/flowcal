@@ -273,6 +273,33 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
+                {type === 'TEXT_INPUT' && (
+                    <div>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Text</label>
+                        <input
+                            type="text"
+                            value={data.text ?? ''}
+                            onChange={(e) => handleChange('text', e.target.value)}
+                            placeholder="Enter text..."
+                            className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-blue-500 dark:text-slate-200"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                )}
+
+                {type === 'DATE_INPUT' && (
+                    <div>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Date</label>
+                        <input
+                            type="datetime-local"
+                            value={data.date ?? ''}
+                            onChange={(e) => handleChange('date', e.target.value)}
+                            className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-blue-500 dark:text-slate-200"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                )}
+
                 {type === 'FORM' && (
                     <div className="flex flex-col gap-2">
                         {(data.fields || []).map((field, i) => (
