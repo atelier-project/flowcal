@@ -67,6 +67,76 @@ export const NODE_LOGIC = {
         }
     },
 
+    // Array
+    GET: {
+        type: 'GET',
+        label: 'Get Item',
+        category: 'Array',
+        inputs: ['array', 'index'],
+        compute: ({ array, index }) => {
+            const arr = Array.isArray(array) ? array : [];
+            const idx = index ?? 0;
+            return arr[idx] ?? 0;
+        }
+    },
+    LENGTH: {
+        type: 'LENGTH',
+        label: 'Length',
+        category: 'Array',
+        inputs: ['array'],
+        compute: ({ array }) => Array.isArray(array) ? array.length : 0
+    },
+    SLICE: {
+        type: 'SLICE',
+        label: 'Slice',
+        category: 'Array',
+        inputs: ['array', 'start', 'end'],
+        computesMulti: true, // Output is an array
+        compute: ({ array, start, end }) => {
+            const arr = Array.isArray(array) ? array : [];
+            const s = start ?? 0;
+            const e = end ?? arr.length;
+            return arr.slice(s, e);
+        }
+    },
+    SORT: {
+        type: 'SORT',
+        label: 'Sort',
+        category: 'Array',
+        inputs: ['array'],
+        computesMulti: true,
+        compute: ({ array }, data) => {
+            const arr = Array.isArray(array) ? [...array] : [];
+            const order = data.order || 'asc';
+            return arr.sort((a, b) => order === 'asc' ? a - b : b - a);
+        },
+        data: { order: 'asc' }
+    },
+    FILTER: {
+        type: 'FILTER',
+        label: 'Filter',
+        category: 'Array',
+        inputs: ['array', 'reference'],
+        computesMulti: true,
+        compute: ({ array, reference }, data) => {
+            const arr = Array.isArray(array) ? array : [];
+            const ref = reference ?? 0;
+            const op = data.operator || '>';
+            return arr.filter(item => {
+                switch (op) {
+                    case '>': return item > ref;
+                    case '<': return item < ref;
+                    case '>=': return item >= ref;
+                    case '<=': return item <= ref;
+                    case '==': return item == ref;
+                    case '!=': return item != ref;
+                    default: return false;
+                }
+            });
+        },
+        data: { operator: '>' }
+    },
+
     // Math
     SUM: {
         type: 'SUM',
@@ -88,6 +158,54 @@ export const NODE_LOGIC = {
         category: 'Math',
         inputs: ['*'],
         compute: (inputs) => inputs.reduce((a, b) => a * b, 1)
+    },
+    DIV: {
+        type: 'DIV',
+        label: 'Divide',
+        category: 'Math',
+        inputs: ['a', 'b'],
+        compute: ({ a, b }) => {
+            const num = a ?? 0;
+            const den = b ?? 1; // Prevent division by zero default
+            return den === 0 ? 0 : num / den;
+        }
+    },
+    MIN: {
+        type: 'MIN',
+        label: 'Min',
+        category: 'Math',
+        inputs: ['*'],
+        compute: (inputs) => inputs.length > 0 ? Math.min(...inputs) : 0
+    },
+    MAX: {
+        type: 'MAX',
+        label: 'Max',
+        category: 'Math',
+        inputs: ['*'],
+        compute: (inputs) => inputs.length > 0 ? Math.max(...inputs) : 0
+    },
+    ROUND: {
+        type: 'ROUND',
+        label: 'Round',
+        category: 'Math',
+        inputs: ['val', 'decimals'],
+        compute: ({ val, decimals }) => {
+            const v = val ?? 0;
+            const d = decimals ?? 0;
+            const factor = Math.pow(10, Math.floor(d));
+            return Math.round(v * factor) / factor;
+        }
+    },
+    RANDOM: {
+        type: 'RANDOM',
+        label: 'Random',
+        category: 'Math',
+        inputs: ['min', 'max'],
+        compute: ({ min, max }) => {
+            const mn = min ?? 0;
+            const mx = max ?? 1;
+            return Math.random() * (mx - mn) + mn;
+        }
     },
     CUSTOM: {
         type: 'CUSTOM',

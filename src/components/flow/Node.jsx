@@ -202,6 +202,42 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
+                {/* Array Nodes */}
+                {type === 'SORT' && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500">Order:</span>
+                        <select
+                            value={data.order || 'asc'}
+                            onChange={(e) => handleChange('order', e.target.value)}
+                            className="flex-1 bg-slate-100 border border-slate-200 rounded text-xs py-1 px-2 font-medium focus:outline-none focus:border-blue-500 cursor-pointer"
+                            onMouseDown={e => e.stopPropagation()}
+                        >
+                            <option value="asc">Ascending</option>
+                            <option value="desc">Descending</option>
+                        </select>
+                    </div>
+                )}
+
+                {type === 'FILTER' && (
+                    <div className="flex items-center gap-2 bg-slate-100 p-1 rounded border border-slate-200">
+                        <span className="text-xs font-bold text-slate-500 pl-1">Input</span>
+                        <select
+                            value={data.operator || '>'}
+                            onChange={(e) => handleChange('operator', e.target.value)}
+                            className="flex-1 bg-white border border-slate-200 rounded text-xs py-1 px-1 font-mono text-center focus:outline-none focus:border-blue-500 cursor-pointer"
+                            onMouseDown={e => e.stopPropagation()}
+                        >
+                            <option value=">">&gt;</option>
+                            <option value="<">&lt;</option>
+                            <option value=">=">&ge;</option>
+                            <option value="<=">&le;</option>
+                            <option value="==">==</option>
+                            <option value="!=">!=</option>
+                        </select>
+                        <span className="text-xs font-bold text-slate-500 pr-1">Ref</span>
+                    </div>
+                )}
+
                 {type === 'IF' && (
                     <div className="text-xs text-slate-500 text-center italic">
                         If Condition is truthy (&gt;0), output TrueVal, else FalseVal.
