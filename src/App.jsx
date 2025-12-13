@@ -127,6 +127,38 @@ export default function NodeCalcApp() {
     setResults(finalResults);
   }, [debouncedNodes, debouncedEdges, path]);
 
+  // --- Duplicate Node ---
+  const duplicateNode = useCallback((nodeId) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    const newId = generateId();
+    const newNode = {
+      ...node,
+      id: newId,
+      position: { x: node.position.x + 30, y: node.position.y + 30 },
+      data: { ...node.data }
+    };
+    // Deep clone subGraph for GROUP nodes
+    if (node.type === 'GROUP' && node.data.subGraph) {
+      newNode.data.subGraph = JSON.parse(JSON.stringify(node.data.subGraph));
+    }
+    setGraph({ nodes: [...nodes, newNode], edges });
+    setSelectedIds(new Set([newId]));
+  }, [nodes, edges, setGraph]);
+
+  // Keyboard shortcut for Ctrl+D (duplicate)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'd' && selectedIds.size > 0) {
+        e.preventDefault();
+        // Duplicate all selected nodes
+        selectedIds.forEach(id => duplicateNode(id));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds, duplicateNode]);
+
 
   // --- IO Handlers ---
 
@@ -598,6 +630,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
               isHovered={hoverGroup === node.id}
               onDragStart={handleNodeDragStart}
               onDelete={(id) => { setGraph({ nodes: nodes.filter(n => n.id !== id), edges: edges.filter(e => e.source !== id && e.target !== id) }); }}
+              onDuplicate={duplicateNode}
               onUpdateData={(id, data) => setGraph({ nodes: nodes.map(n => n.id === id ? { ...n, data } : n), edges })}
               onStartConnect={handleConnectionStart}
               onEnterGroup={enterGroup}

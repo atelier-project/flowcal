@@ -550,6 +550,14 @@ export const NODE_LOGIC = {
         label: 'Group Output',
         category: 'Advanced',
         compute: (inputs) => inputs.length > 0 ? inputs[0] : 0
+    },
+    COMMENT: {
+        type: 'COMMENT',
+        label: 'Comment',
+        category: 'Advanced',
+        inputs: [],
+        compute: () => null,
+        data: { text: 'Add your notes here...', width: 200 }
     }
 };
 

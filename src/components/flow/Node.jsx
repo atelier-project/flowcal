@@ -1,6 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import {
-    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug
+    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy
 } from 'lucide-react';
 import { getNodeHeight } from '../../utils/layout';
 import { GaugeChart, LineChart, BarChart } from '../ui/Charts';
@@ -9,7 +9,7 @@ import { Handle } from './Handle';
 import { getUI } from './nodeUIMap';
 import { getDefinition } from '../../engine/nodeDefinitions';
 
-export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup }) => {
+export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup }) => {
     const nodeRef = useRef(null);
     const ui = getUI(type);
     const def = getDefinition(type);
@@ -218,6 +218,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     )}
                     {type === 'GROUP' && (
                         <button onClick={(e) => { e.stopPropagation(); onEnterGroup(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Edit Group"><Settings size={14} /></button>
+                    )}
+                    {onDuplicate && (
+                        <button onClick={(e) => { e.stopPropagation(); onDuplicate(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Duplicate (Ctrl+D)"><Copy size={14} /></button>
                     )}
                     <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"><Trash2 size={14} /></button>
                 </div>
@@ -488,6 +491,18 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
+                {type === 'COMMENT' && (
+                    <div className="flex-1 flex flex-col">
+                        <textarea
+                            value={data.text ?? ''}
+                            onChange={(e) => handleChange('text', e.target.value)}
+                            placeholder="Add your notes..."
+                            className="w-full flex-1 min-h-[60px] p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-sm text-amber-900 dark:text-amber-200 placeholder:text-amber-400 resize-none focus:outline-none focus:border-amber-400"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                )}
+
                 {type === 'GROUP' && (
                     <div className="text-xs text-slate-500 dark:text-slate-400 italic">
                         {inputHandles.length === 0 && outputHandles.length === 0 ? "Empty Group. Drop nodes here or Edit." : ""}
@@ -631,9 +646,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 ))
             }
 
-            {/* Resize Handle for FORM and FINAL */}
+            {/* Resize Handle for FORM, FINAL, and COMMENT */}
             {
-                (type === 'FORM' || type === 'FINAL') && (
+                (type === 'FORM' || type === 'FINAL' || type === 'COMMENT') && (
                     <div
                         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-tl"
                         onMouseDown={(e) => {
