@@ -375,6 +375,32 @@ export const NODE_LOGIC = {
             return flatten(typeof object === 'object' && object !== null ? object : {});
         }
     },
+    OBJECT_KEYS: {
+        type: 'OBJECT_KEYS',
+        label: 'Get Keys',
+        category: 'Object',
+        inputs: ['object'],
+        computesMulti: true,
+        compute: ({ object }) => {
+            if (typeof object === 'object' && object !== null && !Array.isArray(object)) {
+                return Object.keys(object);
+            }
+            return [];
+        }
+    },
+    OBJECT_VALUES: {
+        type: 'OBJECT_VALUES',
+        label: 'Get Values',
+        category: 'Object',
+        inputs: ['object'],
+        computesMulti: true,
+        compute: ({ object }) => {
+            if (typeof object === 'object' && object !== null && !Array.isArray(object)) {
+                return Object.values(object);
+            }
+            return [];
+        }
+    },
 
     // Math
     SUM: {
