@@ -367,6 +367,33 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
+                {type === 'GET' && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Idx:</span>
+                        <input
+                            type="number"
+                            value={data.index ?? 0}
+                            onChange={(e) => handleChange('index', parseInt(e.target.value) || 0)}
+                            className="w-16 h-6 px-1 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded text-xs font-mono focus:outline-none focus:border-blue-500 dark:text-slate-200 text-center"
+                            onMouseDown={e => e.stopPropagation()}
+                        />
+                    </div>
+                )}
+
+                {type === 'GET_KEY' && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">Key:</span>
+                        <input
+                            type="text"
+                            value={data.key || ''}
+                            onChange={(e) => handleChange('key', e.target.value)}
+                            placeholder="propName"
+                            className="w-24 h-6 px-1 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded text-xs font-mono focus:outline-none focus:border-blue-500 dark:text-slate-200"
+                            onMouseDown={e => e.stopPropagation()}
+                        />
+                    </div>
+                )}
+
                 {type === 'IF' && (
                     <div className="text-xs text-slate-500 dark:text-slate-400 text-center italic">
                         If Condition is truthy (&gt;0), output TrueVal, else FalseVal.
@@ -540,53 +567,59 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 )}
             </div>
 
-            {inputHandles.map(h => (
-                <Handle
-                    key={h.id || 'default'}
-                    type="input"
-                    id={h.id}
-                    position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
-                    onMouseDown={() => { }}
-                    isValid={true}
-                />
-            ))}
+            {
+                inputHandles.map(h => (
+                    <Handle
+                        key={h.id || 'default'}
+                        type="input"
+                        id={h.id}
+                        position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
+                        onMouseDown={() => { }}
+                        isValid={true}
+                    />
+                ))
+            }
 
-            {outputHandles.map(h => (
-                <Handle
-                    key={h.id || 'default'}
-                    type="output"
-                    id={h.id}
-                    position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
-                    onMouseDown={(e) => onStartConnect(e, id, h.id)}
-                    isValid={true}
-                />
-            ))}
+            {
+                outputHandles.map(h => (
+                    <Handle
+                        key={h.id || 'default'}
+                        type="output"
+                        id={h.id}
+                        position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
+                        onMouseDown={(e) => onStartConnect(e, id, h.id)}
+                        isValid={true}
+                    />
+                ))
+            }
 
             {/* Resize Handle for FORM */}
-            {type === 'FORM' && (
-                <div
-                    className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 hover:bg-slate-200 rounded-tl"
-                    onMouseDown={(e) => {
-                        e.stopPropagation();
-                        const startX = e.clientX;
-                        const startWidth = data.width || 256;
-                        const handleMouseMove = (moveEvent) => {
-                            const newWidth = Math.max(200, startWidth + (moveEvent.clientX - startX));
-                            handleChange('width', newWidth);
-                        };
-                        const handleMouseUp = () => {
-                            window.removeEventListener('mousemove', handleMouseMove);
-                            window.removeEventListener('mouseup', handleMouseUp);
-                        };
-                        window.addEventListener('mousemove', handleMouseMove);
-                        window.addEventListener('mouseup', handleMouseUp);
-                    }}
-                >
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 text-slate-400 absolute bottom-0.5 right-0.5 pointer-events-none">
-                        <path d="M21 15L15 21M21 8L8 21" />
-                    </svg>
-                </div>
-            )}
-        </div>
+            {
+                type === 'FORM' && (
+                    <div
+                        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 hover:bg-slate-200 rounded-tl"
+                        onMouseDown={(e) => {
+                            e.stopPropagation();
+                            const startX = e.clientX;
+                            const startWidth = data.width || 256;
+                            const handleMouseMove = (moveEvent) => {
+                                const newWidth = Math.max(200, startWidth + (moveEvent.clientX - startX));
+                                handleChange('width', newWidth);
+                            };
+                            const handleMouseUp = () => {
+                                window.removeEventListener('mousemove', handleMouseMove);
+                                window.removeEventListener('mouseup', handleMouseUp);
+                            };
+                            window.addEventListener('mousemove', handleMouseMove);
+                            window.addEventListener('mouseup', handleMouseUp);
+                        }}
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 text-slate-400 absolute bottom-0.5 right-0.5 pointer-events-none">
+                            <path d="M21 15L15 21M21 8L8 21" />
+                        </svg>
+                    </div>
+                )
+            }
+        </div >
     );
 };

@@ -42,6 +42,9 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
         if (!node) return 0;
         
         const def = NODE_LOGIC[node.type] || {};
+        
+        // Log evaluation start for relevant nodes
+        // if (node.id === 'some-id') console.log(...) 
 
         if (node.type === 'GROUP_INPUT') {
              return contextInputs[node.id] !== undefined ? contextInputs[node.id] : (node.data.value || 0);
@@ -49,8 +52,10 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
 
         const connectedEdges = edges.filter(e => e.target === node.id);
         
-        const resolveSourceValue = (rawVal, handle, sourceType) => {
+        const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
             // console.log('Resolve:', { handle, sourceType, rawVal });
+            if (targetType === 'GET_KEY' || targetType === 'GET') return rawVal;
+            
             if (typeof rawVal === 'object' && rawVal !== null && handle) {
                 return rawVal[handle] ?? 0;
             }
@@ -69,11 +74,19 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
         const getInputs = () => {
             // Map based on specific handle definitions to ensure order
             const mapInput = (handleId) => {
-                const edge = connectedEdges.find(e => e.targetHandle === handleId);
-                if (!edge) return 0; // Default 0 if unconnected
+                // Try to find edge by exact handle match first
+                let edge = connectedEdges.find(e => e.targetHandle === handleId);
+                
+                // Fallback: if only one input defined and only one edge, use that edge
+                if (!edge && def.inputs?.length === 1 && connectedEdges.length === 1) {
+                    edge = connectedEdges[0];
+                }
+
+                if (!edge) return undefined; 
                 const sourceNode = nodes.find(n => n.id === edge.source);
                 const raw = getNodeValue(edge.source, [...stack, nodeId]);
-                return resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type);
+
+                return resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type, node.type);
             };
 
             if (def.dynamicInputs || node.type === 'COLLECTOR') {
@@ -91,12 +104,12 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
                     if (!isNaN(idx)) {
                         const sourceNode = nodes.find(n => n.id === e.source);
                         const raw = getNodeValue(e.source, [...stack, nodeId]);
-                        arr[idx] = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type);
+                        arr[idx] = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type, node.type);
                     }
                 });
                 return arr;
             }
-            
+
             if (def.inputs && !def.inputs.includes('*')) {
                 return def.inputs.map(inputName => mapInput(inputName));
             }
@@ -148,7 +161,7 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
             console.error("Error calculating node", nodeId, e);
             val = NaN; 
         }
-        
+
         results[nodeId] = val;
         return val;
     };
@@ -187,7 +200,9 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
 
         const connectedEdges = edges.filter(e => e.target === node.id);
 
-        const resolveSourceValue = (rawVal, handle, sourceType) => {
+        const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
+            // Whitelist target nodes that need raw objects
+            if (targetType === 'GET_KEY' || targetType === 'GET') return rawVal;
             // Priority: Whitelisted types pass through raw value (Objects)
             if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT') {
                 return rawVal;
@@ -205,11 +220,19 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
 
         const getInputs = () => {
             const mapInput = (handleId) => {
-                const edge = connectedEdges.find(e => e.targetHandle === handleId);
-                if (!edge) return 0;
+                // Try to find edge by exact handle match first
+                let edge = connectedEdges.find(e => e.targetHandle === handleId);
+
+                // Fallback: if only one input defined and only one edge, use that edge
+                // This handles legacy edges with null targetHandle
+                if (!edge && def.inputs?.length === 1 && connectedEdges.length === 1) {
+                    edge = connectedEdges[0];
+                }
+
+                if (!edge) return undefined;
                 const sourceNode = nodes.find(n => n.id === edge.source);
                 const raw = getNodeValue(edge.source, [...stack, nodeId]);
-                return resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type);
+                return resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type, node.type);
             };
 
             if (def.dynamicInputs || node.type === 'COLLECTOR') {
@@ -227,14 +250,18 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                     if (!isNaN(idx)) {
                         const sourceNode = nodes.find(n => n.id === e.source);
                         const raw = getNodeValue(e.source, [...stack, nodeId]);
-                        arr[idx] = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type);
+                        arr[idx] = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type, node.type);
                     }
                 });
                 return arr;
             }
 
             if (def.inputs && !def.inputs.includes('*')) {
-                return def.inputs.map(inputName => mapInput(inputName));
+                const args = {};
+                def.inputs.forEach(inputName => {
+                    args[inputName] = mapInput(inputName);
+                });
+                return args;
             }
 
             return connectedEdges.map(e => {

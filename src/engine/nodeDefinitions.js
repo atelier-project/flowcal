@@ -92,11 +92,24 @@ export const NODE_LOGIC = {
         label: 'Get Item',
         category: 'Array',
         inputs: ['array', 'index'],
-        compute: ({ array, index }) => {
+        compute: ({ array, index }, data) => {
             const arr = Array.isArray(array) ? array : [];
-            const idx = index ?? 0;
+            const idx = index !== undefined ? index : (data.index ?? 0);
             return arr[idx] ?? 0;
-        }
+        },
+        data: { index: 0 }
+    },
+    GET_KEY: {
+        type: 'GET_KEY',
+        label: 'Get Value',
+        category: 'Logic',
+        inputs: ['object'],
+        compute: ({ object }, data) => {
+            const obj = (typeof object === 'object' && object !== null) ? object : {};
+            const k = data.key || '';
+            return obj[k] ?? 0;
+        },
+        data: { key: '' }
     },
     LENGTH: {
         type: 'LENGTH',

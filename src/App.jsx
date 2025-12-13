@@ -17,7 +17,8 @@ import { useDebounce } from './hooks/useDebounce';
 import { useHistory } from './hooks/useHistory';
 
 // Helper to match engine resolution logic
-const resolveSourceValue = (rawVal, handle, sourceType) => {
+const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
+  if (targetType === 'GET_KEY' || targetType === 'GET') return rawVal;
   if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT') return rawVal;
   if (typeof rawVal === 'object' && rawVal !== null && handle) return rawVal[handle] ?? 0;
   if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) return Object.values(rawVal)[0] ?? 0;
@@ -590,7 +591,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
               {...node}
               inputs={edges.filter(e => e.target === node.id).map(e => {
                 const sourceNode = nodes.find(n => n.id === e.source);
-                return resolveSourceValue(results[e.source], e.sourceHandle, sourceNode?.type);
+                return resolveSourceValue(results[e.source], e.sourceHandle, sourceNode?.type, node.type);
               })}
               result={results[node.id]}
               selected={selectedIds.has(node.id)}
