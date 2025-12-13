@@ -1,0 +1,27 @@
+/**
+ * Utility: Estimate Node Height for Hit Testing & Handle Alignment
+ */
+export const getNodeHeight = (node) => {
+    if (!node) return 160;
+
+    if (node.type === 'GROUP') {
+        const inputs = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT') || [];
+        const outputs = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_OUTPUT') || [];
+        const count = Math.max(inputs.length, outputs.length);
+        return Math.max(100, (count * 24) + 60);
+    }
+
+    if (node.type === 'COLLECTOR') {
+        const count = node.data.inputCount || 2;
+        return Math.max(120, (count * 24) + 60);
+    }
+
+    if (node.type === 'CUSTOM') return 240;
+    if (node.type === 'TEMPLATE') return 220;
+    if (node.type === 'FINAL') return 120;
+    if (node.type === 'GAUGE' || node.type === 'LINE_CHART' || node.type === 'BAR_CHART' || node.type === 'TABLE') return 220;
+    if (node.type === 'PROGRESS') return 140;
+    if (node.type === 'RANGE') return 200;
+
+    return 160;
+};
