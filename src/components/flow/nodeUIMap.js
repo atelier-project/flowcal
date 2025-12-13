@@ -1,7 +1,8 @@
 import {
     Plus, Minus, X, Code, GripVertical, Activity, ListPlus,
     Gauge, Percent, TrendingUp, BarChart as BarChartIcon,
-    Table as TableIcon, FileText, Flag, Box, ArrowRight, ArrowLeft
+    Table as TableIcon, FileText, Flag, Box, ArrowRight, ArrowLeft,
+    GitBranch, ArrowLeftRight
 } from 'lucide-react';
 
 export const NODE_UI = {
@@ -9,6 +10,10 @@ export const NODE_UI = {
     INPUT: { icon: GripVertical, color: 'green', colorClass: 'bg-green-100 text-green-600' },
     RANGE: { icon: Activity, color: 'green', colorClass: 'bg-green-100 text-green-600' },
     COLLECTOR: { icon: ListPlus, color: 'green', colorClass: 'bg-green-100 text-green-600' },
+
+    // Logic
+    COMPARE: { icon: ArrowLeftRight, color: 'orange', colorClass: 'bg-orange-100 text-orange-600' },
+    IF: { icon: GitBranch, color: 'orange', colorClass: 'bg-orange-100 text-orange-600' },
 
     // Math
     SUM: { icon: Plus, color: 'blue', colorClass: 'bg-blue-100 text-blue-600' },

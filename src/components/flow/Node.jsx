@@ -109,6 +109,15 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     />
                 </div>
                 <div className="flex gap-1 items-center">
+                    {type === 'INPUT' && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleChange('useSlider', !data.useSlider); }}
+                            className={`p-1 rounded ${data.useSlider ? 'text-blue-500 bg-blue-50' : 'text-slate-400 hover:text-blue-500'}`}
+                            title="Toggle Slider"
+                        >
+                            <Settings size={14} />
+                        </button>
+                    )}
                     {type === 'COLLECTOR' && (
                         <button onClick={(e) => { e.stopPropagation(); addCollectorInput(); }} className="text-slate-400 hover:text-blue-500 p-1" title="Add Input Port"><Plus size={14} /></button>
                     )}
@@ -126,14 +135,76 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             <div className="p-3 space-y-3 flex-1 flex flex-col">
                 {type === 'INPUT' && (
                     <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1">Value</label>
-                        <input
-                            type="number"
-                            value={data.value}
-                            onChange={(e) => handleChange('value', parseFloat(e.target.value) || 0)}
-                            className="w-full px-2 py-1 bg-slate-100 border border-slate-200 rounded text-sm focus:outline-none focus:border-blue-500 font-mono"
-                            onMouseDown={(e) => e.stopPropagation()}
-                        />
+                        <div className="flex items-center justify-between mb-1">
+                            <label className="text-xs font-medium text-slate-500">Value</label>
+                            <span className="text-xs font-mono text-blue-600 font-bold">{data.value}</span>
+                        </div>
+                        {data.useSlider ? (
+                            <div className="space-y-2 pt-1">
+                                <input
+                                    type="range"
+                                    min={data.min || 0}
+                                    max={data.max || 100}
+                                    step={data.step || 1}
+                                    value={data.value}
+                                    onChange={(e) => handleChange('value', parseFloat(e.target.value) || 0)}
+                                    className="w-full accent-blue-500 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                />
+                                <div className="flex gap-2 text-[10px] text-slate-400">
+                                    <input
+                                        className="w-12 bg-transparent border-b border-slate-200 text-center"
+                                        value={data.min || 0}
+                                        onChange={e => handleChange('min', parseFloat(e.target.value))}
+                                        placeholder="Min"
+                                        onMouseDown={e => e.stopPropagation()}
+                                    />
+                                    <span className="flex-1 text-center">Range</span>
+                                    <input
+                                        className="w-12 bg-transparent border-b border-slate-200 text-center"
+                                        value={data.max || 100}
+                                        onChange={e => handleChange('max', parseFloat(e.target.value))}
+                                        placeholder="Max"
+                                        onMouseDown={e => e.stopPropagation()}
+                                    />
+                                </div>
+                            </div>
+                        ) : (
+                            <input
+                                type="number"
+                                value={data.value}
+                                onChange={(e) => handleChange('value', parseFloat(e.target.value) || 0)}
+                                className="w-full px-2 py-1 bg-slate-100 border border-slate-200 rounded text-sm focus:outline-none focus:border-blue-500 font-mono"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            />
+                        )}
+                    </div>
+                )}
+
+                {/* Logic Nodes */}
+                {type === 'COMPARE' && (
+                    <div className="flex items-center gap-2 bg-slate-100 p-1 rounded border border-slate-200">
+                        <span className="text-xs font-bold text-slate-500 pl-1">A</span>
+                        <select
+                            value={data.operator || '>'}
+                            onChange={(e) => handleChange('operator', e.target.value)}
+                            className="flex-1 bg-white border border-slate-200 rounded text-xs py-1 px-1 font-mono text-center focus:outline-none focus:border-blue-500 cursor-pointer"
+                            onMouseDown={e => e.stopPropagation()}
+                        >
+                            <option value=">">&gt;</option>
+                            <option value="<">&lt;</option>
+                            <option value=">=">&ge;</option>
+                            <option value="<=">&le;</option>
+                            <option value="==">==</option>
+                            <option value="!=">!=</option>
+                        </select>
+                        <span className="text-xs font-bold text-slate-500 pr-1">B</span>
+                    </div>
+                )}
+
+                {type === 'IF' && (
+                    <div className="text-xs text-slate-500 text-center italic">
+                        If Condition is truthy (&gt;0), output TrueVal, else FalseVal.
                     </div>
                 )}
 

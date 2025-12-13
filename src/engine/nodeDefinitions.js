@@ -12,7 +12,7 @@ export const NODE_LOGIC = {
         inputs: [],
         outputs: ['value'],
         compute: (inputs, data) => data.value,
-        data: { value: 0 }
+        data: { value: 0, min: 0, max: 100, step: 1, useSlider: false }
     },
     RANGE: {
         type: 'RANGE',
@@ -34,6 +34,37 @@ export const NODE_LOGIC = {
         category: 'Data',
         dynamicInputs: true,
         compute: (inputs) => Array.isArray(inputs) ? inputs : []
+    },
+
+    // Logic
+    COMPARE: {
+        type: 'COMPARE',
+        label: 'Compare',
+        category: 'Logic',
+        inputs: ['a', 'b'],
+        compute: ({ a, b }, data) => {
+            const op = data.operator || '>';
+            a = a ?? 0; b = b ?? 0;
+            switch (op) {
+                case '>': return a > b ? 1 : 0;
+                case '<': return a < b ? 1 : 0;
+                case '>=': return a >= b ? 1 : 0;
+                case '<=': return a <= b ? 1 : 0;
+                case '==': return a == b ? 1 : 0;
+                case '!=': return a != b ? 1 : 0;
+                default: return 0;
+            }
+        },
+        data: { operator: '>' }
+    },
+    IF: {
+        type: 'IF',
+        label: 'If / Else',
+        category: 'Logic',
+        inputs: ['condition', 'trueVal', 'falseVal'],
+        compute: ({ condition, trueVal, falseVal }) => {
+            return (condition && condition !== 0) ? (trueVal ?? 0) : (falseVal ?? 0);
+        }
     },
 
     // Math
