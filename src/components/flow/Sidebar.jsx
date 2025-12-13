@@ -58,7 +58,10 @@ export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, p
 
             <div className="p-4 flex-1 overflow-y-auto">
                 <CategorySection title="Data" nodes={categories['Data']} />
+                <CategorySection title="String" nodes={categories['String']} />
+                <CategorySection title="Date" nodes={categories['Date']} />
                 <CategorySection title="Array" nodes={categories['Array']} />
+                <CategorySection title="Object" nodes={categories['Object']} />
                 <CategorySection title="Logic" nodes={categories['Logic']} />
                 <CategorySection title="Math" nodes={categories['Math']} />
                 <CategorySection title="Visuals" nodes={categories['Visuals']} />

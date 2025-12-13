@@ -273,6 +273,33 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
+                {type === 'TEXT_INPUT' && (
+                    <div>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Text</label>
+                        <input
+                            type="text"
+                            value={data.text ?? ''}
+                            onChange={(e) => handleChange('text', e.target.value)}
+                            placeholder="Enter text..."
+                            className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-blue-500 dark:text-slate-200"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                )}
+
+                {type === 'DATE_INPUT' && (
+                    <div>
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Date</label>
+                        <input
+                            type="datetime-local"
+                            value={data.date ?? ''}
+                            onChange={(e) => handleChange('date', e.target.value)}
+                            className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-blue-500 dark:text-slate-200"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+                    </div>
+                )}
+
                 {type === 'FORM' && (
                     <div className="flex flex-col gap-2">
                         {(data.fields || []).map((field, i) => (
@@ -604,17 +631,17 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 ))
             }
 
-            {/* Resize Handle for FORM */}
+            {/* Resize Handle for FORM and FINAL */}
             {
-                type === 'FORM' && (
+                (type === 'FORM' || type === 'FINAL') && (
                     <div
-                        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 hover:bg-slate-200 rounded-tl"
+                        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-tl"
                         onMouseDown={(e) => {
                             e.stopPropagation();
                             const startX = e.clientX;
-                            const startWidth = data.width || 256;
+                            const startWidth = data.width || 200;
                             const handleMouseMove = (moveEvent) => {
-                                const newWidth = Math.max(200, startWidth + (moveEvent.clientX - startX));
+                                const newWidth = Math.max(150, startWidth + (moveEvent.clientX - startX));
                                 handleChange('width', newWidth);
                             };
                             const handleMouseUp = () => {
@@ -625,7 +652,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                             window.addEventListener('mouseup', handleMouseUp);
                         }}
                     >
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 text-slate-400 absolute bottom-0.5 right-0.5 pointer-events-none">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3 h-3 text-slate-400 dark:text-slate-500 absolute bottom-0.5 right-0.5 pointer-events-none">
                             <path d="M21 15L15 21M21 8L8 21" />
                         </svg>
                     </div>

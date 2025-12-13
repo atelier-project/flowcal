@@ -14,6 +14,30 @@ export const NODE_LOGIC = {
         compute: (inputs, data) => data.value,
         data: { value: 0, min: 0, max: 100, step: 1, useSlider: false }
     },
+    TEXT_INPUT: {
+        type: 'TEXT_INPUT',
+        label: 'Text Input',
+        category: 'Data',
+        inputs: [],
+        outputs: ['text'],
+        compute: (inputs, data) => data.text ?? '',
+        data: { text: '' }
+    },
+    DATE_INPUT: {
+        type: 'DATE_INPUT',
+        label: 'Date Input',
+        category: 'Data',
+        inputs: [],
+        outputs: ['timestamp'],
+        compute: (inputs, data) => {
+            // Returns timestamp in milliseconds
+            const dateStr = data.date || '';
+            if (!dateStr) return Date.now();
+            const parsed = Date.parse(dateStr);
+            return isNaN(parsed) ? Date.now() : parsed;
+        },
+        data: { date: '' }
+    },
     RANGE: {
         type: 'RANGE',
         label: 'Range Generator',
@@ -86,6 +110,141 @@ export const NODE_LOGIC = {
         }
     },
 
+    // String
+    STRING_CONCAT: {
+        type: 'STRING_CONCAT',
+        label: 'Concat Strings',
+        category: 'String',
+        inputs: ['*'],
+        compute: (inputs) => inputs.map(i => String(i ?? '')).join('')
+    },
+    STRING_SPLIT: {
+        type: 'STRING_SPLIT',
+        label: 'Split String',
+        category: 'String',
+        inputs: ['text', 'delimiter'],
+        computesMulti: true,
+        compute: ({ text, delimiter }, data) => {
+            const str = String(text ?? '');
+            const delim = delimiter !== undefined ? String(delimiter) : (data.delimiter || ',');
+            return str.split(delim);
+        },
+        data: { delimiter: ',' }
+    },
+    STRING_REPLACE: {
+        type: 'STRING_REPLACE',
+        label: 'Replace',
+        category: 'String',
+        inputs: ['text', 'find', 'replace'],
+        compute: ({ text, find, replace }, data) => {
+            const str = String(text ?? '');
+            const f = find !== undefined ? String(find) : (data.find || '');
+            const r = replace !== undefined ? String(replace) : (data.replace || '');
+            return str.replaceAll(f, r);
+        },
+        data: { find: '', replace: '' }
+    },
+    STRING_UPPER: {
+        type: 'STRING_UPPER',
+        label: 'Uppercase',
+        category: 'String',
+        inputs: ['text'],
+        compute: ({ text }) => String(text ?? '').toUpperCase()
+    },
+    STRING_LOWER: {
+        type: 'STRING_LOWER',
+        label: 'Lowercase',
+        category: 'String',
+        inputs: ['text'],
+        compute: ({ text }) => String(text ?? '').toLowerCase()
+    },
+    STRING_LENGTH: {
+        type: 'STRING_LENGTH',
+        label: 'String Length',
+        category: 'String',
+        inputs: ['text'],
+        compute: ({ text }) => String(text ?? '').length
+    },
+    STRING_TRIM: {
+        type: 'STRING_TRIM',
+        label: 'Trim',
+        category: 'String',
+        inputs: ['text'],
+        compute: ({ text }) => String(text ?? '').trim()
+    },
+    STRING_SUBSTRING: {
+        type: 'STRING_SUBSTRING',
+        label: 'Substring',
+        category: 'String',
+        inputs: ['text', 'start', 'end'],
+        compute: ({ text, start, end }) => {
+            const str = String(text ?? '');
+            const s = start ?? 0;
+            const e = end ?? str.length;
+            return str.substring(s, e);
+        }
+    },
+
+    // Date & Time
+    DATE_NOW: {
+        type: 'DATE_NOW',
+        label: 'Now',
+        category: 'Date',
+        inputs: [],
+        compute: () => Date.now()
+    },
+    DATE_FORMAT: {
+        type: 'DATE_FORMAT',
+        label: 'Format Date',
+        category: 'Date',
+        inputs: ['timestamp'],
+        compute: ({ timestamp }, data) => {
+            const ts = timestamp ?? Date.now();
+            const date = new Date(ts);
+            const format = data.format || 'iso';
+            switch (format) {
+                case 'iso': return date.toISOString();
+                case 'date': return date.toLocaleDateString();
+                case 'time': return date.toLocaleTimeString();
+                case 'datetime': return date.toLocaleString();
+                case 'unix': return Math.floor(ts / 1000);
+                default: return date.toISOString();
+            }
+        },
+        data: { format: 'iso' }
+    },
+    DATE_PARSE: {
+        type: 'DATE_PARSE',
+        label: 'Parse Date',
+        category: 'Date',
+        inputs: ['text'],
+        compute: ({ text }) => {
+            const parsed = Date.parse(String(text ?? ''));
+            return isNaN(parsed) ? 0 : parsed;
+        }
+    },
+    DATE_DIFF: {
+        type: 'DATE_DIFF',
+        label: 'Date Diff',
+        category: 'Date',
+        inputs: ['date1', 'date2'],
+        compute: ({ date1, date2 }, data) => {
+            const d1 = date1 ?? Date.now();
+            const d2 = date2 ?? Date.now();
+            const diffMs = Math.abs(d1 - d2);
+            const unit = data.unit || 'ms';
+            switch (unit) {
+                case 'ms': return diffMs;
+                case 'seconds': return diffMs / 1000;
+                case 'minutes': return diffMs / 60000;
+                case 'hours': return diffMs / 3600000;
+                case 'days': return diffMs / 86400000;
+                default: return diffMs;
+            }
+        },
+        data: { unit: 'days' }
+    },
+
     // Array
     GET: {
         type: 'GET',
@@ -102,7 +261,7 @@ export const NODE_LOGIC = {
     GET_KEY: {
         type: 'GET_KEY',
         label: 'Get Value',
-        category: 'Logic',
+        category: 'Object',
         inputs: ['object'],
         compute: ({ object }, data) => {
             const obj = (typeof object === 'object' && object !== null) ? object : {};
@@ -182,7 +341,7 @@ export const NODE_LOGIC = {
     OBJECT_COMBINE: {
         type: 'OBJECT_COMBINE',
         label: 'Combine Objects',
-        category: 'Logic',
+        category: 'Object',
         inputs: ['*'],
         compute: (inputs) => {
             // Merges multiple objects into one (later objects override earlier)
@@ -197,7 +356,7 @@ export const NODE_LOGIC = {
     OBJECT_FLATTEN: {
         type: 'OBJECT_FLATTEN',
         label: 'Flatten Object',
-        category: 'Logic',
+        category: 'Object',
         inputs: ['object'],
         compute: ({ object }) => {
             // Flattens nested object with dot notation keys
@@ -276,6 +435,20 @@ export const NODE_LOGIC = {
             return Math.round(v * factor) / factor;
         }
     },
+    FLOOR: {
+        type: 'FLOOR',
+        label: 'Floor',
+        category: 'Math',
+        inputs: ['val'],
+        compute: ({ val }) => Math.floor(val ?? 0)
+    },
+    CEIL: {
+        type: 'CEIL',
+        label: 'Ceil',
+        category: 'Math',
+        inputs: ['val'],
+        compute: ({ val }) => Math.ceil(val ?? 0)
+    },
     RANDOM: {
         type: 'RANDOM',
         label: 'Random',
@@ -290,7 +463,7 @@ export const NODE_LOGIC = {
     CUSTOM: {
         type: 'CUSTOM',
         label: 'Custom JS',
-        category: 'Math',
+        category: 'Advanced',
         inputs: ['*'],
         compute: (inputs, data) => {
             try {
@@ -355,7 +528,8 @@ export const NODE_LOGIC = {
         label: 'Final Result',
         category: 'Visuals',
         inputs: ['val'],
-        compute: (inputs) => inputs.length > 0 ? inputs[0] : 0
+        compute: (inputs) => inputs.length > 0 ? inputs[0] : 0,
+        data: { width: 200 }
     },
 
     // Advanced & Grouping
