@@ -168,6 +168,54 @@ export const NODE_LOGIC = {
         },
         data: { operator: '>' }
     },
+    ARRAY_FLATTEN: {
+        type: 'ARRAY_FLATTEN',
+        label: 'Flatten Arrays',
+        category: 'Array',
+        inputs: ['*'],
+        computesMulti: true,
+        compute: (inputs) => {
+            // Takes multiple arrays and flattens them into a single array
+            return inputs.flat(Infinity);
+        }
+    },
+    OBJECT_COMBINE: {
+        type: 'OBJECT_COMBINE',
+        label: 'Combine Objects',
+        category: 'Logic',
+        inputs: ['*'],
+        compute: (inputs) => {
+            // Merges multiple objects into one (later objects override earlier)
+            return inputs.reduce((acc, obj) => {
+                if (typeof obj === 'object' && obj !== null && !Array.isArray(obj)) {
+                    return { ...acc, ...obj };
+                }
+                return acc;
+            }, {});
+        }
+    },
+    OBJECT_FLATTEN: {
+        type: 'OBJECT_FLATTEN',
+        label: 'Flatten Object',
+        category: 'Logic',
+        inputs: ['object'],
+        compute: ({ object }) => {
+            // Flattens nested object with dot notation keys
+            const flatten = (obj, prefix = '') => {
+                const result = {};
+                for (const [key, val] of Object.entries(obj || {})) {
+                    const newKey = prefix ? `${prefix}.${key}` : key;
+                    if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+                        Object.assign(result, flatten(val, newKey));
+                    } else {
+                        result[newKey] = val;
+                    }
+                }
+                return result;
+            };
+            return flatten(typeof object === 'object' && object !== null ? object : {});
+        }
+    },
 
     // Math
     SUM: {
