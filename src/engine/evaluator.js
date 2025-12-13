@@ -177,8 +177,12 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
         // Registry Lookup
         const def = NODE_LOGIC[node.type] || {};
 
-        if (node.type === 'GROUP_INPUT') {
-            return contextInputs[node.id] !== undefined ? contextInputs[node.id] : (node.data.value || 0);
+
+        // 1. Check if Value is provided via Context (e.g. Group Inputs)
+        if (contextInputs[node.id] !== undefined) {
+            const val = contextInputs[node.id];
+            results[nodeId] = val;
+            return val;
         }
 
         const connectedEdges = edges.filter(e => e.target === node.id);

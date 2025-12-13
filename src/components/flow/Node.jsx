@@ -397,11 +397,17 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Function (inputs array)</label>
                         <textarea
                             value={data.func || 'return inputs.reduce((a,b) => a+b, 0);'}
-                            onChange={(e) => handleChange('func', e.target.value)}
-                            className="w-full h-24 px-2 py-1 bg-slate-900 text-green-400 border border-slate-700 rounded text-xs focus:outline-none focus:border-blue-500 font-mono resize-none"
-                            placeholder="return inputs[0] + 1;"
-                            onMouseDown={(e) => e.stopPropagation()}
+                            className="w-full h-24 p-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded font-mono text-[10px] resize-none focus:outline-none"
+                            onMouseDown={e => e.stopPropagation()}
+                            onDoubleClick={() => onOpenEditor(id, data.func, inputs)}
+                            readOnly
                         />
+                        <button
+                            onClick={() => onOpenEditor(id, data.func, inputs)}
+                            className="mt-1 w-full flex items-center justify-center gap-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-xs py-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                        >
+                            <Maximize2 size={12} /> Open Editor
+                        </button>
                     </div>
                 )}
 
@@ -432,6 +438,13 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     <div className="text-xs text-slate-500 dark:text-slate-400 italic">
                         {inputHandles.length === 0 && outputHandles.length === 0 ? "Empty Group. Drop nodes here or Edit." : ""}
                         {isHovered && <div className="mt-2 text-blue-500 font-bold">Drop to move inside</div>}
+                    </div>
+                )}
+
+                {/* Display Value for Group Input */}
+                {type === 'GROUP_INPUT' && (
+                    <div className="text-xs font-mono text-center text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700/50 rounded p-1 mt-1 border border-slate-200 dark:border-slate-600 break-words whitespace-pre-wrap max-w-[200px] overflow-x-auto text-left">
+                        {formatResult(result)}
                     </div>
                 )}
 
