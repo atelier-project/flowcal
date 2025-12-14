@@ -32,5 +32,11 @@ export const getNodeHeight = (node) => {
         return Math.max(160, (fields.length * 30) + 140);
     }
 
+    if (node.type === 'FUNCTION') {
+        const params = node.data.params || [];
+        // Header (40) + Params section (n * 30) + Code area (60) + Add button (30) + Result (40)
+        return Math.max(200, (params.length * 30) + 180);
+    }
+
     return 160;
 };
