@@ -631,27 +631,57 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
 
                 {/* Display Value for Group Input */}
                 {type === 'GROUP_INPUT' && (
-                    <div className="pt-1 border-t border-slate-100 dark:border-slate-700/50">
-                        <div className="flex flex-col gap-1">
-                            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">VALUE</span>
-                            {typeof result === 'object' && result !== null ? (
-                                <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-1 rounded border border-slate-100 dark:border-slate-700 break-all whitespace-pre-wrap max-h-20 overflow-y-auto">
-                                    {JSON.stringify(result, null, 1).replace(/"/g, '')}
-                                </div>
-                            ) : (
-                                <span className="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono">
-                                    {formatResult(result)}
-                                </span>
-                            )}
+                    <div className="space-y-2">
+                        <div>
+                            <label className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-1">Description</label>
+                            <textarea
+                                value={data.description || ''}
+                                onChange={(e) => handleChange('description', e.target.value)}
+                                placeholder="e.g., Object with keys: name, age"
+                                className="w-full h-12 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs focus:outline-none focus:border-pink-500 resize-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                        <div className="pt-1 border-t border-slate-100 dark:border-slate-700/50">
+                            <div className="flex flex-col gap-1">
+                                <span className="text-xs font-bold text-slate-400 dark:text-slate-500">VALUE</span>
+                                {typeof result === 'object' && result !== null ? (
+                                    <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-1 rounded border border-slate-100 dark:border-slate-700 break-all whitespace-pre-wrap max-h-20 overflow-y-auto">
+                                        {JSON.stringify(result, null, 1).replace(/"/g, '')}
+                                    </div>
+                                ) : (
+                                    <span className="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono">
+                                        {formatResult(result)}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Display Value for Group Output */}
+                {type === 'GROUP_OUTPUT' && (
+                    <div className="space-y-2">
+                        <div>
+                            <label className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-1">Description</label>
+                            <textarea
+                                value={data.description || ''}
+                                onChange={(e) => handleChange('description', e.target.value)}
+                                placeholder="e.g., Calculated total with tax"
+                                className="w-full h-12 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs focus:outline-none focus:border-pink-500 resize-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            />
                         </div>
                     </div>
                 )}
 
                 {/* Render Labels for Group/Node Ports */}
                 {inputHandles.map((h, i) => h.label && (
-                    <div key={h.id || i} className="absolute left-3 flex items-center gap-1 group/handle"
-                        style={{ top: typeof h.top === 'number' ? h.top : h.top, transform: 'translateY(-50%)' }}>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono pointer-events-none">{h.label}</span>
+                    <div key={h.id || i} className="absolute left-3 flex items-center gap-1 group/handle cursor-help"
+                        style={{ top: typeof h.top === 'number' ? h.top : h.top, transform: 'translateY(-50%)' }}
+                        title={h.description || undefined}>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{h.label}</span>
+                        {h.description && <span className="text-[8px] text-pink-400 dark:text-pink-500">ⓘ</span>}
                         {/* Reorder Inputs */}
                         {inputHandles.length > 1 && (
                             <div className="flex flex-col opacity-0 group-hover/handle:opacity-100 transition-opacity bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded">
