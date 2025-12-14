@@ -555,13 +555,70 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 )}
 
                 {type === 'COMMENT' && (
-                    <div className="flex-1 flex flex-col">
+                    <div className="flex-1 flex flex-col relative">
+                        {/* Color Picker */}
+                        <div className="flex items-center gap-1 mb-2">
+                            <span className="text-[10px] text-slate-500">Color:</span>
+                            {['#fef3c7', '#fce7f3', '#dbeafe', '#dcfce7', '#f3e8ff', '#fed7aa'].map(c => (
+                                <button
+                                    key={c}
+                                    onClick={() => handleChange('color', c)}
+                                    className={`w-4 h-4 rounded-full border-2 ${data.color === c ? 'border-slate-600 scale-110' : 'border-transparent'}`}
+                                    style={{ backgroundColor: c }}
+                                    title={c}
+                                />
+                            ))}
+                            <input
+                                type="color"
+                                value={data.color || '#fef3c7'}
+                                onChange={(e) => handleChange('color', e.target.value)}
+                                className="w-4 h-4 cursor-pointer border-0 p-0"
+                                title="Custom color"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            />
+                        </div>
                         <textarea
                             value={data.text ?? ''}
                             onChange={(e) => handleChange('text', e.target.value)}
                             placeholder="Add your notes..."
-                            className="w-full flex-1 min-h-[60px] p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-sm text-amber-900 dark:text-amber-200 placeholder:text-amber-400 resize-none focus:outline-none focus:border-amber-400"
+                            style={{
+                                backgroundColor: data.color || '#fef3c7',
+                                minHeight: `${data.height || 120}px`,
+                                width: '100%'
+                            }}
+                            className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded text-sm text-slate-800 placeholder:text-slate-400 resize focus:outline-none focus:ring-2 focus:ring-amber-400"
                             onMouseDown={(e) => e.stopPropagation()}
+                        />
+                        {/* Resize Handle */}
+                        <div
+                            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100"
+                            style={{
+                                background: 'linear-gradient(135deg, transparent 50%, #94a3b8 50%)',
+                                borderBottomRightRadius: '4px'
+                            }}
+                            onMouseDown={(e) => {
+                                e.stopPropagation();
+                                const startX = e.clientX;
+                                const startY = e.clientY;
+                                const startWidth = data.width || 256;
+                                const startHeight = data.height || 120;
+
+                                const onMove = (ev) => {
+                                    const newWidth = Math.max(150, startWidth + (ev.clientX - startX));
+                                    const newHeight = Math.max(60, startHeight + (ev.clientY - startY));
+                                    handleChange('width', newWidth);
+                                    handleChange('height', newHeight);
+                                };
+
+                                const onUp = () => {
+                                    document.removeEventListener('mousemove', onMove);
+                                    document.removeEventListener('mouseup', onUp);
+                                };
+
+                                document.addEventListener('mousemove', onMove);
+                                document.addEventListener('mouseup', onUp);
+                            }}
+                            title="Drag to resize"
                         />
                     </div>
                 )}
