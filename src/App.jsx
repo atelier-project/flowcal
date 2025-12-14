@@ -11,6 +11,7 @@ import { Sidebar } from './components/flow/Sidebar';
 import { CodeEditorModal } from './components/ui/Modal';
 import { HelpModal } from './components/ui/HelpModal';
 import { Snowfall } from './components/ui/Snowfall';
+import { CustomNodeModal } from './components/ui/CustomNodeModal';
 
 import { generateId } from './utils/ids';
 import { getHandlePosition, getBezierPath } from './utils/geometry';
@@ -18,6 +19,7 @@ import { getNodeHeight } from './utils/layout';
 import { evaluateGraph, ENGINE_SCRIPT } from './engine/evaluator';
 import { useDebounce } from './hooks/useDebounce';
 import { useHistory } from './hooks/useHistory';
+import { getCustomNodes, saveCustomNode, createCustomNodeFromGroup, instantiateCustomNode, deleteCustomNode, exportCustomNode, importCustomNode } from './utils/customNodeStore';
 
 // Helper to match engine resolution logic
 const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
@@ -69,6 +71,8 @@ export default function NodeCalcApp() {
   const [projectTitle, setProjectTitle] = useState('Untitled Flow');
   const [gridSettings, setGridSettings] = useState({ enabled: true, style: 'technical', opacity: 0.3 });
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
+  const [customNodes, setCustomNodes] = useState([]);
+  const [customNodeModal, setCustomNodeModal] = useState({ isOpen: false, groupNode: null });
 
   const NODE_WIDTH = 256;
 
@@ -82,6 +86,52 @@ export default function NodeCalcApp() {
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+
+  // Load custom nodes on mount
+  useEffect(() => {
+    setCustomNodes(getCustomNodes());
+  }, []);
+
+  // Handle saving a GROUP as a custom node
+  const handleSaveAsCustomNode = (groupNode) => {
+    setCustomNodeModal({ isOpen: true, groupNode });
+  };
+
+  const handleCustomNodeSave = (metadata) => {
+    const groupNode = customNodeModal.groupNode;
+    const customNode = createCustomNodeFromGroup(groupNode, metadata);
+    const updated = saveCustomNode(customNode);
+    setCustomNodes(updated);
+    setCustomNodeModal({ isOpen: false, groupNode: null });
+  };
+
+  // Add a custom node instance to the canvas
+  const addCustomNode = (customNodeId) => {
+    const customNode = customNodes.find(n => n.id === customNodeId);
+    if (!customNode) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = (-pan.x + rect.width / 2) / scale - 100;
+    const y = (-pan.y + rect.height / 2) / scale - 50;
+    const newNode = instantiateCustomNode(customNode, { x, y });
+    setGraph({ nodes: [...nodes, newNode], edges });
+  };
+
+  // Handle custom node file import
+  const handleImportCustomNode = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const updated = importCustomNode(event.target.result);
+        setCustomNodes(updated);
+      } catch (err) {
+        alert('Failed to import custom node: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = null;
+  };
 
   // --- Engine Integration ---
   useEffect(() => {
@@ -717,6 +767,12 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
       <style>{`@keyframes dash { to { stroke - dashoffset: -20; } } .animate - dash { animation: dash 1s linear infinite; } `}</style>
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
       <Snowfall enabled={THEMES[theme]?.hasSnow === true} />
+      <CustomNodeModal
+        isOpen={customNodeModal.isOpen}
+        groupNode={customNodeModal.groupNode}
+        onSave={handleCustomNodeSave}
+        onClose={() => setCustomNodeModal({ isOpen: false, groupNode: null })}
+      />
     </div>
   );
 }
