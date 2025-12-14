@@ -1,6 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import {
-    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp
+    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp, Package
 } from 'lucide-react';
 import { getNodeHeight } from '../../utils/layout';
 import { GaugeChart, LineChart, BarChart } from '../ui/Charts';
@@ -9,7 +9,7 @@ import { Handle } from './Handle';
 import { getUI } from './nodeUIMap';
 import { getDefinition } from '../../engine/nodeDefinitions';
 
-export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup }) => {
+export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom }) => {
     const nodeRef = useRef(null);
     const ui = getUI(type);
     const def = getDefinition(type);
@@ -244,7 +244,12 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         <button onClick={(e) => { e.stopPropagation(); onOpenEditor(id, data.func); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Open Editor"><Maximize2 size={14} /></button>
                     )}
                     {type === 'GROUP' && (
-                        <button onClick={(e) => { e.stopPropagation(); onEnterGroup(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Edit Group"><Settings size={14} /></button>
+                        <>
+                            <button onClick={(e) => { e.stopPropagation(); onEnterGroup(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Edit Group"><Settings size={14} /></button>
+                            {onSaveAsCustom && (
+                                <button onClick={(e) => { e.stopPropagation(); onSaveAsCustom({ id, type, data, position }); }} className="text-slate-400 hover:text-purple-500 dark:hover:text-purple-400 p-1" title="Save as Custom Node"><Package size={14} /></button>
+                            )}
+                        </>
                     )}
                     {/* Collapse toggle for large nodes */}
                     {['TEMPLATE', 'GROUP', 'FORM', 'COMMENT'].includes(type) && (

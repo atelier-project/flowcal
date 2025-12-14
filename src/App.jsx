@@ -755,6 +755,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
               onStartConnect={handleConnectionStart}
               onEnterGroup={enterGroup}
               onOpenEditor={(id, code, inputs) => setEditor({ isOpen: true, nodeId: id, code, inputs })}
+              onSaveAsCustom={handleSaveAsCustomNode}
             />
           ))}
         </div>
