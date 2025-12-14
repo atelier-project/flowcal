@@ -585,6 +585,38 @@ export const NODE_LOGIC = {
         inputs: [],
         compute: () => null,
         data: { text: 'Add your notes here...', width: 200 }
+    },
+    FUNCTION: {
+        type: 'FUNCTION',
+        label: 'Function',
+        category: 'Advanced',
+        dynamicInputs: true,
+        outputs: ['result'],
+        compute: (inputs, data) => {
+            const params = data.params || [];
+            const code = data.code || 'return 0';
+
+            // Build parameter object from inputs array
+            const paramValues = {};
+            params.forEach((param, i) => {
+                paramValues[param.name || `p${i}`] = inputs[i] ?? param.default ?? 0;
+            });
+
+            try {
+                // Create function with named parameters
+                const paramNames = params.map(p => p.name || `p${params.indexOf(p)}`);
+                const fn = new Function(...paramNames, code);
+                const result = fn(...paramNames.map(name => paramValues[name]));
+                return result;
+            } catch (e) {
+                console.error('Function node error:', e);
+                return NaN;
+            }
+        },
+        data: {
+            params: [], // Array of { name: 'x', default: 0 }
+            code: 'return 0'
+        }
     }
 };
 
