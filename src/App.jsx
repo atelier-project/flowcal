@@ -66,6 +66,8 @@ export default function NodeCalcApp() {
   const [editor, setEditor] = useState({ isOpen: false, nodeId: null, code: '' });
   const [helpOpen, setHelpOpen] = useState(false);
   const [projectTitle, setProjectTitle] = useState('Untitled Flow');
+  const [gridSettings, setGridSettings] = useState({ enabled: true, style: 'technical', opacity: 0.3 });
+  const [gridMenuOpen, setGridMenuOpen] = useState(false);
 
   const NODE_WIDTH = 256;
 
@@ -579,7 +581,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
-        <BackgroundGrid offset={pan} />
+        {gridSettings.enabled && <BackgroundGrid offset={pan} style={gridSettings.style} opacity={gridSettings.opacity} />}
         {selectionBox && (
           <SelectionBox rect={selectionBox} />
         )}
