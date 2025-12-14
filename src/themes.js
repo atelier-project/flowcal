@@ -129,6 +129,43 @@ export const THEMES = {
             '--connection-stroke': '#ff6b6b',
             '--connection-glow': 'rgba(255, 107, 107, 0.5)',
         }
+    },
+    christmas: {
+        name: '🎄 Christmas',
+        isDark: true,
+        hasSnow: true,
+        colors: {
+            '--bg-primary': '#1a0a0a',
+            '--bg-secondary': '#2d1515',
+            '--bg-tertiary': '#3d2020',
+            '--border-primary': '#2e7d32',
+            '--border-secondary': '#c62828',
+            '--text-primary': '#fffde7',
+            '--text-secondary': '#81c784',
+            '--text-muted': '#a5d6a7',
+            '--accent-primary': '#c62828',
+            '--accent-secondary': '#ffd54f',
+            '--connection-stroke': '#2e7d32',
+            '--connection-glow': 'rgba(46, 125, 50, 0.6)',
+        }
+    },
+    pink: {
+        name: '💕 Pink',
+        isDark: false,
+        colors: {
+            '--bg-primary': '#fff0f5',
+            '--bg-secondary': '#ffffff',
+            '--bg-tertiary': '#fce4ec',
+            '--border-primary': '#f8bbd9',
+            '--border-secondary': '#f48fb1',
+            '--text-primary': '#880e4f',
+            '--text-secondary': '#ad1457',
+            '--text-muted': '#c2185b',
+            '--accent-primary': '#e91e63',
+            '--accent-secondary': '#9c27b0',
+            '--connection-stroke': '#e91e63',
+            '--connection-glow': 'rgba(233, 30, 99, 0.5)',
+        }
     }
 };
 
