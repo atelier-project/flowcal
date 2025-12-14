@@ -551,6 +551,70 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
+                {type === 'FUNCTION' && (
+                    <div className="space-y-2">
+                        {/* Parameters */}
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Parameters</label>
+                            {(data.params || []).map((param, i) => (
+                                <div key={i} className="flex items-center gap-1 mb-1">
+                                    <input
+                                        type="text"
+                                        value={param.name || ''}
+                                        onChange={(e) => {
+                                            const newParams = [...(data.params || [])];
+                                            newParams[i] = { ...newParams[i], name: e.target.value };
+                                            handleChange('params', newParams);
+                                        }}
+                                        placeholder={`p${i}`}
+                                        className="flex-1 h-6 px-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs font-mono focus:outline-none focus:border-emerald-500"
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            const newParams = (data.params || []).filter((_, idx) => idx !== i);
+                                            handleChange('params', newParams);
+                                        }}
+                                        className="w-6 h-6 flex items-center justify-center text-red-400 hover:text-red-600 text-sm"
+                                        title="Remove parameter"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            ))}
+                            <button
+                                onClick={() => {
+                                    const newParams = [...(data.params || []), { name: '', default: 0 }];
+                                    handleChange('params', newParams);
+                                }}
+                                className="w-full mt-1 py-1 text-xs text-emerald-600 dark:text-emerald-400 border border-dashed border-emerald-300 dark:border-emerald-700 rounded hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                            >
+                                + Add Parameter
+                            </button>
+                        </div>
+
+                        {/* Code */}
+                        <div>
+                            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Formula</label>
+                            <textarea
+                                value={data.code || 'return 0'}
+                                onChange={(e) => handleChange('code', e.target.value)}
+                                className="w-full h-12 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs font-mono focus:outline-none focus:border-emerald-500 resize-none"
+                                placeholder="return a + b"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            />
+                        </div>
+
+                        {/* Result */}
+                        <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded">
+                            <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Result: </span>
+                            <span className="text-sm font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                                {result !== undefined && result !== null ? formatResult(result) : '—'}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 {type === 'GROUP' && (
                     <div className="text-xs text-slate-500 dark:text-slate-400 italic">
                         {inputHandles.length === 0 && outputHandles.length === 0 ? "Empty Group. Drop nodes here or Edit." : ""}
