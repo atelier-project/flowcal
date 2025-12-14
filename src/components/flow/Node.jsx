@@ -1,6 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import {
-    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy
+    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp
 } from 'lucide-react';
 import { getNodeHeight } from '../../utils/layout';
 import { GaugeChart, LineChart, BarChart } from '../ui/Charts';
@@ -65,11 +65,14 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             });
         }
 
-        // Assign positions
+        // Assign positions - if collapsed, all handles at single point
+        if (data.collapsed) {
+            return handles.map((h) => ({ ...h, top: 20 }));
+        }
         if (handles.length === 1 && handles[0].top) return handles; // Keep default centered
         return handles.map((h, i) => ({ ...h, top: 40 + (i * 24) }));
 
-    }, [type, data.subGraph, data.inputCount, def, data.inputOrder]);
+    }, [type, data.subGraph, data.inputCount, def, data.inputOrder, data.collapsed]);
 
     const minHeight = getNodeHeight({ type, data });
 
@@ -105,9 +108,14 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             });
         }
 
+        // All handles at single point when collapsed
+        if (data.collapsed) {
+            return handles.map((h) => ({ ...h, top: 20 }));
+        }
+
         if (handles.length === 1 && handles[0].top) return handles;
         return handles.map((h, i) => ({ ...h, top: 40 + (i * 24) }));
-    }, [type, data.subGraph, def, data.outputOrder, minHeight]);
+    }, [type, data.subGraph, def, data.outputOrder, minHeight, data.collapsed]);
 
 
     // --- Helpers ---
@@ -232,6 +240,16 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     {type === 'GROUP' && (
                         <button onClick={(e) => { e.stopPropagation(); onEnterGroup(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Edit Group"><Settings size={14} /></button>
                     )}
+                    {/* Collapse toggle for large nodes */}
+                    {['TEMPLATE', 'GROUP', 'FORM', 'COMMENT'].includes(type) && (
+                        <button
+                            onClick={(e) => { e.stopPropagation(); handleChange('collapsed', !data.collapsed); }}
+                            className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+                            title={data.collapsed ? 'Expand' : 'Collapse'}
+                        >
+                            {data.collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                        </button>
+                    )}
                     {onDuplicate && (
                         <button onClick={(e) => { e.stopPropagation(); onDuplicate(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Duplicate (Ctrl+D)"><Copy size={14} /></button>
                     )}
@@ -239,8 +257,8 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 </div>
             </div>
 
-            {/* Body */}
-            <div className="p-3 space-y-3 flex-1 flex flex-col">
+            {/* Body - conditionally render based on collapsed state */}
+            {!data.collapsed && <div className="p-3 space-y-3 flex-1 flex flex-col">
                 {type === 'INPUT' && (
                     <div>
                         <div className="flex items-center justify-between mb-1">
@@ -637,7 +655,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         )}
                     </div>
                 )}
-            </div>
+            </div>}
 
             {
                 inputHandles.map(h => (

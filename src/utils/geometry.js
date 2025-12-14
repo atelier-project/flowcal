@@ -45,8 +45,14 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             handles = getSortedOrder(handles, node.data.inputOrder);
 
             const idx = handles.indexOf(handleId);
-            if (idx !== -1) y += 40 + (idx * 24);
-            else y += 50;
+            // If collapsed, all handles at single point
+            if (node.data?.collapsed) {
+                y += 20;
+            } else if (idx !== -1) {
+                y += 40 + (idx * 24);
+            } else {
+                y += 50;
+            }
         } else if (node.type === 'COLLECTOR') {
             const idx = parseInt(handleId?.split('_')[1] || '0', 10);
             y += 40 + (idx * 24);
@@ -95,8 +101,14 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             handles = getSortedOrder(handles, node.data.outputOrder);
 
             const idx = handles.indexOf(handleId);
-            if (idx !== -1) y += 40 + (idx * 24);
-            else y += 50;
+            // If collapsed, all handles at single point
+            if (node.data?.collapsed) {
+                y += 20;
+            } else if (idx !== -1) {
+                y += 40 + (idx * 24);
+            } else {
+                y += 50;
+            }
         } else if (node.type === 'FORM') {
             // FORM output should be centered based on node height
             const height = getNodeHeight(node);

@@ -4,6 +4,9 @@
 export const getNodeHeight = (node) => {
     if (!node) return 160;
 
+    // If node is collapsed, return just header height
+    if (node.data?.collapsed) return 40;
+
     if (node.type === 'GROUP') {
         const inputs = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT') || [];
         const outputs = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_OUTPUT') || [];
