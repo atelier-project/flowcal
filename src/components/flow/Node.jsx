@@ -40,6 +40,13 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             } else {
                 handles = [];
             }
+        } else if (type === 'FUNCTION') {
+            const params = data.params || [];
+            handles = params.map((param, i) => ({
+                id: `param_${i}`,
+                label: param.name || `p${i}`,
+                top: 80 + (i * 30)
+            }));
         } else if (type === 'COLLECTOR' || (def && def.dynamicInputs)) {
             const count = data.inputCount || 2;
             handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}` }));
@@ -75,7 +82,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         if (handles.length === 1 && handles[0].top) return handles; // Keep default centered
         return handles.map((h, i) => ({ ...h, top: 40 + (i * 24) }));
 
-    }, [type, data.subGraph, data.inputCount, def, data.inputOrder, data.collapsed]);
+    }, [type, data.subGraph, data.inputCount, data.params, def, data.inputOrder, data.collapsed]);
 
     const minHeight = getNodeHeight({ type, data });
 

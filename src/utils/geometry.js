@@ -60,6 +60,10 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             const idx = parseInt(handleId?.split('_')[1] || '0', 10);
             // Matched with Node.jsx: 48 + (i * 30)
             y += 48 + (idx * 30);
+        } else if (node.type === 'FUNCTION') {
+            const idx = parseInt(handleId?.split('_')[1] || '0', 10);
+            // Matched with Node.jsx: 80 + (i * 30)
+            y += 80 + (idx * 30);
         } else if (node.type === 'GAUGE') {
             // Hardcoded legacy
             if (handleId === 'val') y += 40;
