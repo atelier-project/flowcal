@@ -486,6 +486,12 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                             placeholder="Result: {0}, Tax: {1}"
                             onMouseDown={(e) => e.stopPropagation()}
                         />
+                        <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                            <label className="block text-xs font-medium text-blue-500 dark:text-blue-400 mb-1">Output</label>
+                            <div className="text-sm font-mono text-blue-700 dark:text-blue-300 break-words whitespace-pre-wrap">
+                                {result !== undefined ? formatResult(result) : <span className="text-blue-300 italic">Connect inputs...</span>}
+                            </div>
+                        </div>
                     </div>
                 )}
 

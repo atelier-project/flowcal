@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef } from 'react';
 import { Download, Upload, FileJson, Search, HelpCircle } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
@@ -7,6 +7,7 @@ import { getUI } from './nodeUIMap';
 
 export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp }) => {
     const [searchQuery, setSearchQuery] = useState('');
+    const scrollRef = useRef(null);
 
     const categories = useMemo(() => {
         const cats = {};
@@ -33,6 +34,18 @@ export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, p
         return filtered;
     }, [categories, searchQuery]);
 
+    // Wrapper to preserve scroll position when adding nodes
+    const handleAddNode = (type) => {
+        const scrollTop = scrollRef.current?.scrollTop || 0;
+        onAddNode(type);
+        // Restore scroll position after React re-renders
+        requestAnimationFrame(() => {
+            if (scrollRef.current) {
+                scrollRef.current.scrollTop = scrollTop;
+            }
+        });
+    };
+
     const CategorySection = ({ title, nodes }) => {
         if (!nodes || nodes.length === 0) return null;
         return (
@@ -47,7 +60,7 @@ export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, p
                     return (
                         <button
                             key={def.type}
-                            onClick={() => onAddNode(def.type)}
+                            onClick={() => handleAddNode(def.type)}
                             title={getDescription(def.type)}
                             style={{
                                 backgroundColor: 'var(--bg-tertiary)',
@@ -100,7 +113,7 @@ export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, p
                 </div>
             </div>
 
-            <div className="p-4 flex-1 overflow-y-auto">
+            <div ref={scrollRef} className="p-4 flex-1 overflow-y-auto">
                 <CategorySection title="Data" nodes={filteredCategories['Data']} />
                 <CategorySection title="String" nodes={filteredCategories['String']} />
                 <CategorySection title="Date" nodes={filteredCategories['Date']} />

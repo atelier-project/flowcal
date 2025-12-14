@@ -543,6 +543,7 @@ export const NODE_LOGIC = {
         label: 'Text Template',
         category: 'Visuals',
         inputs: ['*'],
+        outputs: ['text'],
         compute: (inputs, data) => {
             const template = data.template || '{0}';
             return template.replace(/{(\d+)}/g, (m, i) => inputs[i] !== undefined ? (typeof inputs[i] === 'number' ? inputs[i].toFixed(2) : inputs[i]) : m);
