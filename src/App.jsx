@@ -10,6 +10,7 @@ import { SelectionBox } from './components/flow/SelectionBox';
 import { Sidebar } from './components/flow/Sidebar';
 import { CodeEditorModal } from './components/ui/Modal';
 import { HelpModal } from './components/ui/HelpModal';
+import { Snowfall } from './components/ui/Snowfall';
 
 import { generateId } from './utils/ids';
 import { getHandlePosition, getBezierPath } from './utils/geometry';
@@ -715,6 +716,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
       </div>
       <style>{`@keyframes dash { to { stroke - dashoffset: -20; } } .animate - dash { animation: dash 1s linear infinite; } `}</style>
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
+      <Snowfall enabled={THEMES[theme]?.hasSnow === true} />
     </div>
   );
 }
