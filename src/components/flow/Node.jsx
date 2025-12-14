@@ -48,6 +48,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 id: name,
                 label: name.charAt(0).toUpperCase() + name.slice(1),
             }));
+        } else if (type === 'TEMPLATE') {
+            // TEMPLATE has variable textarea, so fix input at top of body area
+            handles = [{ id: null, top: 60 }];
         } else if (type !== 'INPUT' && type !== 'GROUP_INPUT') {
             // Default single input for most nodes
             handles = [{ id: null, top: '50%' }];
@@ -82,6 +85,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             handles = data.subGraph.nodes
                 .filter(n => n.type === 'GROUP_OUTPUT')
                 .map((n, idx) => ({ id: n.id, label: n.data.label || `Output ${idx + 1}` }));
+        } else if (type === 'TEMPLATE') {
+            // TEMPLATE output - fixed at same height as input for visual balance
+            handles = [{ id: 'text', label: 'Text', top: 60 }];
         } else if (def && def.outputs) {
             handles = def.outputs.map((name) => ({
                 id: name,

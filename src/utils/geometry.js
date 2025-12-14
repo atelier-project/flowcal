@@ -72,6 +72,9 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             else y += 40;
         } else if (node.type === 'CUSTOM') {
             y += 100; // Custom usually has textarea above
+        } else if (node.type === 'TEMPLATE') {
+            // TEMPLATE input - fixed position, or collapsed at 20
+            y += node.data?.collapsed ? 20 : 60;
         } else if (def.inputs && !def.inputs.includes('*')) {
             // Registry Defined
             let handles = [...def.inputs];
@@ -113,6 +116,9 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             // FORM output should be centered based on node height
             const height = getNodeHeight(node);
             y += height / 2;
+        } else if (node.type === 'TEMPLATE') {
+            // TEMPLATE output - fixed position, or collapsed at 20
+            y += node.data?.collapsed ? 20 : 60;
         } else if (def.outputs) {
             let handles = [...def.outputs];
             handles = getSortedOrder(handles, node.data.outputOrder);
