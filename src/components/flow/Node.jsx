@@ -193,6 +193,111 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         }
     };
 
+    // Special rendering for FRAME node - always stays at back
+    if (type === 'FRAME') {
+        return (
+            <div
+                ref={nodeRef}
+                style={{
+                    transform: `translate(${position.x}px, ${position.y}px)`,
+                    width: `${data.width || 300}px`,
+                    height: `${data.height || 200}px`,
+                    borderColor: data.color || '#3b82f6',
+                    borderStyle: data.lineStyle || 'solid',
+                    backgroundColor: `${data.color || '#3b82f6'}10`
+                }}
+                className={`absolute rounded-lg border-2 z-0 ${selected ? 'ring-2 ring-blue-400' : ''}`}
+                onMouseDown={(e) => onDragStart(e, id)}
+            >
+                {/* Title */}
+                <div className="absolute -top-6 left-2 flex items-center gap-2">
+                    <input
+                        type="text"
+                        value={data.title || ''}
+                        onChange={(e) => handleChange('title', e.target.value)}
+                        placeholder="Frame"
+                        className="bg-transparent text-sm font-semibold focus:outline-none px-1 rounded"
+                        style={{ color: data.color || '#3b82f6', maxWidth: '150px' }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                    />
+                </div>
+
+                {/* Controls - only visible when selected */}
+                {selected && (
+                    <div className="absolute -top-6 right-2 flex items-center gap-2 bg-white dark:bg-slate-800 rounded px-2 py-1 shadow-sm border border-slate-200 dark:border-slate-700">
+                        {/* Color Presets */}
+                        {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280'].map(c => (
+                            <button
+                                key={c}
+                                onClick={() => handleChange('color', c)}
+                                className={`w-3 h-3 rounded-full ${data.color === c ? 'ring-2 ring-offset-1 ring-slate-400' : ''}`}
+                                style={{ backgroundColor: c }}
+                            />
+                        ))}
+                        <input
+                            type="color"
+                            value={data.color || '#3b82f6'}
+                            onChange={(e) => handleChange('color', e.target.value)}
+                            className="w-4 h-4 cursor-pointer border-0 p-0"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+                        {/* Line Style */}
+                        <select
+                            value={data.lineStyle || 'solid'}
+                            onChange={(e) => handleChange('lineStyle', e.target.value)}
+                            className="text-[10px] bg-transparent border-none focus:outline-none cursor-pointer"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        >
+                            <option value="solid">Solid</option>
+                            <option value="dashed">Dashed</option>
+                            <option value="dotted">Dotted</option>
+                        </select>
+                        {/* Delete Button */}
+                        <button
+                            onClick={() => onDelete(id)}
+                            className="text-red-400 hover:text-red-600 p-0.5"
+                            title="Delete frame"
+                        >
+                            <Trash2 size={12} />
+                        </button>
+                    </div>
+                )}
+
+                {/* Resize Handle */}
+                <div
+                    className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100"
+                    style={{
+                        background: `linear-gradient(135deg, transparent 50%, ${data.color || '#3b82f6'} 50%)`,
+                        borderBottomRightRadius: '6px'
+                    }}
+                    onMouseDown={(e) => {
+                        e.stopPropagation();
+                        const startX = e.clientX;
+                        const startY = e.clientY;
+                        const startWidth = data.width || 300;
+                        const startHeight = data.height || 200;
+
+                        const onMove = (ev) => {
+                            const newWidth = Math.max(100, startWidth + (ev.clientX - startX));
+                            const newHeight = Math.max(60, startHeight + (ev.clientY - startY));
+                            // Update both at once
+                            onUpdateData(id, { ...data, width: newWidth, height: newHeight });
+                        };
+
+                        const onUp = () => {
+                            document.removeEventListener('mousemove', onMove);
+                            document.removeEventListener('mouseup', onUp);
+                        };
+
+                        document.addEventListener('mousemove', onMove);
+                        document.addEventListener('mouseup', onUp);
+                    }}
+                    title="Drag to resize"
+                />
+            </div>
+        );
+    }
+
     return (
         <div
             ref={nodeRef}
