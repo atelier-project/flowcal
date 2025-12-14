@@ -71,6 +71,8 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
 
     }, [type, data.subGraph, data.inputCount, def, data.inputOrder]);
 
+    const minHeight = getNodeHeight({ type, data });
+
     const outputHandles = useMemo(() => {
         let handles = [];
         if (type === 'GROUP' && data.subGraph && data.subGraph.nodes) {
@@ -83,8 +85,12 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 label: name.charAt(0).toUpperCase() + name.slice(1),
             }));
         } else if (!['GROUP_OUTPUT', 'FINAL', 'GAUGE', 'PROGRESS', 'LINE_CHART', 'BAR_CHART', 'TABLE'].includes(type) && def.category !== 'Visuals' && type !== 'FINAL') {
-            // Default single output
-            handles = [{ id: null, top: '50%' }];
+            // Default single output - use calculated height for FORM nodes
+            if (type === 'FORM') {
+                handles = [{ id: null, top: minHeight / 2 }];
+            } else {
+                handles = [{ id: null, top: '50%' }];
+            }
         }
 
         // Apply custom order
@@ -101,9 +107,8 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
 
         if (handles.length === 1 && handles[0].top) return handles;
         return handles.map((h, i) => ({ ...h, top: 40 + (i * 24) }));
-    }, [type, data.subGraph, def, data.outputOrder]);
+    }, [type, data.subGraph, def, data.outputOrder, minHeight]);
 
-    const minHeight = getNodeHeight({ type, data });
 
     // --- Helpers ---
     const addCollectorInput = () => {

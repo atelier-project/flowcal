@@ -97,6 +97,10 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             const idx = handles.indexOf(handleId);
             if (idx !== -1) y += 40 + (idx * 24);
             else y += 50;
+        } else if (node.type === 'FORM') {
+            // FORM output should be centered based on node height
+            const height = getNodeHeight(node);
+            y += height / 2;
         } else if (def.outputs) {
             let handles = [...def.outputs];
             handles = getSortedOrder(handles, node.data.outputOrder);

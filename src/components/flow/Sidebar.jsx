@@ -5,7 +5,7 @@ import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
 
-export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp }) => {
+export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
 
@@ -84,6 +84,14 @@ export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, p
         <div className="w-64 theme-bg-secondary border-r theme-border-primary flex flex-col z-30 shadow-xl overflow-hidden theme-text-primary" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
             <div className="p-4 border-b" style={{ borderColor: 'var(--border-primary)' }}>
                 <h1 className={`text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent ${theme === 'cyberpunk' ? 'cyberpunk-logo' : ''} ${theme === 'dracula' ? 'dracula-logo' : ''} ${theme === 'sunset' ? 'sunset-logo' : ''} ${theme === 'ocean' ? 'ocean-logo' : ''} ${theme === 'forest' ? 'forest-logo' : ''}`}>FlowCalc</h1>
+                <input
+                    type="text"
+                    value={projectTitle || ''}
+                    onChange={(e) => onTitleChange?.(e.target.value)}
+                    placeholder="Project Title"
+                    className="w-full mt-2 px-2 py-1 text-sm rounded border focus:outline-none"
+                    style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
+                />
             </div>
 
             <div className="px-4 py-2 border-b flex gap-2 flex-wrap" style={{ borderColor: 'var(--border-primary)' }}>

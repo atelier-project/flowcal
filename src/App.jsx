@@ -65,6 +65,7 @@ export default function NodeCalcApp() {
   const [selectionBox, setSelectionBox] = useState(null);
   const [editor, setEditor] = useState({ isOpen: false, nodeId: null, code: '' });
   const [helpOpen, setHelpOpen] = useState(false);
+  const [projectTitle, setProjectTitle] = useState('Untitled Flow');
 
   const NODE_WIDTH = 256;
 
@@ -154,12 +155,14 @@ export default function NodeCalcApp() {
   // --- IO Handlers ---
 
   const handleSave = () => {
-    const config = { nodes, edges, viewport: { pan, scale } };
+    const config = { title: projectTitle, nodes, edges, viewport: { pan, scale } };
     const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `flowcalc - ${new Date().toISOString().slice(0, 10)}.json`;
+    // Use project title for filename, sanitize for file system
+    const safeTitle = projectTitle.replace(/[^a-zA-Z0-9-_ ]/g, '').trim() || 'flowcalc';
+    link.download = `${safeTitle}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -174,6 +177,9 @@ export default function NodeCalcApp() {
         const config = JSON.parse(event.target.result);
         if (Array.isArray(config.nodes) && Array.isArray(config.edges)) {
           setGraph({ nodes: config.nodes, edges: config.edges }); // Commit to history
+          if (config.title) {
+            setProjectTitle(config.title);
+          }
           if (config.viewport) {
             setPan(config.viewport.pan || { x: 0, y: 0 });
             setScale(config.viewport.scale || 1);
@@ -560,6 +566,8 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         pathLength={path.length}
         theme={theme}
         onHelp={() => setHelpOpen(true)}
+        projectTitle={projectTitle}
+        onTitleChange={setProjectTitle}
       />
 
       {/* Canvas */}
