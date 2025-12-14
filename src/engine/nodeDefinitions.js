@@ -585,8 +585,9 @@ export const NODE_LOGIC = {
         label: 'Comment',
         category: 'Advanced',
         inputs: [],
+        outputs: [], // No outputs for comments
         compute: () => null,
-        data: { text: 'Add your notes here...', width: 200 }
+        data: { text: 'Add your notes here...', width: 256, height: 120, color: '#fef3c7' }
     },
     FUNCTION: {
         type: 'FUNCTION',
