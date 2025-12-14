@@ -570,13 +570,15 @@ export const NODE_LOGIC = {
         type: 'GROUP_INPUT',
         label: 'Group Input',
         category: 'Advanced',
-        compute: (inputs, data) => data.value || 0
+        compute: (inputs, data) => data.value || 0,
+        data: { label: '', description: '' }
     },
     GROUP_OUTPUT: {
         type: 'GROUP_OUTPUT',
         label: 'Group Output',
         category: 'Advanced',
-        compute: (inputs) => inputs.length > 0 ? inputs[0] : 0
+        compute: (inputs) => inputs.length > 0 ? inputs[0] : 0,
+        data: { label: '', description: '' }
     },
     COMMENT: {
         type: 'COMMENT',
