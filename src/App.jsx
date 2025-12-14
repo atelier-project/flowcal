@@ -621,6 +621,11 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         onHelp={() => setHelpOpen(true)}
         projectTitle={projectTitle}
         onTitleChange={setProjectTitle}
+        customNodes={customNodes}
+        onAddCustomNode={addCustomNode}
+        onImportCustomNode={handleImportCustomNode}
+        onDeleteCustomNode={(id) => setCustomNodes(deleteCustomNode(id))}
+        onExportCustomNode={exportCustomNode}
       />
 
       {/* Canvas */}

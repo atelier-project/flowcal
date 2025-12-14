@@ -1,13 +1,14 @@
 
 import React, { useMemo, useState, useRef } from 'react';
-import { Download, Upload, FileJson, Search, HelpCircle } from 'lucide-react';
+import { Download, Upload, FileJson, Search, HelpCircle, Package, Trash2, Share } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
 
-export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange }) => {
+export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
+    const customImportRef = useRef(null);
 
     const categories = useMemo(() => {
         const cats = {};
@@ -100,6 +101,7 @@ export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, p
                 <button onClick={onExportJS} title="Export as JavaScript" style={{ backgroundColor: 'var(--accent-primary)', color: 'white' }} className="flex-1 flex items-center justify-center gap-2 p-2 rounded text-xs font-semibold hover:opacity-80 transition-opacity"><FileJson size={14} /></button>
                 <button onClick={onHelp} title="Help & Documentation" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} className="flex-1 flex items-center justify-center gap-2 p-2 rounded text-xs font-semibold hover:opacity-80 transition-opacity"><HelpCircle size={14} /></button>
                 <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={onLoad} />
+                <input type="file" ref={customImportRef} className="hidden" accept=".json" onChange={onImportCustomNode} />
             </div>
 
             {/* Search Input */}
@@ -131,6 +133,61 @@ export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, p
                 <CategorySection title="Math" nodes={filteredCategories['Math']} />
                 <CategorySection title="Visuals" nodes={filteredCategories['Visuals']} />
                 <CategorySection title="Advanced" nodes={filteredCategories['Advanced']} />
+
+                {/* Custom Nodes Section */}
+                {customNodes.length > 0 && (
+                    <>
+                        <p style={{ color: 'var(--text-muted)' }} className="text-xs font-bold uppercase tracking-wider mb-2 mt-4">Custom Nodes</p>
+                        {customNodes.map(cn => (
+                            <div key={cn.id} className="mb-2">
+                                <button
+                                    onClick={() => onAddCustomNode(cn.id)}
+                                    title={cn.description || cn.name}
+                                    style={{
+                                        backgroundColor: 'var(--bg-tertiary)',
+                                        borderColor: 'var(--border-primary)',
+                                        color: 'var(--text-primary)'
+                                    }}
+                                    className="w-full flex items-center gap-3 p-3 rounded-lg border hover:opacity-80 transition-all text-sm font-medium"
+                                >
+                                    <div className="p-1 rounded bg-purple-500 text-white">
+                                        <Package size={14} />
+                                    </div>
+                                    <span className="flex-1 text-left">{cn.name}</span>
+                                </button>
+                                <div className="flex gap-1 mt-1">
+                                    <button
+                                        onClick={() => onExportCustomNode(cn.id)}
+                                        className="flex-1 text-xs p-1 rounded hover:opacity-70"
+                                        style={{ color: 'var(--text-muted)' }}
+                                        title="Export"
+                                    >
+                                        <Share size={12} className="mx-auto" />
+                                    </button>
+                                    <button
+                                        onClick={() => onDeleteCustomNode(cn.id)}
+                                        className="flex-1 text-xs p-1 rounded hover:text-red-500"
+                                        style={{ color: 'var(--text-muted)' }}
+                                        title="Delete"
+                                    >
+                                        <Trash2 size={12} className="mx-auto" />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </>
+                )}
+
+                {/* Import Custom Node Button */}
+                <button
+                    onClick={() => customImportRef.current?.click()}
+                    style={{ borderColor: 'var(--border-primary)', color: 'var(--text-muted)' }}
+                    className="w-full flex items-center justify-center gap-2 p-2 mt-4 rounded border border-dashed hover:opacity-70 text-xs"
+                >
+                    <Upload size={12} />
+                    Import Custom Node
+                </button>
+
                 {Object.keys(filteredCategories).length === 0 && searchQuery && (
                     <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">No nodes found</p>
                 )}
