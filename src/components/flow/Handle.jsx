@@ -1,6 +1,7 @@
 import React from 'react';
 
-export const Handle = ({ type, position, onMouseDown, isValid, id }) => {
+export const Handle = ({ type, position, onMouseDown, isValid, id, description }) => {
+    const tooltipText = description || (id ? `Port: ${id}` : 'Connection Port');
     return (
         <div
             className={`absolute w-4 h-4 rounded-full border-2 cursor-crosshair transition-all duration-200 z-10 flex items-center justify-center
@@ -13,7 +14,7 @@ export const Handle = ({ type, position, onMouseDown, isValid, id }) => {
                 e.stopPropagation();
                 onMouseDown && onMouseDown(e, type, id);
             }}
-            title={id ? `Port: ${id}` : 'Connection Port'}
+            title={tooltipText}
         >
             <div className="w-1 h-1 bg-slate-400 rounded-full pointer-events-none" />
         </div>

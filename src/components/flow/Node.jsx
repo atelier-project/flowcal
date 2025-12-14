@@ -27,7 +27,11 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         if (type === 'GROUP' && data.subGraph && data.subGraph.nodes) {
             handles = data.subGraph.nodes
                 .filter(n => n.type === 'GROUP_INPUT')
-                .map((n, idx) => ({ id: n.id, label: n.data.label || `Input ${idx + 1}` }));
+                .map((n, idx) => ({
+                    id: n.id,
+                    label: n.data.label || `Input ${idx + 1}`,
+                    description: n.data.description || ''
+                }));
         } else if (type === 'FORM') {
             const fields = data.fields || [];
             // Only generate handles if showInputs is true
@@ -91,7 +95,11 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         if (type === 'GROUP' && data.subGraph && data.subGraph.nodes) {
             handles = data.subGraph.nodes
                 .filter(n => n.type === 'GROUP_OUTPUT')
-                .map((n, idx) => ({ id: n.id, label: n.data.label || `Output ${idx + 1}` }));
+                .map((n, idx) => ({
+                    id: n.id,
+                    label: n.data.label || `Output ${idx + 1}`,
+                    description: n.data.description || ''
+                }));
         } else if (type === 'TEMPLATE') {
             // TEMPLATE output - fixed at same height as input for visual balance
             handles = [{ id: 'text', label: 'Text', top: 60 }];
@@ -778,6 +786,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
                         onMouseDown={() => { }}
                         isValid={true}
+                        description={h.description}
                     />
                 ))
             }
