@@ -589,6 +589,15 @@ export const NODE_LOGIC = {
         compute: () => null,
         data: { text: 'Add your notes here...', width: 256, height: 120, color: '#fef3c7' }
     },
+    FRAME: {
+        type: 'FRAME',
+        label: 'Frame',
+        category: 'Advanced',
+        inputs: [],
+        outputs: [],
+        compute: () => null,
+        data: { title: '', width: 300, height: 200, color: '#3b82f6', lineStyle: 'solid' }
+    },
     FUNCTION: {
         type: 'FUNCTION',
         label: 'Function',

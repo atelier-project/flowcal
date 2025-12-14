@@ -50,6 +50,7 @@ export const NODE_UI = {
     GROUP_OUTPUT: { icon: ArrowLeft, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
     COMMENT: { icon: MessageSquare, color: 'amber', colorClass: 'bg-amber-100 text-amber-600' },
     FUNCTION: { icon: Braces, color: 'emerald', colorClass: 'bg-emerald-100 text-emerald-600' },
+    FRAME: { icon: Box, color: 'sky', colorClass: 'bg-sky-100 text-sky-600' },
 };
 
 export const getUI = (type) => NODE_UI[type] || { icon: Activity, color: 'slate', colorClass: 'bg-slate-100 text-slate-600' };

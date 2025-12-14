@@ -74,6 +74,7 @@ export const NODE_DESCRIPTIONS = {
     GROUP_OUTPUT: 'Sends values out of the group to the parent flow.',
     COMMENT: 'Add notes and documentation to your flow. Does not affect computation.',
     FUNCTION: 'Define named parameters and write a formula. Each parameter becomes an input port.',
+    FRAME: 'A visual outline box for grouping elements. Stays behind other nodes.',
 };
 
 export const getDescription = (type) => NODE_DESCRIPTIONS[type] || '';
