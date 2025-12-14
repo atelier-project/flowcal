@@ -165,18 +165,26 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             style={{
                 transform: `translate(${position.x}px, ${position.y}px)`,
                 minHeight,
-                width: data.width ? `${data.width}px` : undefined
+                width: data.width ? `${data.width}px` : undefined,
+                backgroundColor: 'var(--bg-secondary)',
+                borderColor: selected ? 'var(--accent-primary)' : 'var(--border-primary)',
+                color: 'var(--text-primary)'
             }}
-            className={`absolute ${!data.width ? 'w-64' : ''} bg-white dark:bg-slate-800 rounded-lg shadow-lg border-2 transition-all duration-200 flex flex-col
-        ${selected ? 'border-blue-500 shadow-blue-500/20 z-20 ring-2 ring-blue-400' : 'border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600 z-10'}
-        ${isHovered ? 'ring-4 ring-blue-300 ring-opacity-50 scale-105 shadow-xl border-blue-400' : ''}
-        ${type === 'FINAL' ? 'border-green-500 shadow-green-100 dark:shadow-green-900/20' : ''}
+            className={`absolute ${!data.width ? 'w-64' : ''} rounded-lg shadow-lg border-2 transition-all duration-200 flex flex-col
+        ${selected ? 'shadow-blue-500/20 z-20 ring-2 ring-blue-400' : 'z-10'}
+        ${isHovered ? 'ring-4 ring-blue-300 ring-opacity-50 scale-105 shadow-xl' : ''}
+        ${type === 'FINAL' ? 'border-green-500 shadow-green-100' : ''}
       `}
             onMouseDown={(e) => onDragStart(e, id)}
         >
             {/* Header */}
-            <div className={`flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
-        ${type === 'FINAL' ? 'bg-green-50 border-green-100 dark:bg-green-900/20 dark:border-green-800' : 'bg-slate-50 border-slate-100 dark:bg-slate-700/30 dark:border-slate-700'}
+            <div
+                style={{
+                    backgroundColor: type === 'FINAL' ? undefined : 'var(--bg-tertiary)',
+                    borderColor: 'var(--border-primary)'
+                }}
+                className={`flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+        ${type === 'FINAL' ? 'bg-green-50 border-green-100 dark:bg-green-900/20 dark:border-green-800' : ''}
       `}>
                 <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0">
                     <span className={`p-1 rounded shadow-sm shrink-0 ${ui.colorClass?.split(' ')[1] ? 'bg-white dark:bg-slate-700 ' + ui.colorClass.split(' ')[1] : 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400'}`}>

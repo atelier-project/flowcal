@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronRight, Undo, Redo, Moon, Sun } from 'lucide-react';
+import { ChevronRight, Undo, Redo, Palette } from 'lucide-react';
+import { THEMES, applyTheme, getStoredTheme } from './themes';
 
 import { Node } from './components/flow/Node';
 import { ConnectionLine } from './components/flow/ConnectionLine';
@@ -8,6 +9,7 @@ import { BackgroundGrid } from './components/flow/BackgroundGrid';
 import { SelectionBox } from './components/flow/SelectionBox';
 import { Sidebar } from './components/flow/Sidebar';
 import { CodeEditorModal } from './components/ui/Modal';
+import { HelpModal } from './components/ui/HelpModal';
 
 import { generateId } from './utils/ids';
 import { getHandlePosition, getBezierPath } from './utils/geometry';
@@ -62,6 +64,7 @@ export default function NodeCalcApp() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [selectionBox, setSelectionBox] = useState(null);
   const [editor, setEditor] = useState({ isOpen: false, nodeId: null, code: '' });
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const NODE_WIDTH = 256;
 
@@ -69,24 +72,12 @@ export default function NodeCalcApp() {
   const debouncedNodes = useDebounce(nodes, 50);
   const debouncedEdges = useDebounce(edges, 50);
 
-  // Dark Mode State
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('flowcal-theme');
-      return saved ? JSON.parse(saved) : false;
-    }
-    return false;
-  });
+  // Theme State
+  const [theme, setTheme] = useState(() => getStoredTheme());
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('flowcal-theme', JSON.stringify(true));
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('flowcal-theme', JSON.stringify(false));
-    }
-  }, [darkMode]);
+    applyTheme(theme);
+  }, [theme]);
 
   // --- Engine Integration ---
   useEffect(() => {
@@ -567,12 +558,15 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         onExportJS={handleExportJS}
         fileInputRef={fileInputRef}
         pathLength={path.length}
+        theme={theme}
+        onHelp={() => setHelpOpen(true)}
       />
 
       {/* Canvas */}
       <div
         ref={containerRef}
-        className="flex-1 relative overflow-hidden bg-slate-50 dark:bg-slate-900 cursor-grab active:cursor-grabbing transition-colors duration-200"
+        style={{ backgroundColor: 'var(--bg-primary)' }}
+        className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing transition-colors duration-200"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -586,21 +580,29 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         <div className="absolute top-4 left-4 z-40 flex items-center gap-2">
           <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur px-2 py-1 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 text-sm">
             <button onClick={undo} disabled={!canUndo} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 ${!canUndo ? 'text-slate-300 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300'}`} title="Undo (Ctrl+Z)"><Undo size={16} /></button>
-            <button onClick={redo} disabled={!canRedo} className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 ${!canRedo ? 'text-slate-300 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300'}`} title="Redo (Ctrl+Y)"><Redo size={16} /></button>
+            <button onClick={redo} disabled={!canRedo} style={{ color: !canRedo ? 'var(--text-muted)' : 'var(--text-primary)' }} className="p-1 rounded hover:opacity-70" title="Redo (Ctrl+Y)"><Redo size={16} /></button>
           </div>
 
-          <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur px-2 py-1 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 text-sm">
-            <button onClick={() => setDarkMode(!darkMode)} className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300" title="Toggle Theme">
-              {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
+          <div style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }} className="flex items-center gap-2 backdrop-blur px-2 py-1 rounded-lg shadow-sm border text-sm">
+            <Palette size={16} style={{ color: 'var(--text-muted)' }} />
+            <select
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              style={{ backgroundColor: 'transparent', color: 'var(--text-primary)' }}
+              className="border-none text-sm focus:outline-none cursor-pointer"
+            >
+              {Object.entries(THEMES).map(([id, t]) => (
+                <option key={id} value={id} style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{t.name}</option>
+              ))}
+            </select>
           </div>
 
-          <div className="flex items-center gap-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur px-4 py-2 rounded-full shadow-sm border border-slate-200 dark:border-slate-700 text-sm">
-            <button onClick={() => jumpToPath(-1)} className={`hover:text-blue-600 dark:hover:text-blue-400 ${path.length === 0 ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>Root</button>
+          <div style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }} className="flex items-center gap-2 backdrop-blur px-4 py-2 rounded-full shadow-sm border text-sm">
+            <button onClick={() => jumpToPath(-1)} style={{ color: path.length === 0 ? 'var(--accent-primary)' : 'var(--text-muted)' }} className={`hover:opacity-70 ${path.length === 0 ? 'font-bold' : ''}`}>Root</button>
             {path.map((item, idx) => (
               <React.Fragment key={item.id}>
-                <ChevronRight size={14} className="text-slate-300 dark:text-slate-600" />
-                <button onClick={() => jumpToPath(idx)} className={`hover:text-blue-600 dark:hover:text-blue-400 ${idx === path.length - 1 ? 'font-bold text-blue-600 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>{item.label}</button>
+                <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} />
+                <button onClick={() => jumpToPath(idx)} style={{ color: idx === path.length - 1 ? 'var(--accent-primary)' : 'var(--text-muted)' }} className={`hover:opacity-70 ${idx === path.length - 1 ? 'font-bold' : ''}`}>{item.label}</button>
               </React.Fragment>
             ))}
           </div>
@@ -645,6 +647,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         </div>
       </div>
       <style>{`@keyframes dash { to { stroke - dashoffset: -20; } } .animate - dash { animation: dash 1s linear infinite; } `}</style>
+      <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
     </div>
   );
 }

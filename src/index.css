@@ -2,12 +2,123 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Default theme variables (light) */
+:root {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f1f5f9;
+    --border-primary: #e2e8f0;
+    --border-secondary: #cbd5e1;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --accent-primary: #3b82f6;
+    --accent-secondary: #8b5cf6;
+    --connection-stroke: #3b82f6;
+    --connection-glow: rgba(59, 130, 246, 0.5);
+}
+
+/* Theme-aware utility classes */
+.theme-bg-primary {
+    background-color: var(--bg-primary);
+}
+
+.theme-bg-secondary {
+    background-color: var(--bg-secondary);
+}
+
+.theme-bg-tertiary {
+    background-color: var(--bg-tertiary);
+}
+
+.theme-border-primary {
+    border-color: var(--border-primary);
+}
+
+.theme-border-secondary {
+    border-color: var(--border-secondary);
+}
+
+.theme-text-primary {
+    color: var(--text-primary);
+}
+
+.theme-text-secondary {
+    color: var(--text-secondary);
+}
+
+.theme-text-muted {
+    color: var(--text-muted);
+}
+
+.theme-accent-primary {
+    color: var(--accent-primary);
+}
+
+.theme-accent-secondary {
+    color: var(--accent-secondary);
+}
+
+/* Cyberpunk-specific effects */
+.cyberpunk-logo {
+    background: linear-gradient(90deg, #ff00ff, #00ffff) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff, 0 0 30px #ff00ff;
+    animation: neon-flicker 3s infinite;
+}
+
+@keyframes neon-flicker {
+
+    0%,
+    19%,
+    21%,
+    23%,
+    25%,
+    54%,
+    56%,
+    100% {
+        text-shadow: 0 0 10px #ff00ff, 0 0 20px #00ffff, 0 0 30px #ff00ff;
+    }
+
+    20%,
+    24%,
+    55% {
+        text-shadow: none;
+    }
+}
+
+.dracula-logo {
+    background: linear-gradient(90deg, #bd93f9, #ff79c6) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.sunset-logo {
+    background: linear-gradient(90deg, #ff9f43, #ee5a24, #ff6b6b) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.ocean-logo {
+    background: linear-gradient(90deg, #00b4d8, #48cae4, #90e0ef) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+.forest-logo {
+    background: linear-gradient(90deg, #52b788, #95d5b2, #40916c) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
 @layer utilities {
     @keyframes dash {
         to {
             stroke-dashoffset: -20;
         }
     }
+
     .animate-dash {
         animation: dash 1s linear infinite;
     }
