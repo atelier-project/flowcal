@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronRight, Undo, Redo, Palette } from 'lucide-react';
+import { ChevronRight, Undo, Redo, Palette, Grid } from 'lucide-react';
 import { THEMES, applyTheme, getStoredTheme } from './themes';
 
 import { Node } from './components/flow/Node';
@@ -605,6 +605,63 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
                 <option key={id} value={id} style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{t.name}</option>
               ))}
             </select>
+          </div>
+
+          {/* Grid Settings */}
+          <div className="relative">
+            <button
+              onClick={() => setGridMenuOpen(!gridMenuOpen)}
+              style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: gridSettings.enabled ? 'var(--accent-primary)' : 'var(--text-muted)' }}
+              className="flex items-center gap-2 backdrop-blur px-2 py-1 rounded-lg shadow-sm border text-sm hover:opacity-80"
+              title="Grid Settings"
+            >
+              <Grid size={16} />
+            </button>
+            {gridMenuOpen && (
+              <div
+                style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}
+                className="absolute top-full left-0 mt-2 p-3 rounded-lg shadow-lg border min-w-[200px] z-50"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span style={{ color: 'var(--text-primary)' }} className="text-sm font-medium">Show Grid</span>
+                  <button
+                    onClick={() => setGridSettings(s => ({ ...s, enabled: !s.enabled }))}
+                    className={`w-10 h-5 rounded-full transition-colors ${gridSettings.enabled ? 'bg-blue-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${gridSettings.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+                <div className="mb-3">
+                  <label style={{ color: 'var(--text-muted)' }} className="text-xs block mb-1">Style</label>
+                  <select
+                    value={gridSettings.style}
+                    onChange={(e) => setGridSettings(s => ({ ...s, style: e.target.value }))}
+                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', borderColor: 'var(--border-primary)' }}
+                    className="w-full p-1.5 rounded border text-sm focus:outline-none"
+                  >
+                    <option value="dots">Dots</option>
+                    <option value="lines">Lines</option>
+                    <option value="technical">Technical</option>
+                  </select>
+                </div>
+                <div>
+                  <div className="flex justify-between mb-1">
+                    <label style={{ color: 'var(--text-muted)' }} className="text-xs">Opacity</label>
+                    <span style={{ color: 'var(--text-muted)' }} className="text-xs">{Math.round(gridSettings.opacity * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1"
+                    step="0.1"
+                    value={gridSettings.opacity}
+                    onChange={(e) => setGridSettings(s => ({ ...s, opacity: parseFloat(e.target.value) }))}
+                    className="w-full accent-blue-500"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }} className="flex items-center gap-2 backdrop-blur px-4 py-2 rounded-full shadow-sm border text-sm">
