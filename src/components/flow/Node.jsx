@@ -801,7 +801,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 )}
 
                 {/* Result Display - Hide for Sinks */}
-                {def.category !== 'Visuals' && type !== 'FINAL' && type !== 'GROUP' && type !== 'GROUP_INPUT' && (
+                {def.category !== 'Visuals' && type !== 'FINAL' && type !== 'GROUP' && type !== 'GROUP_INPUT' && type !== 'COMMENT' && (
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-700/50">
                         {/* Error Handling Display */}
                         {typeof result === 'string' && result.startsWith('Error:') ? (
