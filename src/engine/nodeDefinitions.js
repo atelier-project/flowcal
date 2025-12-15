@@ -566,8 +566,12 @@ export const NODE_LOGIC = {
         inputs: ['*'],
         outputs: ['text'],
         compute: (inputs, data) => {
-            const template = data.template || '{0}';
-            return template.replace(/{(\d+)}/g, (m, i) => inputs[i] !== undefined ? (typeof inputs[i] === 'number' ? inputs[i].toFixed(2) : inputs[i]) : m);
+            let template = data.template || '{0}';
+            // Replace placeholders with input values
+            template = template.replace(/{(\d+)}/g, (m, i) => inputs[i] !== undefined ? (typeof inputs[i] === 'number' ? inputs[i].toFixed(2) : inputs[i]) : m);
+            // Convert literal \n to actual newlines
+            template = template.replace(/\\n/g, '\n');
+            return template;
         },
         data: { template: 'Total: {0}' }
     },
