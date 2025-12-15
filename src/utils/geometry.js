@@ -76,6 +76,9 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             else y += 40;
         } else if (node.type === 'CUSTOM') {
             y += 100; // Custom usually has textarea above
+        } else if (node.type === 'UNPACK') {
+            // UNPACK input - single 'object' input, positioned at 20 when collapsed, 110 otherwise
+            y += node.data?.collapsed ? 20 : 110;
         } else if (node.type === 'TEMPLATE') {
             // TEMPLATE input - fixed position, or collapsed at 20
             y += node.data?.collapsed ? 20 : 60;
@@ -120,6 +123,16 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             // FORM output should be centered based on node height
             const height = getNodeHeight(node);
             y += height / 2;
+        } else if (node.type === 'UNPACK') {
+            // UNPACK outputs - match visual positions
+            if (node.data?.collapsed) {
+                y += 20;
+            } else {
+                const keys = node.data?.keys || [];
+                const idx = keys.indexOf(handleId);
+                if (idx !== -1) y += 80 + (idx * 28);
+                else y += 80;
+            }
         } else if (node.type === 'TEMPLATE') {
             // TEMPLATE output - fixed position, or collapsed at 20
             y += node.data?.collapsed ? 20 : 60;

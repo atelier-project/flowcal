@@ -54,6 +54,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         } else if (type === 'COLLECTOR' || (def && def.dynamicInputs)) {
             const count = data.inputCount || 2;
             handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}` }));
+        } else if (type === 'UNPACK') {
+            // UNPACK has single object input - center vertically in the node
+            handles = [{ id: 'object', label: 'Object', top: data.collapsed ? 20 : 110 }];
         } else if (def && def.inputs && !def.inputs.includes('*')) {
             handles = def.inputs.map((name) => ({
                 id: name,
@@ -103,6 +106,20 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         } else if (type === 'TEMPLATE') {
             // TEMPLATE output - fixed at same height as input for visual balance
             handles = [{ id: 'text', label: 'Text', top: 60 }];
+        } else if (type === 'UNPACK') {
+            // Dynamic outputs from keys array - position to align with key inputs
+            const keys = data.keys || [];
+            if (data.collapsed) {
+                // All handles at single point when collapsed
+                handles = keys.map((key) => ({ id: key, label: key, top: 20 }));
+            } else {
+                // Header ~40px, "Keys to Extract" label ~20px, first key input at ~80px, each row ~28px
+                handles = keys.map((key, idx) => ({
+                    id: key,
+                    label: key,
+                    top: 80 + (idx * 28)
+                }));
+            }
         } else if (def && def.outputs) {
             handles = def.outputs.map((name) => ({
                 id: name,
@@ -129,14 +146,14 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             });
         }
 
-        // All handles at single point when collapsed
-        if (data.collapsed) {
+        // All handles at single point when collapsed (except UNPACK which handles it above)
+        if (data.collapsed && type !== 'UNPACK') {
             return handles.map((h) => ({ ...h, top: 20 }));
         }
 
         if (handles.length === 1 && handles[0].top) return handles;
-        return handles.map((h, i) => ({ ...h, top: 40 + (i * 24) }));
-    }, [type, data.subGraph, def, data.outputOrder, minHeight, data.collapsed]);
+        return handles.map((h, i) => h.top ? h : { ...h, top: 40 + (i * 24) });
+    }, [type, data.subGraph, data.keys, def, data.outputOrder, minHeight, data.collapsed]);
 
 
     // --- Helpers ---
