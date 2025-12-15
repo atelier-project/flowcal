@@ -191,7 +191,119 @@ export default function NodeCalcApp() {
     setSelectedIds(new Set([newId]));
   }, [nodes, edges, setGraph]);
 
-  // Keyboard shortcut for Ctrl+D (duplicate)
+  // Group selected nodes into a GROUP node
+  const groupSelectedNodes = useCallback(() => {
+    if (selectedIds.size < 2) return;
+
+    // Get selected nodes (exclude FRAME nodes)
+    const selectedNodesList = nodes.filter(n => selectedIds.has(n.id) && n.type !== 'FRAME');
+    if (selectedNodesList.length < 2) return;
+
+    // Calculate bounding box for positioning
+    const minX = Math.min(...selectedNodesList.map(n => n.position.x));
+    const minY = Math.min(...selectedNodesList.map(n => n.position.y));
+    const maxX = Math.max(...selectedNodesList.map(n => n.position.x + 256));
+    const maxY = Math.max(...selectedNodesList.map(n => n.position.y + 100));
+
+    // Find external connections (edges from/to non-selected nodes)
+    const selectedSet = new Set(selectedNodesList.map(n => n.id));
+    const incomingEdges = edges.filter(e => !selectedSet.has(e.source) && selectedSet.has(e.target));
+    const outgoingEdges = edges.filter(e => selectedSet.has(e.source) && !selectedSet.has(e.target));
+    const internalEdges = edges.filter(e => selectedSet.has(e.source) && selectedSet.has(e.target));
+    const externalEdges = edges.filter(e => !selectedSet.has(e.source) && !selectedSet.has(e.target));
+
+    // Create GROUP_INPUT nodes for incoming connections
+    const inputNodes = [];
+    const inputEdgeMap = new Map(); // Map from original target handle to GROUP_INPUT id
+    incomingEdges.forEach((edge, idx) => {
+      const inputId = generateId();
+      inputNodes.push({
+        id: inputId,
+        type: 'GROUP_INPUT',
+        position: { x: 50, y: 50 + idx * 100 },
+        data: { label: `Input ${idx + 1}` }
+      });
+      inputEdgeMap.set(`${edge.target}-${edge.targetHandle || 'default'}`, inputId);
+    });
+
+    // Create GROUP_OUTPUT nodes for outgoing connections  
+    const outputNodes = [];
+    const outputEdgeMap = new Map(); // Map from original source to GROUP_OUTPUT id
+    outgoingEdges.forEach((edge, idx) => {
+      const outputId = generateId();
+      outputNodes.push({
+        id: outputId,
+        type: 'GROUP_OUTPUT',
+        position: { x: 400, y: 50 + idx * 100 },
+        data: { label: `Output ${idx + 1}` }
+      });
+      outputEdgeMap.set(`${edge.source}-${edge.sourceHandle || 'default'}`, outputId);
+    });
+
+    // Adjust positions of selected nodes to be relative to subgraph origin
+    const adjustedNodes = selectedNodesList.map(n => ({
+      ...n,
+      position: { x: n.position.x - minX + 150, y: n.position.y - minY + 50 }
+    }));
+
+    // Create internal edges from GROUP_INPUT to original targets
+    const inputToTargetEdges = incomingEdges.map(edge => ({
+      id: generateId(),
+      source: inputEdgeMap.get(`${edge.target}-${edge.targetHandle || 'default'}`),
+      target: edge.target,
+      targetHandle: edge.targetHandle
+    }));
+
+    // Create internal edges from original sources to GROUP_OUTPUT
+    const sourceToOutputEdges = outgoingEdges.map(edge => ({
+      id: generateId(),
+      source: edge.source,
+      sourceHandle: edge.sourceHandle,
+      target: outputEdgeMap.get(`${edge.source}-${edge.sourceHandle || 'default'}`)
+    }));
+
+    // Create the GROUP node
+    const groupId = generateId();
+    const groupNode = {
+      id: groupId,
+      type: 'GROUP',
+      position: { x: minX, y: minY },
+      data: {
+        label: 'Group',
+        subGraph: {
+          nodes: [...inputNodes, ...adjustedNodes, ...outputNodes],
+          edges: [...internalEdges, ...inputToTargetEdges, ...sourceToOutputEdges]
+        }
+      }
+    };
+
+    // Create new edges connecting external nodes to the GROUP
+    const newIncomingEdges = incomingEdges.map(edge => ({
+      id: generateId(),
+      source: edge.source,
+      sourceHandle: edge.sourceHandle,
+      target: groupId,
+      targetHandle: inputEdgeMap.get(`${edge.target}-${edge.targetHandle || 'default'}`)
+    }));
+
+    const newOutgoingEdges = outgoingEdges.map(edge => ({
+      id: generateId(),
+      source: groupId,
+      sourceHandle: outputEdgeMap.get(`${edge.source}-${edge.sourceHandle || 'default'}`),
+      target: edge.target,
+      targetHandle: edge.targetHandle
+    }));
+
+    // Update the graph
+    const remainingNodes = nodes.filter(n => !selectedSet.has(n.id));
+    setGraph({
+      nodes: [...remainingNodes, groupNode],
+      edges: [...externalEdges, ...newIncomingEdges, ...newOutgoingEdges]
+    });
+    setSelectedIds(new Set([groupId]));
+  }, [nodes, edges, selectedIds, setGraph]);
+
+  // Keyboard shortcut for Ctrl+D (duplicate) and Ctrl+G (group)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'd' && selectedIds.size > 0) {
