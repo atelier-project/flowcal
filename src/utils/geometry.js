@@ -75,10 +75,14 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             else if (handleId === 'max') y += 64;
             else y += 40;
         } else if (node.type === 'CUSTOM') {
-            y += 100; // Custom usually has textarea above
+            // Custom JS node - collapsed at 20, otherwise at 100
+            y += node.data?.collapsed ? 20 : 100;
         } else if (node.type === 'UNPACK') {
             // UNPACK input - single 'object' input, positioned at 20 when collapsed, 110 otherwise
             y += node.data?.collapsed ? 20 : 110;
+        } else if (node.type === 'PACK') {
+            // PACK has single values input
+            y += node.data?.collapsed ? 20 : 80;
         } else if (node.type === 'TEMPLATE') {
             // TEMPLATE input - fixed position, or collapsed at 20
             y += node.data?.collapsed ? 20 : 60;
@@ -137,6 +141,9 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
                 if (idx !== -1) y += 80 + (idx * 28);
                 else y += 80;
             }
+        } else if (node.type === 'CUSTOM') {
+            // CUSTOM output - at 100 or 20 when collapsed
+            y += node.data?.collapsed ? 20 : 100;
         } else if (node.type === 'TEMPLATE') {
             // TEMPLATE output - fixed position, or collapsed at 20
             y += node.data?.collapsed ? 20 : 60;

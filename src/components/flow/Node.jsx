@@ -57,6 +57,12 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         } else if (type === 'UNPACK') {
             // UNPACK has single object input - center vertically in the node
             handles = [{ id: 'object', label: 'Object', top: data.collapsed ? 20 : 110 }];
+        } else if (type === 'PACK') {
+            // PACK has single values input
+            handles = [{ id: 'values', label: 'Values', top: data.collapsed ? 20 : 80 }];
+        } else if (type === 'CUSTOM') {
+            // CUSTOM JS node - single input that accepts array, centered at 100 or 20 when collapsed
+            handles = [{ id: null, top: data.collapsed ? 20 : 100 }];
         } else if (def && def.inputs && !def.inputs.includes('*')) {
             handles = def.inputs.map((name) => ({
                 id: name,
@@ -136,6 +142,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             } else if (type === 'GROUP_INPUT') {
                 // GROUP_INPUT has content that affects height - calculate dynamically
                 handles = [{ id: null, top: minHeight / 2 }];
+            } else if (type === 'CUSTOM') {
+                // CUSTOM JS node output - at 100 or 20 when collapsed
+                handles = [{ id: null, top: data.collapsed ? 20 : 100 }];
             } else {
                 handles = [{ id: null, top: '50%' }];
             }
@@ -396,7 +405,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         </>
                     )}
                     {/* Collapse toggle for large nodes */}
-                    {['TEMPLATE', 'GROUP', 'FORM', 'COMMENT', 'UNPACK'].includes(type) && (
+                    {['TEMPLATE', 'GROUP', 'FORM', 'COMMENT', 'UNPACK', 'PACK', 'CUSTOM'].includes(type) && (
                         <button
                             onClick={(e) => { e.stopPropagation(); handleChange('collapsed', !data.collapsed); }}
                             className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
@@ -718,6 +727,57 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                 <span className="text-[10px] text-slate-400">Available keys: </span>
                                 <span className="text-[10px] font-mono text-violet-600 dark:text-violet-400">
                                     {Object.keys(inputs.object).join(', ')}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {type === 'PACK' && (
+                    <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Keys to Create</label>
+                        {(data.keys || []).map((key, i) => (
+                            <div key={i} className="flex items-center gap-1">
+                                <input
+                                    type="text"
+                                    value={key}
+                                    onChange={(e) => {
+                                        const newKeys = [...(data.keys || [])];
+                                        newKeys[i] = e.target.value;
+                                        handleChange('keys', newKeys);
+                                    }}
+                                    placeholder="key name"
+                                    className="flex-1 h-6 px-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs font-mono focus:outline-none focus:border-violet-500"
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                />
+                                <button
+                                    onClick={() => {
+                                        const newKeys = (data.keys || []).filter((_, idx) => idx !== i);
+                                        handleChange('keys', newKeys);
+                                    }}
+                                    className="w-6 h-6 flex items-center justify-center text-red-400 hover:text-red-600 text-sm"
+                                    title="Remove key"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        ))}
+                        <button
+                            onClick={() => {
+                                const newKeys = [...(data.keys || []), ''];
+                                handleChange('keys', newKeys);
+                            }}
+                            className="w-full mt-1 py-1 text-xs text-violet-600 dark:text-violet-400 border border-dashed border-violet-300 dark:border-violet-700 rounded hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                        >
+                            + Add Key
+                        </button>
+
+                        {/* Show result preview */}
+                        {result && typeof result === 'object' && (
+                            <div className="mt-2 p-2 bg-violet-50 dark:bg-violet-900/20 rounded border border-violet-200 dark:border-violet-800">
+                                <span className="text-[10px] text-violet-500 dark:text-violet-400">Output: </span>
+                                <span className="text-[10px] font-mono text-violet-700 dark:text-violet-300">
+                                    {JSON.stringify(result)}
                                 </span>
                             </div>
                         )}
