@@ -423,6 +423,25 @@ export const NODE_LOGIC = {
         },
         data: { keys: [] }
     },
+    PACK: {
+        type: 'PACK',
+        label: 'Pack Object',
+        category: 'Object',
+        inputs: ['values'], // Single array input
+        outputs: ['object'],
+        compute: (inputs, data) => {
+            const keys = data.keys || [];
+            const values = Array.isArray(inputs.values) ? inputs.values : [inputs.values];
+            const result = {};
+            keys.forEach((key, idx) => {
+                if (key && key.trim()) {
+                    result[key.trim()] = values[idx] !== undefined ? values[idx] : null;
+                }
+            });
+            return result;
+        },
+        data: { keys: [] }
+    },
 
     SUM: {
         type: 'SUM',

@@ -42,6 +42,7 @@ export const NODE_DESCRIPTIONS = {
     OBJECT_KEYS: 'Returns an array of all keys in an object.',
     OBJECT_VALUES: 'Returns an array of all values in an object.',
     UNPACK: 'Extract specific keys from an object as separate outputs.',
+    PACK: 'Combine multiple named inputs into a single object.',
 
     // Logic
     COMPARE: 'Compares two values. Returns true/false based on operator (=, ≠, <, >, ≤, ≥).',

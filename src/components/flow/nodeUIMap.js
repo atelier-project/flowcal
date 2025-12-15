@@ -52,6 +52,7 @@ export const NODE_UI = {
     FUNCTION: { icon: Braces, color: 'emerald', colorClass: 'bg-emerald-100 text-emerald-600' },
     FRAME: { icon: Box, color: 'sky', colorClass: 'bg-sky-100 text-sky-600' },
     UNPACK: { icon: PackageOpen, color: 'violet', colorClass: 'bg-violet-100 text-violet-600' },
+    PACK: { icon: Package, color: 'violet', colorClass: 'bg-violet-100 text-violet-600' },
 };
 
 export const getUI = (type) => NODE_UI[type] || { icon: Activity, color: 'slate', colorClass: 'bg-slate-100 text-slate-600' };
