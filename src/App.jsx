@@ -311,10 +311,14 @@ export default function NodeCalcApp() {
         // Duplicate all selected nodes
         selectedIds.forEach(id => duplicateNode(id));
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'g' && selectedIds.size >= 2) {
+        e.preventDefault();
+        groupSelectedNodes();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, duplicateNode]);
+  }, [selectedIds, duplicateNode, groupSelectedNodes]);
 
 
   // --- IO Handlers ---
@@ -875,12 +879,33 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
               onSaveAsCustom={handleSaveAsCustomNode}
             />
           ))}
+          {selectionBox && <SelectionBox rect={selectionBox} />}
         </div>
         <div className="absolute bottom-4 right-4 flex gap-2">
           <button onClick={() => setScale(s => Math.min(s + 0.1, 2))} className="p-2 bg-white dark:bg-slate-800 rounded shadow text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors">+</button>
           <button onClick={() => setScale(1)} className="p-2 bg-white dark:bg-slate-800 rounded shadow text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-bold w-12 border border-slate-200 dark:border-slate-700 transition-colors">{Math.round(scale * 100)}%</button>
           <button onClick={() => setScale(s => Math.max(s - 0.1, 0.5))} className="p-2 bg-white dark:bg-slate-800 rounded shadow text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors">-</button>
         </div>
+        {/* Selection Action Bar */}
+        {selectedIds.size >= 2 && (
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-slate-900/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-slate-700">
+            <span className="text-slate-300 text-sm font-medium">{selectedIds.size} nodes selected</span>
+            <div className="w-px h-5 bg-slate-600" />
+            <button
+              onClick={groupSelectedNodes}
+              className="flex items-center gap-2 px-3 py-1 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-full transition-colors"
+            >
+              <span>Group</span>
+              <span className="text-xs text-blue-200">(Ctrl+G)</span>
+            </button>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="text-slate-400 hover:text-slate-200 text-sm transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </div>
       <style>{`@keyframes dash { to { stroke - dashoffset: -20; } } .animate - dash { animation: dash 1s linear infinite; } `}</style>
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
