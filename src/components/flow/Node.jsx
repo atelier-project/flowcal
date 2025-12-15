@@ -99,7 +99,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         if (handles.length === 1 && handles[0].top) return handles; // Keep default centered
         return handles.map((h, i) => ({ ...h, top: 40 + (i * 24) }));
 
-    }, [type, data.subGraph, data.inputCount, data.params, def, data.inputOrder, data.collapsed]);
+    }, [type, data.subGraph, data.inputCount, data.params, data.keys, def, data.inputOrder, data.collapsed]);
 
     const minHeight = getNodeHeight({ type, data });
 
