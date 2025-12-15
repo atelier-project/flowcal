@@ -140,6 +140,10 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
         } else if (node.type === 'TEMPLATE') {
             // TEMPLATE output - fixed position, or collapsed at 20
             y += node.data?.collapsed ? 20 : 60;
+        } else if (node.type === 'GROUP_INPUT') {
+            // GROUP_INPUT has single output - center it
+            const height = getNodeHeight(node);
+            y += height / 2;
         } else if (def.outputs) {
             let handles = [...def.outputs];
             handles = getSortedOrder(handles, node.data.outputOrder);

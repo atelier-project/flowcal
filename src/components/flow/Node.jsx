@@ -133,6 +133,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             // Default single output - use calculated height for FORM nodes
             if (type === 'FORM') {
                 handles = [{ id: null, top: minHeight / 2 }];
+            } else if (type === 'GROUP_INPUT') {
+                // GROUP_INPUT has content that affects height - calculate dynamically
+                handles = [{ id: null, top: minHeight / 2 }];
             } else {
                 handles = [{ id: null, top: '50%' }];
             }
