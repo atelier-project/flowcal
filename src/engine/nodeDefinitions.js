@@ -401,8 +401,29 @@ export const NODE_LOGIC = {
             return [];
         }
     },
+    UNPACK: {
+        type: 'UNPACK',
+        label: 'Unpack Object',
+        category: 'Object',
+        inputs: ['object'],
+        dynamicOutputs: true, // Outputs based on keys array
+        computesMultiOutput: true,
+        compute: (inputs, data) => {
+            const obj = inputs.object;
+            const keys = data.keys || [];
+            const results = {};
+            keys.forEach(key => {
+                if (typeof obj === 'object' && obj !== null && key in obj) {
+                    results[key] = obj[key];
+                } else {
+                    results[key] = null;
+                }
+            });
+            return results;
+        },
+        data: { keys: [] }
+    },
 
-    // Math
     SUM: {
         type: 'SUM',
         label: 'Sum',
