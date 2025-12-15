@@ -65,6 +65,10 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         } else if (type === 'TEMPLATE') {
             // TEMPLATE has variable textarea, so fix input at top of body area
             handles = [{ id: null, top: 60 }];
+        } else if (type === 'GROUP_OUTPUT') {
+            // GROUP_OUTPUT has single input - calculate position based on height
+            const height = getNodeHeight({ type, data });
+            handles = [{ id: null, top: height / 2 }];
         } else if (type !== 'INPUT' && type !== 'GROUP_INPUT') {
             // Default single input for most nodes
             handles = [{ id: null, top: '50%' }];

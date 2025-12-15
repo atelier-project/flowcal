@@ -89,6 +89,10 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             const idx = handles.indexOf(handleId);
             if (idx !== -1) y += 40 + (idx * 24);
             else y += 40;
+        } else if (node.type === 'GROUP_OUTPUT') {
+            // GROUP_OUTPUT has single input - center it
+            const h = getNodeHeight(node);
+            y += h / 2;
         } else if (node.type !== 'INPUT' && node.type !== 'GROUP_INPUT') {
             // Default center
             const h = getNodeHeight(node);
