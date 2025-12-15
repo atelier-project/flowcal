@@ -3,7 +3,7 @@ import {
     Gauge, Percent, TrendingUp, BarChart as BarChartIcon,
     Table as TableIcon, FileText, Flag, Box, ArrowRight, ArrowLeft,
     GitBranch, ArrowLeftRight, Divide,
-    Filter, ListOrdered, Scissors, Hash, List, LayoutTemplate, MessageSquare, Braces, PackageOpen
+    Filter, ListOrdered, Scissors, Hash, List, LayoutTemplate, MessageSquare, Braces, PackageOpen, Package
 } from 'lucide-react';
 
 export const NODE_UI = {
