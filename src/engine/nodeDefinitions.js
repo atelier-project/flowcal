@@ -70,9 +70,15 @@ export const NODE_LOGIC = {
             fields.forEach((field, i) => {
                 // If input is connected, use it. Otherwise use default value.
                 // Inputs are passed as an array matching the order of dynamic inputs.
-                // Note: The evaluator passes `node.inputs` array. We need to ensure mapping is correct.
-                // Our dynamic inputs logic relies on index. 
-                result[field.key || `field_${i}`] = inputs[i] !== undefined ? inputs[i] : (field.value ?? 0);
+                let val = inputs[i] !== undefined ? inputs[i] : (field.value ?? 0);
+
+                // Auto-convert internal string values to numbers if they look like numbers
+                // This fixes the issue where UI text inputs save numbers as strings
+                if (inputs[i] === undefined && typeof val === 'string' && val.trim() !== '' && !isNaN(Number(val))) {
+                    val = Number(val);
+                }
+
+                result[field.key || `field_${i}`] = val;
             });
             return result;
         },
