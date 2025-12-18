@@ -1,11 +1,10 @@
-
 import React, { useMemo, useState, useRef } from 'react';
-import { Download, Upload, FileJson, Search, HelpCircle, Package, Trash2, Share } from 'lucide-react';
+import { Save, FolderOpen, MousePointer2, Type, FileCode, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
 
-export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode }) => {
+export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
     const customImportRef = useRef(null);
@@ -95,14 +94,73 @@ export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, p
                 />
             </div>
 
-            <div className="px-4 py-2 border-b flex gap-2 flex-wrap" style={{ borderColor: 'var(--border-primary)' }}>
-                <button onClick={onSave} title="Save flow to file" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} className="flex-1 flex items-center justify-center gap-2 p-2 rounded text-xs font-semibold hover:opacity-80 transition-opacity"><Download size={14} /></button>
-                <button onClick={() => fileInputRef.current?.click()} title="Load flow from file" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} className="flex-1 flex items-center justify-center gap-2 p-2 rounded text-xs font-semibold hover:opacity-80 transition-opacity"><Upload size={14} /></button>
-                <button onClick={onExportJS} title="Export as JavaScript" style={{ backgroundColor: 'var(--accent-primary)', color: 'white' }} className="flex-1 flex items-center justify-center gap-2 p-2 rounded text-xs font-semibold hover:opacity-80 transition-opacity"><FileJson size={14} /></button>
-                <button onClick={onHelp} title="Help & Documentation" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} className="flex-1 flex items-center justify-center gap-2 p-2 rounded text-xs font-semibold hover:opacity-80 transition-opacity"><HelpCircle size={14} /></button>
+            {/* Toolbar */}
+            <div className="px-4 py-2 border-b flex gap-2 flex-wrap items-center" style={{ borderColor: 'var(--border-primary)' }}>
+                {/* Primary Save Action */}
+                <button
+                    onClick={onSave}
+                    disabled={isSaving}
+                    className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded text-sm font-medium transition-colors shadow-sm ${isGuest
+                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-70'
+                        }`}
+                    title={isGuest ? "Download as File" : "Save to Cloud"}
+                >
+                    {isSaving ? (
+                        <div className="animate-spin w-3 h-3 border-2 border-white/30 border-t-white rounded-full"></div>
+                    ) : isGuest ? (
+                        <Download size={14} />
+                    ) : (
+                        <Save size={14} />
+                    )}
+                    <span>{isGuest ? 'Download' : 'Save'}</span>
+                </button>
+
+                {/* Secondary Actions */}
+                {!isGuest && (
+                    <button onClick={onLocalSave} title="Backup (.json)" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} className="p-1.5 rounded hover:opacity-80 transition-opacity">
+                        <Download size={14} />
+                    </button>
+                )}
+
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Load flow from file"
+                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                    className="p-1.5 rounded hover:opacity-80 transition-opacity"
+                >
+                    <Upload size={14} />
+                </button>
+
+                <button
+                    onClick={onExportJS}
+                    title="Export as JavaScript"
+                    style={{ backgroundColor: 'var(--accent-primary)', color: 'white' }}
+                    className="p-1.5 rounded hover:opacity-80 transition-opacity"
+                >
+                    <FileJson size={14} />
+                </button>
+
+                <button
+                    onClick={onHelp}
+                    title="Help & Documentation"
+                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                    className="p-1.5 rounded hover:opacity-80 transition-opacity"
+                >
+                    <HelpCircle size={14} />
+                </button>
+
                 <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={onLoad} />
                 <input type="file" ref={customImportRef} className="hidden" accept=".json" onChange={onImportCustomNode} />
             </div>
+
+            {/* Last Saved Status */}
+            {!isGuest && lastSaved && (
+                <div className="px-4 py-1 text-[10px] text-slate-400 border-b flex items-center justify-center gap-1" style={{ borderColor: 'var(--border-primary)' }}>
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                    Synced {lastSaved.toLocaleTimeString()}
+                </div>
+            )}
 
             {/* Search Input */}
             <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--border-primary)' }}>
@@ -191,6 +249,14 @@ export const Sidebar = ({ onAddNode, onSave, onLoad, onExportJS, fileInputRef, p
                 {Object.keys(filteredCategories).length === 0 && searchQuery && (
                     <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">No nodes found</p>
                 )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+                <a href="/dashboard" className="flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                    <LogOut size={16} className="rotate-180" />
+                    Back to Dashboard / Login
+                </a>
             </div>
         </div>
     );
