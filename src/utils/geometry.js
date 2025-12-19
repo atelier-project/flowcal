@@ -108,7 +108,7 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
 
     } else {
         // Output
-        x += NODE_WIDTH;
+        x += node.data?.width || NODE_WIDTH;
         const def = getDefinition(node.type);
 
         if (node.type === 'GROUP' && handleId) {
