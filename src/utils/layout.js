@@ -11,7 +11,15 @@ export const getNodeHeight = (node) => {
         const inputs = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT') || [];
         const outputs = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_OUTPUT') || [];
         const count = Math.max(inputs.length, outputs.length);
-        return Math.max(100, (count * 24) + 60);
+        let minHeight = Math.max(100, (count * 24) + 60);
+
+        // Add height for results box if toggled on
+        if (node.data?.showResults) {
+            minHeight += 120; // Estimated height for scrollable results box
+        }
+
+        // Return the larger of user-defined height or calculated minimum
+        return Math.max(minHeight, node.data?.height || 0);
     }
 
     if (node.type === 'COLLECTOR') {

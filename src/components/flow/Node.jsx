@@ -1,6 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import {
-    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp, Package
+    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp, Package, Eye, EyeOff
 } from 'lucide-react';
 import { getNodeHeight } from '../../utils/layout';
 import { GaugeChart, LineChart, BarChart } from '../ui/Charts';
@@ -226,6 +226,15 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         }
     };
 
+    const moveKey = (index, direction) => {
+        const keys = [...(data.keys || [])];
+        const swapIndex = direction === 'up' ? index - 1 : index + 1;
+        if (swapIndex >= 0 && swapIndex < keys.length) {
+            [keys[index], keys[swapIndex]] = [keys[swapIndex], keys[index]];
+            handleChange('keys', keys);
+        }
+    };
+
     // Special rendering for FRAME node - always stays at back
     if (type === 'FRAME') {
         return (
@@ -338,6 +347,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 transform: `translate(${position.x}px, ${position.y}px)`,
                 minHeight,
                 width: data.width ? `${data.width}px` : undefined,
+                height: data.height && !data.collapsed ? `${data.height}px` : undefined,
                 backgroundColor: 'var(--bg-secondary)',
                 borderColor: selected ? 'var(--accent-primary)' : 'var(--border-primary)',
                 color: 'var(--text-primary)'
@@ -398,6 +408,13 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     )}
                     {type === 'GROUP' && (
                         <>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleChange('showResults', !data.showResults); }}
+                                className={`p-1 rounded ${data.showResults ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'text-slate-400 hover:text-blue-500 dark:hover:text-blue-400'}`}
+                                title={data.showResults ? "Hide Output Values" : "Show Output Values"}
+                            >
+                                {data.showResults ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </button>
                             <button onClick={(e) => { e.stopPropagation(); onEnterGroup(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Edit Group"><Settings size={14} /></button>
                             {onSaveAsCustom && (
                                 <button onClick={(e) => { e.stopPropagation(); onSaveAsCustom({ id, type, data, position }); }} className="text-slate-400 hover:text-purple-500 dark:hover:text-purple-400 p-1" title="Save as Custom Node"><Package size={14} /></button>
@@ -699,6 +716,22 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     className="flex-1 h-6 px-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs font-mono focus:outline-none focus:border-violet-500"
                                     onMouseDown={(e) => e.stopPropagation()}
                                 />
+                                <div className="flex flex-col">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); moveKey(i, 'up'); }}
+                                        disabled={i === 0}
+                                        className="text-slate-400 hover:text-blue-500 disabled:opacity-30 disabled:hover:text-slate-400"
+                                    >
+                                        <ArrowUp size={10} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); moveKey(i, 'down'); }}
+                                        disabled={i === (data.keys || []).length - 1}
+                                        className="text-slate-400 hover:text-blue-500 disabled:opacity-30 disabled:hover:text-slate-400"
+                                    >
+                                        <ArrowDown size={10} />
+                                    </button>
+                                </div>
                                 <button
                                     onClick={() => {
                                         const newKeys = (data.keys || []).filter((_, idx) => idx !== i);
@@ -750,6 +783,22 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     className="flex-1 h-6 px-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs font-mono focus:outline-none focus:border-violet-500"
                                     onMouseDown={(e) => e.stopPropagation()}
                                 />
+                                <div className="flex flex-col">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); moveKey(i, 'up'); }}
+                                        disabled={i === 0}
+                                        className="text-slate-400 hover:text-blue-500 disabled:opacity-30 disabled:hover:text-slate-400"
+                                    >
+                                        <ArrowUp size={10} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); moveKey(i, 'down'); }}
+                                        disabled={i === (data.keys || []).length - 1}
+                                        className="text-slate-400 hover:text-blue-500 disabled:opacity-30 disabled:hover:text-slate-400"
+                                    >
+                                        <ArrowDown size={10} />
+                                    </button>
+                                </div>
                                 <button
                                     onClick={() => {
                                         const newKeys = (data.keys || []).filter((_, idx) => idx !== i);
@@ -794,6 +843,27 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
+                {type === 'GROUP' && data.showResults && (
+                    <div className="mt-2 flex-1 flex flex-col min-h-0 border-t border-slate-100 dark:border-slate-700/50 pt-2">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight px-1 mb-1">Outbound Values</div>
+                        <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md overflow-y-auto">
+                            {(data.subGraph?.nodes.filter(n => n.type === 'GROUP_OUTPUT') || []).map((out, i) => (
+                                <div key={out.id} className="flex items-center justify-between p-1.5 border-b last:border-0 border-slate-100 dark:border-slate-800">
+                                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate max-w-[100px]" title={out.data.label || `Output ${i + 1}`}>
+                                        {out.data.label || `Output ${i + 1}`}
+                                    </span>
+                                    <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
+                                        {result && result[out.id] !== undefined ? formatResult(result[out.id]) : '-'}
+                                    </span>
+                                </div>
+                            ))}
+                            {(!data.subGraph?.nodes.some(n => n.type === 'GROUP_OUTPUT')) && (
+                                <div className="p-2 text-center text-[10px] italic text-slate-400">No output nodes defined</div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
                 {type === 'COMMENT' && (
                     <div className="flex-1 flex flex-col relative">
                         {/* Color Picker */}
@@ -828,37 +898,6 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                             }}
                             className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded text-sm text-slate-800 placeholder:text-slate-400 resize focus:outline-none focus:ring-2 focus:ring-amber-400"
                             onMouseDown={(e) => e.stopPropagation()}
-                        />
-                        {/* Resize Handle */}
-                        <div
-                            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-50 hover:opacity-100"
-                            style={{
-                                background: 'linear-gradient(135deg, transparent 50%, #94a3b8 50%)',
-                                borderBottomRightRadius: '4px'
-                            }}
-                            onMouseDown={(e) => {
-                                e.stopPropagation();
-                                const startX = e.clientX;
-                                const startY = e.clientY;
-                                const startWidth = data.width || 256;
-                                const startHeight = data.height || 120;
-
-                                const onMove = (ev) => {
-                                    const newWidth = Math.max(150, startWidth + (ev.clientX - startX));
-                                    const newHeight = Math.max(60, startHeight + (ev.clientY - startY));
-                                    handleChange('width', newWidth);
-                                    handleChange('height', newHeight);
-                                };
-
-                                const onUp = () => {
-                                    document.removeEventListener('mousemove', onMove);
-                                    document.removeEventListener('mouseup', onUp);
-                                };
-
-                                document.addEventListener('mousemove', onMove);
-                                document.addEventListener('mouseup', onUp);
-                            }}
-                            title="Drag to resize"
                         />
                     </div>
                 )}
@@ -1103,18 +1142,21 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 ))
             }
 
-            {/* Resize Handle for FORM, FINAL, and COMMENT */}
+            {/* Resize Handle for FORM, FINAL, GROUP, and COMMENT */}
             {
-                (type === 'FORM' || type === 'FINAL' || type === 'COMMENT') && (
+                (type === 'FORM' || type === 'FINAL' || type === 'GROUP' || type === 'COMMENT') && (
                     <div
                         className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize z-50 hover:bg-slate-200 dark:hover:bg-slate-600 rounded-tl"
                         onMouseDown={(e) => {
                             e.stopPropagation();
                             const startX = e.clientX;
-                            const startWidth = data.width || 200;
+                            const startY = e.clientY;
+                            const startWidth = data.width || (type === 'GROUP' ? 256 : 200);
+                            const startHeight = data.height || (type === 'GROUP' ? 120 : 160);
                             const handleMouseMove = (moveEvent) => {
                                 const newWidth = Math.max(150, startWidth + (moveEvent.clientX - startX));
-                                handleChange('width', newWidth);
+                                const newHeight = Math.max(60, startHeight + (moveEvent.clientY - startY));
+                                onUpdateData(id, { ...data, width: newWidth, height: newHeight });
                             };
                             const handleMouseUp = () => {
                                 window.removeEventListener('mousemove', handleMouseMove);
