@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { Save, FolderOpen, MousePointer2, Type, FileCode, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
@@ -253,10 +254,10 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
 
             {/* Footer */}
             <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-                <a href="/dashboard" className="flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                <Link to="/dashboard" className="flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors text-sm font-medium">
                     <LogOut size={16} className="rotate-180" />
                     Back to Dashboard / Login
-                </a>
+                </Link>
             </div>
         </div>
     );
