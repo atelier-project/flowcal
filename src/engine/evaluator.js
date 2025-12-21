@@ -46,6 +46,19 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
              return contextInputs[node.id] !== undefined ? contextInputs[node.id] : (node.data.value || (node.type === 'GROUP_INPUT_LIST' ? [] : 0));
         }
 
+        // Warp Logic: Wireless connection
+        if (node.type === 'WARP_OUT') {
+            const tag = node.data.tag;
+            const sourceNode = nodes.find(n => n.type === 'WARP_IN' && n.data.tag === tag);
+            if (sourceNode) {
+                const val = getNodeValue(sourceNode.id, [...stack, nodeId]);
+                results[nodeId] = val; // Store result before returning!
+                return val;
+            }
+            results[nodeId] = 0;
+            return 0; // Default if not found
+        }
+
         const connectedEdges = edges.filter(e => e.target === node.id);
         
         const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
@@ -223,12 +236,24 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
         // Registry Lookup
         const def = NODE_LOGIC[node.type] || {};
 
-
         // 1. Check if Value is provided via Context (e.g. Group Inputs)
         if (contextInputs[node.id] !== undefined) {
             const val = contextInputs[node.id];
             results[nodeId] = val;
             return val;
+        }
+
+        // Warp Logic
+        if (node.type === 'WARP_OUT') {
+            const tag = node.data.tag;
+            const sourceNode = nodes.find(n => n.type === 'WARP_IN' && n.data.tag === tag);
+            if (sourceNode) {
+                const val = getNodeValue(sourceNode.id, [...stack, nodeId]);
+                results[nodeId] = val; // Store result before returning!
+                return val;
+            }
+            results[nodeId] = 0;
+            return 0;
         }
 
         const connectedEdges = edges.filter(e => e.target === node.id);
@@ -274,13 +299,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                 if (!edge) return undefined;
                 const sourceNode = nodes.find(n => n.id === edge.source);
                 const raw = getNodeValue(edge.source, [...stack, nodeId]);
-                if (node.type === 'SUM') {
-                    // console.log(`[Eval] SUM Resolving input from ${sourceNode?.type} (ID: ${edge.source}). Raw:`, raw);
-                }
                 const resolved = resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type, node.type);
-                if (node.type === 'SUM') {
-                    console.log(`[Eval] SUM Resolved input:`, resolved);
-                }
                 return resolved;
             };
 
@@ -317,13 +336,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
             return connectedEdges.map(e => {
                 const sourceNode = nodes.find(n => n.id === e.source);
                 const raw = getNodeValue(e.source, [...stack, nodeId]);
-                if (node.type === 'SUM') {
-                    console.log(`[Eval] SUM (VarArg) Resolving input from ${sourceNode?.type}. Raw:`, raw);
-                }
                 const resolved = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type, node.type);
-                if (node.type === 'SUM') {
-                    console.log(`[Eval] SUM (VarArg) Resolved:`, resolved);
-                }
                 return resolved;
             });
         };
@@ -335,7 +348,6 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
             if (node.type === 'GROUP') {
                 const subGraph = node.data.subGraph || { nodes: [], edges: [] };
                 const subContext = {};
-                if (node.data.label === 'Main Loop') console.log('DEBUG GROUP EVAL START');
                 connectedEdges.forEach((edge) => {
                     const sourceNode = nodes.find(n => n.id === edge.source);
 
@@ -353,11 +365,9 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
 
                     if (edge.targetHandle) {
                         const targetNode = subGraph.nodes.find(n => n.id === edge.targetHandle);
-                        console.log(`[Eval] Edge to ${edge.targetHandle}. TargetNode found: ${!!targetNode}. Type: ${targetNode?.type}`);
                         if (targetNode && targetNode.type === 'GROUP_INPUT_LIST') {
                             if (!subContext[edge.targetHandle]) subContext[edge.targetHandle] = [];
                             subContext[edge.targetHandle].push(sourceVal);
-                            console.log(`[Eval] Pushed to list for ${edge.targetHandle}. Current:`, subContext[edge.targetHandle]);
                         } else {
                             subContext[edge.targetHandle] = sourceVal;
                         }

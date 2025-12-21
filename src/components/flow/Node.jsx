@@ -1216,6 +1216,30 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 ))}
 
+                {(type === 'WARP_IN' || type === 'WARP_OUT') && (
+                    <div className="space-y-1">
+                        <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Tag Name</label>
+                        <input
+                            type="text"
+                            value={data.tag || ''}
+                            onChange={(e) => handleChange('tag', e.target.value)}
+                            placeholder="e.g. Price"
+                            className="w-full px-2 py-1 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 text-slate-700 dark:text-slate-200"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            disabled={!canEdit}
+                        />
+                        <p className="text-[10px] text-slate-400">
+                            {type === 'WARP_IN' ? 'Receives value for this tag.' : 'Outputs value from matching Warp In.'}
+                        </p>
+                        <div className="flex items-center justify-between mt-1 pt-1 border-t border-slate-100 dark:border-slate-800">
+                            <span className="text-[10px] font-mono text-slate-500">Val:</span>
+                            <span className="text-xs font-bold font-mono text-purple-600 dark:text-purple-400">
+                                {result !== undefined && result !== null ? (typeof result === 'object' ? JSON.stringify(result) : String(result)) : '-'}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 {/* Inputs Preview (for generic nodes that don't visualize) */}
                 {def.category === 'Math' && type !== 'CUSTOM' && (
                     <div className="text-xs text-slate-500 dark:text-slate-400 flex justify-between">
@@ -1229,7 +1253,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 )}
 
                 {/* Result Display - Hide for Sinks */}
-                {def.category !== 'Visuals' && type !== 'FINAL' && type !== 'GROUP' && type !== 'GROUP_INPUT' && type !== 'COMMENT' && (
+                {def.category !== 'Visuals' && type !== 'FINAL' && type !== 'GROUP' && type !== 'GROUP_INPUT' && type !== 'COMMENT' && type !== 'WARP_IN' && type !== 'WARP_OUT' && (
                     <div className="pt-2 border-t border-slate-100 dark:border-slate-700/50">
                         {/* Error Handling Display */}
                         {typeof result === 'string' && result.startsWith('Error:') ? (

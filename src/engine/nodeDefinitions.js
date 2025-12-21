@@ -666,8 +666,27 @@ export const NODE_LOGIC = {
         type: 'GROUP_OUTPUT',
         label: 'Group Output',
         category: 'Advanced',
-        compute: (inputs) => inputs.length > 0 ? inputs[0] : 0,
+        inputs: ['val'],
+        compute: ({ val }) => val ?? 0,
         data: { label: '', description: '' }
+    },
+    WARP_IN: {
+        type: 'WARP_IN',
+        label: 'Warp In',
+        category: 'Advanced',
+        inputs: ['val'],
+        outputs: [], // No physical output wire
+        compute: ({ val }) => val ?? 0,
+        data: { tag: 'A' }
+    },
+    WARP_OUT: {
+        type: 'WARP_OUT',
+        label: 'Warp Out',
+        category: 'Advanced',
+        inputs: [],
+        outputs: ['value'],
+        compute: () => 0, // Handled by evaluator
+        data: { tag: 'A' }
     },
     COMMENT: {
         type: 'COMMENT',
