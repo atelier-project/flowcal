@@ -1,7 +1,8 @@
 import React, { useRef, useMemo } from 'react';
 import {
-    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp, Package, Eye, EyeOff
+    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp, Package, Eye, EyeOff, Lock, Unlock, Shield, ShieldAlert, MoreVertical
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import { getNodeHeight } from '../../utils/layout';
 import { GaugeChart, LineChart, BarChart } from '../ui/Charts';
 import { DataTable } from '../ui/DataTable';
@@ -9,13 +10,59 @@ import { Handle } from './Handle';
 import { getUI } from './nodeUIMap';
 import { getDefinition } from '../../engine/nodeDefinitions';
 
-export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom }) => {
+export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly }) => {
     const nodeRef = useRef(null);
     const ui = getUI(type);
+    const [showMenu, setShowMenu] = React.useState(false);
+
+    // Close menu when clicking outside
+    React.useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (showMenu && nodeRef.current && !nodeRef.current.contains(event.target)) {
+                setShowMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [showMenu]);
     const def = getDefinition(type);
+    const { user, isAdmin } = useAuth();
+
+    // --- Security / Lock Logic ---
+    const isOwner = user?.id === data.lockedBy;
+    const canUnlock = isOwner || isAdmin;
+
+    // "Effectively Locked" means it is locked AND the current user cannot bypass it.
+    // If you are the owner or admin, you "see through" the lock (but see the icon).
+    const isEffectivelyLocked = data.locked && !canUnlock;
+
+    // "Read Only" means you can see inside but not change values.
+    // If locked, it is implicitly read-only for everyone except owner/admin.
+    // However, if isEffectivelyLocked is true, we don't even show the editor, so readOnly check is secondary for body inputs.
+    // We merge the prop `readOnly` (inherited context + data) with local logic.
+    const isReadOnly = readOnly || data.readOnly || isEffectivelyLocked;
+
+    // Can the user edit this node? 
+    // They must hold the lock (or be admin) OR it must not be read-only.
+    // If it's locked, only the owner/admin can edit.
+    const canEdit = !isReadOnly && (!data.locked || canUnlock);
 
     const handleChange = (key, value) => {
+        if (!canEdit) return; // Strict check
         onUpdateData(id, { ...data, [key]: value });
+    };
+
+    const handleLockToggle = (e) => {
+        e.stopPropagation();
+        if (!canUnlock && data.locked) return; // Should not happen due to UI hiding, but safe check
+
+        if (data.locked) {
+            // Unlock
+            onUpdateData(id, { ...data, locked: false, lockedBy: null });
+        } else {
+            // Lock
+            onUpdateData(id, { ...data, locked: true, lockedBy: user?.id });
+        }
     };
 
     const Icon = ui.icon || Plus;
@@ -382,59 +429,150 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     />
                 </div>
                 <div className="flex gap-1 items-center">
-                    {type === 'INPUT' && (
+                    {/* Lock Toggle for Owner/Admin OR Lock Indicator for others */}
+                    {(data.locked || canUnlock) && (
                         <button
-                            onClick={(e) => { e.stopPropagation(); handleChange('useSlider', !data.useSlider); }}
-                            className={`p-1 rounded ${data.useSlider ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'text-slate-400 hover:text-blue-500 dark:hover:text-blue-400'}`}
-                            title="Toggle Slider"
+                            onClick={handleLockToggle}
+                            disabled={!canUnlock && data.locked}
+                            className={`p-1 rounded ${data.locked ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-slate-300 hover:text-slate-500'}`}
+                            title={data.locked ? (canUnlock ? "Unlock Node" : "Locked by Owner") : "Lock Node"}
                         >
-                            <Settings size={14} />
+                            {data.locked ? <Lock size={14} /> : <Unlock size={14} />}
                         </button>
                     )}
-                    {type === 'FORM' && (
+
+                    {/* Read-Only Toggle */}
+                    {(data.readOnly || canUnlock) && !data.locked && (
                         <button
-                            onClick={(e) => { e.stopPropagation(); handleChange('showInputs', !data.showInputs); }}
-                            className={`p-1 rounded ${data.showInputs ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'text-slate-400 hover:text-blue-500 dark:hover:text-blue-400'}`}
-                            title={data.showInputs ? "Hide Input Ports" : "Show Input Ports (Enable Overrides)"}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (canUnlock) {
+                                    onUpdateData(id, { ...data, readOnly: !data.readOnly });
+                                }
+                            }}
+                            disabled={!canUnlock && data.readOnly}
+                            className={`p-1 rounded ${data.readOnly ? 'text-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'text-slate-300 hover:text-slate-500'}`}
+                            title={data.readOnly ? (canUnlock ? "Make Editable" : "Read-Only") : "Make Read-Only"}
                         >
-                            <Plug size={14} />
+                            {data.readOnly ? <ShieldAlert size={14} /> : <Shield size={14} />}
                         </button>
                     )}
-                    {type === 'COLLECTOR' && (
-                        <button onClick={(e) => { e.stopPropagation(); addCollectorInput(); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Add Input Port"><Plus size={14} /></button>
-                    )}
-                    {type === 'CUSTOM' && (
-                        <button onClick={(e) => { e.stopPropagation(); onOpenEditor(id, data.func); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Open Editor"><Maximize2 size={14} /></button>
-                    )}
-                    {type === 'GROUP' && (
+
+                    {/* Hide regular controls if effectively locked */}
+                    {!isEffectivelyLocked && (
                         <>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); handleChange('showResults', !data.showResults); }}
-                                className={`p-1 rounded ${data.showResults ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'text-slate-400 hover:text-blue-500 dark:hover:text-blue-400'}`}
-                                title={data.showResults ? "Hide Output Values" : "Show Output Values"}
-                            >
-                                {data.showResults ? <EyeOff size={14} /> : <Eye size={14} />}
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); onEnterGroup(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Edit Group"><Settings size={14} /></button>
-                            {onSaveAsCustom && (
-                                <button onClick={(e) => { e.stopPropagation(); onSaveAsCustom({ id, type, data, position }); }} className="text-slate-400 hover:text-purple-500 dark:hover:text-purple-400 p-1" title="Save as Custom Node"><Package size={14} /></button>
+                            {type === 'INPUT' && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleChange('useSlider', !data.useSlider); }}
+                                    className={`p-1 rounded ${data.useSlider ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'text-slate-400 hover:text-blue-500 dark:hover:text-blue-400'}`}
+                                    title="Toggle Slider"
+                                >
+                                    <Settings size={14} />
+                                </button>
+                            )}
+                            {type === 'FORM' && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handleChange('showInputs', !data.showInputs); }}
+                                    className={`p-1 rounded ${data.showInputs ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'text-slate-400 hover:text-blue-500 dark:hover:text-blue-400'}`}
+                                    title={data.showInputs ? "Hide Input Ports" : "Show Input Ports (Enable Overrides)"}
+                                >
+                                    <Plug size={14} />
+                                </button>
+                            )}
+                            {type === 'COLLECTOR' && (
+                                <button onClick={(e) => { e.stopPropagation(); addCollectorInput(); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Add Input Port"><Plus size={14} /></button>
+                            )}
+                            {type === 'CUSTOM' && (
+                                <button onClick={(e) => { e.stopPropagation(); onOpenEditor(id, data.func); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Open Editor"><Maximize2 size={14} /></button>
+                            )}
+                            {type === 'GROUP' ? (
+                                <div className="relative">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onEnterGroup(id); }}
+                                        className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1 mr-1"
+                                        title="Edit Group"
+                                    >
+                                        <Settings size={14} />
+                                    </button>
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                                        className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 ${showMenu ? 'text-slate-600 dark:text-slate-200' : 'text-slate-400'}`}
+                                    >
+                                        <MoreVertical size={14} />
+                                    </button>
+
+                                    {showMenu && (
+                                        <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleChange('showResults', !data.showResults); setShowMenu(false); }}
+                                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                                            >
+                                                {data.showResults ? <EyeOff size={14} /> : <Eye size={14} />}
+                                                {data.showResults ? "Hide Results" : "Show Results"}
+                                            </button>
+
+                                            {onSaveAsCustom && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); onSaveAsCustom({ id, type, data, position }); setShowMenu(false); }}
+                                                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                                                >
+                                                    <Package size={14} />
+                                                    Save as Node
+                                                </button>
+                                            )}
+
+                                            <div className="my-1 border-t border-slate-100 dark:border-slate-700"></div>
+
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); handleChange('collapsed', !data.collapsed); setShowMenu(false); }}
+                                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                                            >
+                                                {data.collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                                                {data.collapsed ? "Expand" : "Collapse"}
+                                            </button>
+
+                                            {onDuplicate && (
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); onDuplicate(id); setShowMenu(false); }}
+                                                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
+                                                >
+                                                    <Copy size={14} />
+                                                    Duplicate
+                                                </button>
+                                            )}
+
+                                            <div className="my-1 border-t border-slate-100 dark:border-slate-700"></div>
+
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onDelete(id); setShowMenu(false); }}
+                                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
+                                            >
+                                                <Trash2 size={14} />
+                                                Delete
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Collapse toggle for large nodes */}
+                                    {['TEMPLATE', 'FORM', 'COMMENT', 'UNPACK', 'PACK', 'CUSTOM'].includes(type) && (
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleChange('collapsed', !data.collapsed); }}
+                                            className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+                                            title={data.collapsed ? 'Expand' : 'Collapse'}
+                                        >
+                                            {data.collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
+                                        </button>
+                                    )}
+                                    {onDuplicate && (
+                                        <button onClick={(e) => { e.stopPropagation(); onDuplicate(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Duplicate (Ctrl+D)"><Copy size={14} /></button>
+                                    )}
+                                    <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"><Trash2 size={14} /></button>
+                                </>
                             )}
                         </>
                     )}
-                    {/* Collapse toggle for large nodes */}
-                    {['TEMPLATE', 'GROUP', 'FORM', 'COMMENT', 'UNPACK', 'PACK', 'CUSTOM'].includes(type) && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); handleChange('collapsed', !data.collapsed); }}
-                            className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
-                            title={data.collapsed ? 'Expand' : 'Collapse'}
-                        >
-                            {data.collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-                        </button>
-                    )}
-                    {onDuplicate && (
-                        <button onClick={(e) => { e.stopPropagation(); onDuplicate(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Duplicate (Ctrl+D)"><Copy size={14} /></button>
-                    )}
-                    <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"><Trash2 size={14} /></button>
                 </div>
             </div>
 
@@ -455,24 +593,27 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     step={data.step || 1}
                                     value={data.value}
                                     onChange={(e) => handleChange('value', parseFloat(e.target.value) || 0)}
-                                    className="w-full accent-blue-500 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer"
+                                    className="w-full accent-blue-500 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     onMouseDown={(e) => e.stopPropagation()}
+                                    disabled={!canEdit}
                                 />
                                 <div className="flex gap-2 text-[10px] text-slate-400 dark:text-slate-500">
                                     <input
-                                        className="w-12 bg-transparent border-b border-slate-200 dark:border-slate-700 text-center dark:text-slate-300"
+                                        className="w-12 bg-transparent border-b border-slate-200 dark:border-slate-700 text-center dark:text-slate-300 disabled:opacity-50"
                                         value={data.min || 0}
                                         onChange={e => handleChange('min', parseFloat(e.target.value))}
                                         placeholder="Min"
                                         onMouseDown={e => e.stopPropagation()}
+                                        disabled={!canEdit}
                                     />
                                     <span className="flex-1 text-center">Range</span>
                                     <input
-                                        className="w-12 bg-transparent border-b border-slate-200 dark:border-slate-700 text-center dark:text-slate-300"
+                                        className="w-12 bg-transparent border-b border-slate-200 dark:border-slate-700 text-center dark:text-slate-300 disabled:opacity-50"
                                         value={data.max || 100}
                                         onChange={e => handleChange('max', parseFloat(e.target.value))}
                                         placeholder="Max"
                                         onMouseDown={e => e.stopPropagation()}
+                                        disabled={!canEdit}
                                     />
                                 </div>
                             </div>
@@ -481,8 +622,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                 type="number"
                                 value={data.value}
                                 onChange={(e) => handleChange('value', parseFloat(e.target.value) || 0)}
-                                className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-blue-500 font-mono dark:text-slate-200"
+                                className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-blue-500 font-mono dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onMouseDown={(e) => e.stopPropagation()}
+                                disabled={!canEdit}
                             />
                         )}
                     </div>
@@ -496,8 +638,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                             value={data.text ?? ''}
                             onChange={(e) => handleChange('text', e.target.value)}
                             placeholder="Enter text..."
-                            className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-blue-500 dark:text-slate-200"
+                            className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-blue-500 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             onMouseDown={(e) => e.stopPropagation()}
+                            disabled={!canEdit}
                         />
                     </div>
                 )}
@@ -509,8 +652,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                             type="datetime-local"
                             value={data.date ?? ''}
                             onChange={(e) => handleChange('date', e.target.value)}
-                            className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-blue-500 dark:text-slate-200"
+                            className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-blue-500 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             onMouseDown={(e) => e.stopPropagation()}
+                            disabled={!canEdit}
                         />
                     </div>
                 )}
@@ -522,30 +666,33 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                 {/* Input Handle spacer */}
                                 {data.showInputs && <div className="w-3" />}
                                 <input
-                                    className="w-20 text-xs font-bold text-slate-600 dark:text-slate-300 bg-transparent border-b border-transparent focus:border-blue-400 focus:outline-none px-1"
+                                    className="w-20 text-xs font-bold text-slate-600 dark:text-slate-300 bg-transparent border-b border-transparent focus:border-blue-400 focus:outline-none px-1 disabled:opacity-50"
                                     value={field.key}
                                     onChange={(e) => updateFormField(i, 'key', e.target.value)}
                                     placeholder="Key"
                                     onMouseDown={e => e.stopPropagation()}
                                     onKeyDown={e => e.stopPropagation()}
+                                    disabled={!canEdit}
                                 />
                                 <span className="text-slate-300 dark:text-slate-600">:</span>
                                 <input
-                                    className="flex-1 min-w-0 text-xs font-mono bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-1 py-[2px] focus:border-blue-500 focus:outline-none dark:text-slate-300"
+                                    className="flex-1 min-w-0 text-xs font-mono bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-1 py-[2px] focus:border-blue-500 focus:outline-none dark:text-slate-300 disabled:opacity-50"
                                     value={field.value}
                                     onChange={(e) => updateFormField(i, 'value', e.target.value)} // String input allowed
                                     placeholder="Value"
                                     onMouseDown={e => e.stopPropagation()}
                                     onKeyDown={e => e.stopPropagation()}
+                                    disabled={!canEdit}
                                 />
-                                <button onClick={(e) => { e.stopPropagation(); removeFormField(i); }} className="opacity-0 group-hover/field:opacity-100 text-slate-400 hover:text-red-500 dark:hover:text-red-400">
+                                <button disabled={!canEdit} onClick={(e) => { e.stopPropagation(); removeFormField(i); }} className="opacity-0 group-hover/field:opacity-100 text-slate-400 hover:text-red-500 dark:hover:text-red-400 disabled:hidden">
                                     <Trash2 size={12} />
                                 </button>
                             </div>
                         ))}
                         <button
                             onClick={(e) => { e.stopPropagation(); addFormField(); }}
-                            className="text-xs flex items-center justify-center gap-1 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/30 dark:hover:bg-slate-700/50 rounded border border-slate-200 dark:border-slate-700 border-dashed transition-colors"
+                            disabled={!canEdit}
+                            className={`text-xs flex items-center justify-center gap-1 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 py-1 bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/30 dark:hover:bg-slate-700/50 rounded border border-slate-200 dark:border-slate-700 border-dashed transition-colors ${!canEdit ? 'hidden' : ''}`}
                         >
                             <Plus size={12} /> Add Field
                         </button>
@@ -580,8 +727,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         <select
                             value={data.order || 'asc'}
                             onChange={(e) => handleChange('order', e.target.value)}
-                            className="flex-1 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded text-xs py-1 px-2 font-medium focus:outline-none focus:border-blue-500 cursor-pointer dark:text-slate-200"
+                            className="flex-1 bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-700 rounded text-xs py-1 px-2 font-medium focus:outline-none focus:border-blue-500 cursor-pointer dark:text-slate-200 disabled:opacity-50"
                             onMouseDown={e => e.stopPropagation()}
+                            disabled={!canEdit}
                         >
                             <option value="asc">Ascending</option>
                             <option value="desc">Descending</option>
@@ -686,9 +834,10 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         <textarea
                             value={data.template || 'Total: {0}'}
                             onChange={(e) => handleChange('template', e.target.value)}
-                            className="w-full h-20 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs focus:outline-none focus:border-blue-500 font-mono resize-y text-slate-700 dark:text-slate-200"
+                            className="w-full h-20 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs focus:outline-none focus:border-blue-500 font-mono resize-y text-slate-700 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
                             placeholder="Result: {0}, Tax: {1}"
                             onMouseDown={(e) => e.stopPropagation()}
+                            disabled={!canEdit}
                         />
                         <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
                             <label className="block text-xs font-medium text-blue-500 dark:text-blue-400 mb-1">Output</label>

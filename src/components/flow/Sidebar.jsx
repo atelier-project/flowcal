@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Save, FolderOpen, MousePointer2, Type, FileCode, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User } from 'lucide-react';
+import { Save, FolderOpen, MousePointer2, Type, FileCode, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
 import { useAuth } from '../../context/AuthContext';
 
-export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved }) => {
+export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved, onOpenSettings, isRestricted }) => {
     const { isAdmin } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
@@ -72,7 +72,7 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
                             }}
                             className="w-full flex items-center gap-3 p-3 rounded-lg border hover:opacity-80 transition-all text-sm font-medium mb-2"
                         >
-                            <div className={`p-1 rounded ${ui.colorClass?.split(' ')[1] ? 'bg-white ' + ui.colorClass.split(' ')[1] : 'bg-slate-100 text-slate-600'}`}>
+                            <div className={`p - 1 rounded ${ui.colorClass?.split(' ')[1] ? 'bg-white ' + ui.colorClass.split(' ')[1] : 'bg-slate-100 text-slate-600'} `}>
                                 <Icon size={14} />
                             </div>
                             {def.label}
@@ -86,7 +86,7 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
     return (
         <div className="w-64 theme-bg-secondary border-r theme-border-primary flex flex-col z-30 shadow-xl overflow-hidden theme-text-primary" style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
             <div className="p-4 border-b" style={{ borderColor: 'var(--border-primary)' }}>
-                <h1 className={`text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent ${theme === 'cyberpunk' ? 'cyberpunk-logo' : ''} ${theme === 'dracula' ? 'dracula-logo' : ''} ${theme === 'sunset' ? 'sunset-logo' : ''} ${theme === 'ocean' ? 'ocean-logo' : ''} ${theme === 'forest' ? 'forest-logo' : ''}`}>FlowCalc</h1>
+                <h1 className={`text - xl font - bold bg - gradient - to - r from - blue - 600 to - purple - 600 bg - clip - text text - transparent ${theme === 'cyberpunk' ? 'cyberpunk-logo' : ''} ${theme === 'dracula' ? 'dracula-logo' : ''} ${theme === 'sunset' ? 'sunset-logo' : ''} ${theme === 'ocean' ? 'ocean-logo' : ''} ${theme === 'forest' ? 'forest-logo' : ''} `}>FlowCalc</h1>
                 <input
                     type="text"
                     value={projectTitle || ''}
@@ -102,12 +102,12 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
                 {/* Primary Save Action */}
                 <button
                     onClick={onSave}
-                    disabled={isSaving}
-                    className={`flex-1 flex items-center justify-center gap-2 py-1.5 px-3 rounded text-sm font-medium transition-colors shadow-sm ${isGuest
-                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200'
+                    disabled={isSaving || (isGuest && isRestricted)}
+                    className={`p-1.5 rounded transition-colors shadow-sm ${isGuest
+                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed'
                         : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-70'
-                        }`}
-                    title={isGuest ? "Download as File" : "Save to Cloud"}
+                        } `}
+                    title={isGuest ? (isRestricted ? "Download Disabled by Owner" : "Download as File") : "Save to Cloud"}
                 >
                     {isSaving ? (
                         <div className="animate-spin w-3 h-3 border-2 border-white/30 border-t-white rounded-full"></div>
@@ -116,12 +116,17 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
                     ) : (
                         <Save size={14} />
                     )}
-                    <span>{isGuest ? 'Download' : 'Save'}</span>
                 </button>
 
                 {/* Secondary Actions */}
                 {!isGuest && (
-                    <button onClick={onLocalSave} title="Backup (.json)" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }} className="p-1.5 rounded hover:opacity-80 transition-opacity">
+                    <button
+                        onClick={onLocalSave}
+                        disabled={isRestricted}
+                        title={isRestricted ? "Backup Disabled by Owner" : "Backup (.json)"}
+                        style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                        className="p-1.5 rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                         <Download size={14} />
                     </button>
                 )}
@@ -137,11 +142,21 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
 
                 <button
                     onClick={onExportJS}
-                    title="Export as JavaScript"
-                    style={{ backgroundColor: 'var(--accent-primary)', color: 'white' }}
+                    title={isRestricted ? "Export Disabled by Owner" : "Export as JavaScript"}
+                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                    className="p-1.5 rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={isRestricted}
+                >
+                    <FileCode size={14} />
+                </button>
+
+                <button
+                    onClick={onOpenSettings}
+                    title="Flow Settings"
+                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
                     className="p-1.5 rounded hover:opacity-80 transition-opacity"
                 >
-                    <FileJson size={14} />
+                    <Settings size={14} />
                 </button>
 
                 <button

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ChevronRight, Undo, Redo, Palette, Grid } from 'lucide-react';
 import { THEMES, applyTheme, getStoredTheme } from '../themes';
 
@@ -11,7 +11,7 @@ import { CodeEditorModal } from './ui/Modal';
 import { HelpModal } from './ui/HelpModal';
 import { Snowfall } from './ui/Snowfall';
 import { CustomNodeModal } from './ui/CustomNodeModal';
-
+import { FlowSettingsPanel } from './flow/FlowSettingsPanel';
 import { generateId } from '../utils/ids';
 import { getHandlePosition, getBezierPath } from '../utils/geometry';
 import { getNodeHeight } from '../utils/layout';
@@ -39,7 +39,7 @@ import { Loader2, Cloud, HardDrive } from 'lucide-react';
 import { reconstructFullGraph } from '../utils/graphReconstruct';
 
 export default function Editor() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const flowId = location.state?.flowId;
@@ -87,8 +87,12 @@ export default function Editor() {
     try {
       const flow = await flowService.getFlow(id);
       setProjectTitle(flow.name);
+      setFlowOwnerId(flow.owner_id);
       if (flow.data?.nodes && flow.data?.edges) {
         setGraph({ nodes: flow.data.nodes, edges: flow.data.edges });
+      }
+      if (flow.data?.settings) {
+        setFlowSettings(flow.data.settings);
       }
       setLastSaved(new Date(flow.updated_at));
     } catch (err) {
@@ -117,6 +121,7 @@ export default function Editor() {
       if (!currentFlowId) {
         const newFlow = await flowService.createFlow(projectTitle);
         currentFlowId = newFlow.id;
+        setFlowOwnerId(user.id);
         // Update URL without reload
         navigate('/editor', { state: { flowId: newFlow.id }, replace: true });
       }
@@ -126,7 +131,10 @@ export default function Editor() {
 
       await flowService.updateFlow(currentFlowId, {
         name: projectTitle,
-        data: fullGraph
+        data: {
+          ...fullGraph,
+          settings: flowSettings
+        }
       });
       setLastSaved(new Date());
     } catch (err) {
@@ -152,6 +160,11 @@ export default function Editor() {
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
   const [customNodes, setCustomNodes] = useState([]);
   const [customNodeModal, setCustomNodeModal] = useState({ isOpen: false, groupNode: null });
+
+  // Flow Settings & Security
+  const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [flowSettings, setFlowSettings] = useState({ preventDownload: false, description: '' });
+  const [flowOwnerId, setFlowOwnerId] = useState(null);
 
   const NODE_WIDTH = 256;
 
@@ -211,6 +224,36 @@ export default function Editor() {
     reader.readAsText(file);
     e.target.value = null;
   };
+
+  // --- Security: Inherited Read-Only Context ---
+  const isContextReadOnly = useMemo(() => {
+    return path.some(frame => {
+      // Find the group node in the parent's node list
+      const groupNode = frame.nodes.find(n => n.id === frame.id);
+      if (!groupNode) return false;
+
+      // START SECURITY CHECK
+      // 1. Explicit Read-Only
+      if (groupNode.data?.readOnly) return true;
+
+      // 2. Locked (Implicit Read-Only for non-owners)
+      // If the group is locked, and we are NOT the owner/admin, 
+      // then we are in a RESTRICTED context (effectively read-only).
+      const isLocked = groupNode.data?.locked;
+      const canBypassLock = user?.id === groupNode.data?.lockedBy || isAdmin;
+
+      if (isLocked && !canBypassLock) return true;
+
+      return false;
+    });
+  }, [path, user, isAdmin]);
+
+  const isActionAllowed = useCallback(() => {
+    if (isContextReadOnly && !user?.app_metadata?.claims_admin) {
+      return false;
+    }
+    return true;
+  }, [isContextReadOnly, user]);
 
   // --- Engine Integration ---
   useEffect(() => {
@@ -615,6 +658,11 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
 
   const handleNodeDragStart = (e, id) => {
     e.stopPropagation();
+    // Allow selection but prevent dragging if read-only logic applies? 
+    // Actually, selection is fine. Dragging should be blocked.
+    // We'll block the *initiation* of drag state if action is not allowed.
+    // However, we want to allow SELECTION.
+
     let newSelectedIds = new Set(selectedIds);
     if (e.shiftKey) {
       if (newSelectedIds.has(id)) newSelectedIds.delete(id);
@@ -623,6 +671,9 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
       if (!newSelectedIds.has(id)) newSelectedIds = new Set([id]);
     }
     setSelectedIds(newSelectedIds);
+
+    if (!isActionAllowed()) return; // Block dragging
+
     setDragState({ type: 'node', ids: Array.from(newSelectedIds), startMouse: { x: e.clientX, y: e.clientY } });
     // Commit the current state to history as a checkpoint before dragging starts
     setGraph({ nodes, edges });
@@ -630,6 +681,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
 
   const handleConnectionStart = (e, sourceId, handleId) => {
     e.stopPropagation();
+    if (!isActionAllowed()) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left - pan.x) / scale;
     const y = (e.clientY - rect.top - pan.y) / scale;
@@ -693,6 +745,10 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
   const handleMouseUp = (e) => {
     // If we were dragging, we should now COMMIT the final state to history
     if (dragState?.type === 'node' && hoverGroup && dragState.ids.length === 1) {
+      if (!isActionAllowed()) {
+        setDragState(null);
+        return;
+      }
       const draggedNode = nodes.find(n => n.id === dragState.ids[0]);
       const targetGroupNode = nodes.find(n => n.id === hoverGroup);
       if (draggedNode && targetGroupNode) {
@@ -782,6 +838,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
   };
 
   const addNode = (type) => {
+    if (!isActionAllowed()) return;
     const id = generateId();
     const rect = containerRef.current.getBoundingClientRect();
     const x = (-pan.x + rect.width / 2) / scale - 100;
@@ -808,6 +865,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         inputs={editor.inputs || []}
         onClose={() => setEditor({ ...editor, isOpen: false })}
         onSave={handleSaveEditor}
+        readOnly={nodes.find(n => n.id === editor.nodeId)?.data?.locked && nodes.find(n => n.id === editor.nodeId)?.data?.lockedBy !== user?.id && !user?.app_metadata?.claims_admin}
       />
 
       <Sidebar
@@ -830,6 +888,8 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         onImportCustomNode={handleImportCustomNode}
         onDeleteCustomNode={(id) => setCustomNodes(deleteCustomNode(id))}
         onExportCustomNode={exportCustomNode}
+        onOpenSettings={() => setSettingsPanelOpen(true)}
+        isRestricted={(flowSettings.preventDownload && user?.id !== flowOwnerId && !user?.app_metadata?.claims_admin) || nodes.some(n => n.data.locked && n.data.lockedBy !== user?.id && !user?.app_metadata?.claims_admin)}
       />
 
       {/* Canvas */}
@@ -940,7 +1000,10 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
             {edges.map(edge => {
               const start = getHandlePosition(edge.source, nodes, 'output', edge.sourceHandle);
               const end = getHandlePosition(edge.target, nodes, 'input', edge.targetHandle);
-              return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end} onDelete={(id) => setGraph({ nodes, edges: edges.filter(e => e.id !== id) })} />;
+              return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end} onDelete={(id) => {
+                if (!isActionAllowed()) return;
+                setGraph({ nodes, edges: edges.filter(e => e.id !== id) });
+              }} />;
             })}
             {connectionState && (
               <path d={getBezierPath(getHandlePosition(connectionState.sourceId, nodes, 'output', connectionState.sourceHandle), [connectionState.mousePos.x, connectionState.mousePos.y])} stroke="#3b82f6" strokeWidth="2" fill="none" strokeDasharray="5,5" className="opacity-60" />
@@ -958,11 +1021,18 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
               selected={selectedIds.has(node.id)}
               isHovered={hoverGroup === node.id}
               onDragStart={handleNodeDragStart}
-              onDelete={(id) => { setGraph({ nodes: nodes.filter(n => n.id !== id), edges: edges.filter(e => e.source !== id && e.target !== id) }); }}
-              onDuplicate={duplicateNode}
-              onUpdateData={(id, data) => setGraph({ nodes: nodes.map(n => n.id === id ? { ...n, data } : n), edges })}
+              onDelete={(id) => {
+                if (!isActionAllowed()) return;
+                setGraph({ nodes: nodes.filter(n => n.id !== id), edges: edges.filter(e => e.source !== id && e.target !== id) });
+              }}
+              onDuplicate={(id) => { if (isActionAllowed()) duplicateNode(id); }}
+              onUpdateData={(id, data) => {
+                if (!isActionAllowed()) return;
+                setGraph({ nodes: nodes.map(n => n.id === id ? { ...n, data } : n), edges });
+              }}
               onStartConnect={handleConnectionStart}
               onEnterGroup={enterGroup}
+              readOnly={node.data.readOnly || !isActionAllowed()}
               onOpenEditor={(id, code, inputs) => setEditor({ isOpen: true, nodeId: id, code, inputs })}
               onSaveAsCustom={handleSaveAsCustomNode}
             />
@@ -995,7 +1065,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
           </div>
         )}
       </div>
-      <style>{`@keyframes dash { to { stroke - dashoffset: -20; } } .animate - dash { animation: dash 1s linear infinite; } `}</style>
+      <style>{`@keyframes dash { to { stroke-dashoffset: -20; } } .animate-dash { animation: dash 1s linear infinite; } `}</style>
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
       <Snowfall enabled={THEMES[theme]?.hasSnow === true} />
       <CustomNodeModal
@@ -1003,6 +1073,18 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         groupNode={customNodeModal.groupNode}
         onSave={handleCustomNodeSave}
         onClose={() => setCustomNodeModal({ isOpen: false, groupNode: null })}
+      />
+      <FlowSettingsPanel
+        isOpen={settingsPanelOpen}
+        onClose={() => setSettingsPanelOpen(false)}
+        flowData={{ name: projectTitle, description: flowSettings.description, preventDownload: flowSettings.preventDownload, ...flowSettings }}
+        onUpdateSettings={(newSettings) => {
+          setProjectTitle(newSettings.name);
+          setFlowSettings(prev => ({ ...prev, ...newSettings }));
+        }}
+        onLockAll={() => setGraph({ nodes: nodes.map(n => ({ ...n, data: { ...n.data, locked: true, lockedBy: user?.id } })), edges })}
+        onUnlockAll={() => setGraph({ nodes: nodes.map(n => ({ ...n, data: { ...n.data, locked: false, lockedBy: null } })), edges })}
+        isOwner={user?.id === flowOwnerId}
       />
     </div>
   );
