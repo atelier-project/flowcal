@@ -22,8 +22,8 @@ import { getCustomNodes, saveCustomNode, createCustomNodeFromGroup, instantiateC
 
 // Helper to match engine resolution logic
 const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
-  if (targetType === 'GET_KEY' || targetType === 'GET') return rawVal;
-  if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT') return rawVal;
+  if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'GROUP_INPUT_LIST') return rawVal;
+  if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST') return rawVal;
   if (typeof rawVal === 'object' && rawVal !== null && handle) return rawVal[handle] ?? 0;
   if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) return Object.values(rawVal)[0] ?? 0;
   return rawVal;
@@ -274,15 +274,40 @@ export default function Editor() {
           connectedEdges.forEach(edge => {
             const rawVal = frameResults[edge.source];
             const sourceNode = frame.nodes.find(n => n.id === edge.source);
-            let val = rawVal;
-            if (sourceNode?.type === 'FORM' || sourceNode?.type === 'GROUP_INPUT') {
-              val = rawVal;
-            } else if (typeof rawVal === 'object' && rawVal !== null && edge.sourceHandle) {
-              val = rawVal[edge.sourceHandle];
-            } else if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {
-              val = Object.values(rawVal)[0];
+
+            // Determine internal target type
+            let internalTargetType = undefined;
+            if (edge.targetHandle) {
+              const targetNode = groupNode.data.subGraph?.nodes.find(n => n.id === edge.targetHandle);
+              if (targetNode) internalTargetType = targetNode.type;
+            } else {
+              const firstInput = groupNode.data.subGraph?.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
+              if (firstInput) internalTargetType = firstInput.type;
             }
-            if (edge.targetHandle) subContext[edge.targetHandle] = val;
+
+            // Use shared helper
+            const val = resolveSourceValue(rawVal, edge.sourceHandle, sourceNode?.type, internalTargetType);
+
+            if (edge.targetHandle) {
+              const targetNode = groupNode.data.subGraph?.nodes.find(n => n.id === edge.targetHandle);
+              if (targetNode && targetNode.type === 'GROUP_INPUT_LIST') {
+                if (!subContext[edge.targetHandle]) subContext[edge.targetHandle] = [];
+                subContext[edge.targetHandle].push(val);
+              } else {
+                subContext[edge.targetHandle] = val;
+              }
+            } else {
+              // Default handle logic for groups (rarely used but good for completeness)
+              const firstInput = groupNode.data.subGraph?.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
+              if (firstInput) {
+                if (firstInput.type === 'GROUP_INPUT_LIST') {
+                  if (!subContext[firstInput.id]) subContext[firstInput.id] = [];
+                  subContext[firstInput.id].push(val);
+                } else {
+                  subContext[firstInput.id] = val;
+                }
+              }
+            }
           });
           currentContext = subContext;
         }

@@ -46,7 +46,10 @@ export const NODE_UI = {
 
     // Advanced
     GROUP: { icon: Box, color: 'indigo', colorClass: 'bg-indigo-100 text-indigo-600' },
+    GROUP: { icon: Box, color: 'indigo', colorClass: 'bg-indigo-100 text-indigo-600' },
     GROUP_INPUT: { icon: ArrowRight, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
+    GROUP_INPUT_LIST: { icon: ListPlus, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
+    GROUP_OUTPUT: { icon: ArrowLeft, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
     GROUP_OUTPUT: { icon: ArrowLeft, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
     COMMENT: { icon: MessageSquare, color: 'amber', colorClass: 'bg-amber-100 text-amber-600' },
     FUNCTION: { icon: Braces, color: 'emerald', colorClass: 'bg-emerald-100 text-emerald-600' },

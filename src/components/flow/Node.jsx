@@ -73,7 +73,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         let handles = [];
         if (type === 'GROUP' && data.subGraph && data.subGraph.nodes) {
             handles = data.subGraph.nodes
-                .filter(n => n.type === 'GROUP_INPUT')
+                .filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST')
                 .map((n, idx) => ({
                     id: n.id,
                     label: n.data.label || `Input ${idx + 1}`,

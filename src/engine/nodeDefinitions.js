@@ -454,21 +454,24 @@ export const NODE_LOGIC = {
         label: 'Sum',
         category: 'Math',
         inputs: ['*'], // Variable inputs
-        compute: (inputs) => inputs.reduce((a, b) => a + b, 0)
+        compute: (inputs) => inputs.flat(Infinity).reduce((a, b) => a + b, 0)
     },
     SUB: {
         type: 'SUB',
         label: 'Subtract',
         category: 'Math',
         inputs: ['*'],
-        compute: (inputs) => inputs.length > 0 ? inputs.reduce((a, b) => a - b) : 0
+        compute: (inputs) => {
+            const flat = inputs.flat(Infinity);
+            return flat.length > 0 ? flat.reduce((a, b) => a - b) : 0;
+        }
     },
     MUL: {
         type: 'MUL',
         label: 'Multiply',
         category: 'Math',
         inputs: ['*'],
-        compute: (inputs) => inputs.reduce((a, b) => a * b, 1)
+        compute: (inputs) => inputs.flat(Infinity).reduce((a, b) => a * b, 1)
     },
     DIV: {
         type: 'DIV',
@@ -486,14 +489,20 @@ export const NODE_LOGIC = {
         label: 'Min',
         category: 'Math',
         inputs: ['*'],
-        compute: (inputs) => inputs.length > 0 ? Math.min(...inputs) : 0
+        compute: (inputs) => {
+            const flat = inputs.flat(Infinity);
+            return flat.length > 0 ? Math.min(...flat) : 0;
+        }
     },
     MAX: {
         type: 'MAX',
         label: 'Max',
         category: 'Math',
         inputs: ['*'],
-        compute: (inputs) => inputs.length > 0 ? Math.max(...inputs) : 0
+        compute: (inputs) => {
+            const flat = inputs.flat(Infinity);
+            return flat.length > 0 ? Math.max(...flat) : 0;
+        }
     },
     ROUND: {
         type: 'ROUND',
@@ -622,6 +631,14 @@ export const NODE_LOGIC = {
         category: 'Advanced',
         compute: (inputs, data) => data.value || 0,
         data: { label: '', description: '' }
+    },
+    GROUP_INPUT_LIST: {
+        type: 'GROUP_INPUT_LIST',
+        label: 'Group List Input',
+        category: 'Advanced',
+        outputs: ['value'],
+        compute: (inputs, data) => Array.isArray(data.value) ? data.value : [],
+        data: { label: '', description: '', value: [] }
     },
     GROUP_OUTPUT: {
         type: 'GROUP_OUTPUT',
