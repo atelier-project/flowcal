@@ -1,11 +1,13 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Save, FolderOpen, MousePointer2, Type, FileCode, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search } from 'lucide-react';
+import { Save, FolderOpen, MousePointer2, Type, FileCode, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
+import { useAuth } from '../../context/AuthContext';
 
 export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved }) => {
+    const { isAdmin } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
     const customImportRef = useRef(null);
@@ -253,7 +255,13 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                {isAdmin && (
+                    <Link to="/admin" className="flex items-center gap-2 text-blue-600 dark:text-blue-400 hover:opacity-80 transition-opacity text-sm font-bold">
+                        <ShieldAlert size={16} />
+                        Admin Panel
+                    </Link>
+                )}
                 <Link to="/dashboard" className="flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors text-sm font-medium">
                     <LogOut size={16} className="rotate-180" />
                     Back to Dashboard / Login

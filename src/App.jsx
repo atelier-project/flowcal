@@ -3,8 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './context/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import AdminDashboard from './pages/AdminDashboard';
 import Editor from './components/Editor';
 import { AuthGuard } from './components/ui/AuthGuard';
+import { AdminGuard } from './components/ui/AdminGuard';
 import './App.css';
 
 function App() {
@@ -17,6 +19,14 @@ function App() {
           <Route path="/dashboard" element={
             <AuthGuard>
               <Dashboard />
+            </AuthGuard>
+          } />
+
+          <Route path="/admin" element={
+            <AuthGuard>
+              <AdminGuard>
+                <AdminDashboard />
+              </AdminGuard>
             </AuthGuard>
           } />
 
