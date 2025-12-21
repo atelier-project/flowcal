@@ -4,6 +4,7 @@ import { AuthProvider } from './context/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import ProfileSettings from './pages/ProfileSettings';
 import Editor from './components/Editor';
 import { AuthGuard } from './components/ui/AuthGuard';
 import { AdminGuard } from './components/ui/AdminGuard';
@@ -27,6 +28,12 @@ function App() {
               <AdminGuard>
                 <AdminDashboard />
               </AdminGuard>
+            </AuthGuard>
+          } />
+
+          <Route path="/profile" element={
+            <AuthGuard>
+              <ProfileSettings />
             </AuthGuard>
           } />
 

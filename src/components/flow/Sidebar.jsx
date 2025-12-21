@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Save, FolderOpen, MousePointer2, Type, FileCode, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert } from 'lucide-react';
+import { Save, FolderOpen, MousePointer2, Type, FileCode, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
@@ -262,6 +262,10 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
                         Admin Panel
                     </Link>
                 )}
+                <Link to="/profile" className="flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                    <User size={16} />
+                    Profile & Settings
+                </Link>
                 <Link to="/dashboard" className="flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors text-sm font-medium">
                     <LogOut size={16} className="rotate-180" />
                     Back to Dashboard / Login
