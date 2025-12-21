@@ -52,6 +52,19 @@ export const CodeEditorModal = ({ isOpen, initialCode, inputs = [], onSave, onCl
                     <textarea
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Tab') {
+                                e.preventDefault();
+                                const start = e.target.selectionStart;
+                                const end = e.target.selectionEnd;
+                                const spaces = '  ';
+                                setCode(code.substring(0, start) + spaces + code.substring(end));
+                                // Defer cursor move to after render
+                                setTimeout(() => {
+                                    e.target.selectionStart = e.target.selectionEnd = start + spaces.length;
+                                }, 0);
+                            }
+                        }}
                         className={`w-full h-full p-4 font-mono text-sm bg-slate-900 text-green-400 resize-none focus:outline-none flex-1 ${readOnly ? 'cursor-not-allowed opacity-90' : ''}`}
                         spellCheck={false}
                         readOnly={readOnly}

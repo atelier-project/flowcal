@@ -548,7 +548,20 @@ export const NODE_LOGIC = {
         inputs: ['*'],
         compute: (inputs, data) => {
             try {
-                const fn = new Function('inputs', data.func || 'return 0');
+                // Security: Shadow global objects to prevent access
+                // Note: This is not a perfect sandbox, but prevents accidental access and basic malicious attempts
+                const fn = new Function(
+                    'inputs',
+                    'window',
+                    'document',
+                    'fetch',
+                    'XMLHttpRequest',
+                    'localStorage',
+                    'sessionStorage',
+                    'globalThis',
+                    `"use strict"; ${data.func || 'return 0'}`
+                );
+                // Call with undefined for all shadowed globals
                 return fn(inputs);
             } catch (e) {
                 return `Error: ${e.message}`;
@@ -636,6 +649,7 @@ export const NODE_LOGIC = {
         type: 'GROUP_INPUT_LIST',
         label: 'Group List Input',
         category: 'Advanced',
+        inputs: [],
         outputs: ['value'],
         compute: (inputs, data) => Array.isArray(data.value) ? data.value : [],
         data: { label: '', description: '', value: [] }
