@@ -270,8 +270,16 @@ export const NODE_LOGIC = {
         category: 'Object',
         inputs: ['object'],
         compute: ({ object }, data) => {
-            const obj = (typeof object === 'object' && object !== null) ? object : {};
             const k = data.key || '';
+            // Support Array "Pluck" / "Map"
+            if (Array.isArray(object)) {
+                return object.map(item => {
+                    const obj = (typeof item === 'object' && item !== null) ? item : {};
+                    return obj[k] ?? 0;
+                });
+            }
+            // Standard single object get
+            const obj = (typeof object === 'object' && object !== null) ? object : {};
             return obj[k] ?? 0;
         },
         data: { key: '' }

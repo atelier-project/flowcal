@@ -73,6 +73,7 @@ export const NODE_DESCRIPTIONS = {
     CUSTOM: 'Write custom JavaScript code. Use inputs object and return result.',
     GROUP: 'Contains a subgraph of nodes. Double-click to edit contents.',
     GROUP_INPUT: 'Receives values passed into the group from outside.',
+    GROUP_INPUT_LIST: 'Receives multiple values passed into the group from outside.',
     GROUP_OUTPUT: 'Sends values out of the group to the parent flow.',
     COMMENT: 'Add notes and documentation to your flow. Does not affect computation.',
     FUNCTION: 'Define named parameters and write a formula. Each parameter becomes an input port.',
