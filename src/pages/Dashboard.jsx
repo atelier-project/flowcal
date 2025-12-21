@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, Plus, Folder, Loader2, Clock, Trash2 } from 'lucide-react';
+import { LogOut, Plus, Folder, Loader2, Clock, Trash2, Shield } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { flowService } from '../services/flowService';
 
 export default function Dashboard() {
-    const { user, signOut } = useAuth();
+    const { user, signOut, isAdmin } = useAuth();
     const navigate = useNavigate();
     const [flows, setFlows] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -65,6 +65,15 @@ export default function Dashboard() {
                     <p className="text-slate-500 dark:text-slate-400">Welcome back, {user?.email}</p>
                 </div>
                 <div className="flex gap-4">
+                    {isAdmin && (
+                        <Link
+                            to="/admin"
+                            className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                        >
+                            <Shield size={18} />
+                            Admin Panel
+                        </Link>
+                    )}
                     <button
                         onClick={handleCreateFlow}
                         disabled={creating}
