@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import { User, Shield, AlertTriangle, Save, Loader2, ArrowLeft, Trash2, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -9,6 +11,8 @@ export default function ProfileSettings() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
+    const { addToast } = useToast();
+    const { confirm } = useConfirm();
 
     // Form State
     const [fullName, setFullName] = useState('');
@@ -56,10 +60,10 @@ export default function ProfileSettings() {
                 .eq('id', user.id);
 
             if (error) throw error;
-            alert('Profile updated successfully!');
+            addToast('Profile updated successfully!', 'success');
             // Ideally refresh AuthContext profile here if needed
         } catch (err) {
-            alert('Failed to update profile: ' + err.message);
+            addToast('Failed to update profile: ' + err.message, 'error');
         } finally {
             setLoading(false);
         }
@@ -78,12 +82,16 @@ export default function ProfileSettings() {
                 throw error;
             }
         } catch (err) {
-            alert('Failed to toggle support access');
+            addToast('Failed to toggle support access', 'error');
         }
     };
 
     const handleDeleteAccount = async () => {
-        if (!confirm("Are you sure? This will schedule your account for deletion. You have 24 hours to contact support if this was a mistake.")) return;
+        const confirmed = await confirm(
+            "Are you sure? This will schedule your account for deletion. You have 24 hours to contact support if this was a mistake.",
+            { title: "Delete Account", type: "danger" }
+        );
+        if (!confirmed) return;
 
         setDeleteLoading(true);
         try {
@@ -93,7 +101,7 @@ export default function ProfileSettings() {
             await signOut();
             navigate('/login');
         } catch (err) {
-            alert('Failed to delete account: ' + err.message);
+            addToast('Failed to delete account: ' + err.message, 'error');
             setDeleteLoading(false);
         }
     };
