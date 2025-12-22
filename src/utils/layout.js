@@ -8,10 +8,12 @@ export const getNodeHeight = (node) => {
     if (node.data?.collapsed) return 40;
 
     if (node.type === 'GROUP') {
-        const inputs = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT') || [];
+        const inputs = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST') || [];
         const outputs = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_OUTPUT') || [];
         const count = Math.max(inputs.length, outputs.length);
-        let minHeight = Math.max(100, (count * 24) + 60);
+
+        // Header (40) + Top Padding (20) + (count * 24) + Bottom Padding (20) + Extra buffer (20)
+        let minHeight = 100 + (count * 24);
 
         // Add height for results box if toggled on
         if (node.data?.showResults) {
@@ -19,6 +21,7 @@ export const getNodeHeight = (node) => {
         }
 
         // Return the larger of user-defined height or calculated minimum
+        // But if user height is smaller than min required for ports, force min height
         return Math.max(minHeight, node.data?.height || 0);
     }
 

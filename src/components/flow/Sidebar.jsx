@@ -60,14 +60,11 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
                     } else if (def.type === 'WARP_IN' || def.type === 'WARP_OUT') {
                         // Visible everywhere, no condition needed (or maybe restrict if desired, but "Advanced" implies broad use)
                     } else if (pathLength > 0 && def.type === 'GROUP') {
-                        // GROUP and CUSTOM nodes should not be addable from sidebar if inside a group (pathLength > 0)
-                        // This condition is to prevent them from being rendered in the sidebar when pathLength > 0
-                        // The original logic was to prevent them from being rendered if pathLength === 0, which is incorrect.
-                        // If pathLength > 0, we are inside a group, so we should not show GROUP or CUSTOM nodes to add.
+                        // GROUP nodes should not be addable from sidebar if inside a group (pathLength > 0)
                         return null;
                     }
                     const ui = getUI(def.type);
-                    const Icon = ui.icon;
+                    const Icon = ui.icon || HelpCircle;
                     return (
                         <button
                             key={def.type}

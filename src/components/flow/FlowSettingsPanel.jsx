@@ -7,6 +7,7 @@ export const FlowSettingsPanel = ({ isOpen, onClose, flowData, onUpdateSettings,
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [preventDownload, setPreventDownload] = useState(false);
+    const [strictMode, setStrictMode] = useState(false);
 
     // Initialize state from flowData
     useEffect(() => {
@@ -15,6 +16,7 @@ export const FlowSettingsPanel = ({ isOpen, onClose, flowData, onUpdateSettings,
             setDescription(flowData.description || '');
             // Check for flow-level security flag
             setPreventDownload(flowData.preventDownload || false);
+            setStrictMode(flowData.settings?.strictMode || false);
         }
     }, [isOpen, flowData]);
 
@@ -22,7 +24,8 @@ export const FlowSettingsPanel = ({ isOpen, onClose, flowData, onUpdateSettings,
         onUpdateSettings({
             name,
             description,
-            preventDownload
+            preventDownload,
+            settings: { ...flowData.settings, strictMode }
         });
         onClose();
     };
@@ -72,60 +75,88 @@ export const FlowSettingsPanel = ({ isOpen, onClose, flowData, onUpdateSettings,
                     </div>
                 </div>
 
-                {/* Security Settings */}
-                <div className="space-y-4">
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                        Security
-                        {!canManageSecurity && <span className="text-[10px] bg-slate-200 dark:bg-slate-700 px-1 rounded text-slate-500">Read Only</span>}
-                    </h3>
+            </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded">
-                                    <Download size={16} />
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200">Prevent Download</h4>
-                                    <p className="text-xs text-slate-500">Disable "Export JSON" for non-owners.</p>
-                                </div>
+            {/* Security Settings */}
+            <div className="space-y-4">
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                    Security
+                    {!canManageSecurity && <span className="text-[10px] bg-slate-200 dark:bg-slate-700 px-1 rounded text-slate-500">Read Only</span>}
+                </h3>
+
+                <div className="bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-red-100 dark:bg-red-900/30 text-red-600 rounded">
+                                <Download size={16} />
                             </div>
-                            <button
-                                onClick={() => canManageSecurity && setPreventDownload(!preventDownload)}
-                                disabled={!canManageSecurity}
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${preventDownload ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-                            >
-                                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${preventDownload ? 'translate-x-4.5' : 'translate-x-1'}`} style={{ transform: preventDownload ? 'translateX(18px)' : 'translateX(2px)' }} />
-                            </button>
+                            <div>
+                                <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200">Prevent Download</h4>
+                                <p className="text-xs text-slate-500">Disable "Export JSON" for non-owners.</p>
+                            </div>
                         </div>
-                        {preventDownload && (
-                            <div className="mt-2 flex items-start gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 p-2 rounded">
-                                <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                                <p>Only you (and admins) will be able to download this flow.</p>
-                            </div>
-                        )}
+                        <button
+                            onClick={() => canManageSecurity && setPreventDownload(!preventDownload)}
+                            disabled={!canManageSecurity}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${preventDownload ? 'bg-red-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                        >
+                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${preventDownload ? 'translate-x-4.5' : 'translate-x-1'}`} style={{ transform: preventDownload ? 'translateX(18px)' : 'translateX(2px)' }} />
+                        </button>
                     </div>
-
-                    {/* Global Actions */}
-                    {canManageSecurity && (
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                            <button
-                                onClick={onLockAll}
-                                className="flex flex-col items-center justify-center gap-1 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-red-400 dark:hover:border-red-500 rounded-lg transition-colors group"
-                            >
-                                <Lock size={20} className="text-slate-400 group-hover:text-red-500 mb-1" />
-                                <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Lock All Nodes</span>
-                            </button>
-                            <button
-                                onClick={onUnlockAll}
-                                className="flex flex-col items-center justify-center gap-1 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 rounded-lg transition-colors group"
-                            >
-                                <Unlock size={20} className="text-slate-400 group-hover:text-blue-500 mb-1" />
-                                <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Unlock All Nodes</span>
-                            </button>
+                    {preventDownload && (
+                        <div className="mt-2 flex items-start gap-2 text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/10 p-2 rounded">
+                            <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                            <p>Only you (and admins) will be able to download this flow.</p>
                         </div>
                     )}
                 </div>
+
+                <div className="bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700 p-3 mt-3">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded">
+                                <Shield size={16} />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200">Strict Mode</h4>
+                                <p className="text-xs text-slate-500">Enforce strong typing.</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => canManageSecurity && setStrictMode(!strictMode)}
+                            disabled={!canManageSecurity}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${strictMode ? 'bg-blue-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                        >
+                            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${strictMode ? 'translate-x-4.5' : 'translate-x-1'}`} style={{ transform: strictMode ? 'translateX(18px)' : 'translateX(2px)' }} />
+                        </button>
+                    </div>
+                    {strictMode && (
+                        <div className="mt-2 flex items-start gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/10 p-2 rounded">
+                            <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                            <p>Invalid connections will be flagged.</p>
+                        </div>
+                    )}
+                </div>
+
+                {/* Global Actions */}
+                {canManageSecurity && (
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                        <button
+                            onClick={onLockAll}
+                            className="flex flex-col items-center justify-center gap-1 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-red-400 dark:hover:border-red-500 rounded-lg transition-colors group"
+                        >
+                            <Lock size={20} className="text-slate-400 group-hover:text-red-500 mb-1" />
+                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Lock All Nodes</span>
+                        </button>
+                        <button
+                            onClick={onUnlockAll}
+                            className="flex flex-col items-center justify-center gap-1 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-blue-400 dark:hover:border-blue-500 rounded-lg transition-colors group"
+                        >
+                            <Unlock size={20} className="text-slate-400 group-hover:text-blue-500 mb-1" />
+                            <span className="text-xs font-medium text-slate-600 dark:text-slate-300">Unlock All Nodes</span>
+                        </button>
+                    </div>
+                )}
             </div>
 
             {/* Footer */}

@@ -1038,10 +1038,30 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
             <Node
               key={node.id}
               {...node}
-              inputs={edges.filter(e => e.target === node.id).map(e => {
-                const sourceNode = nodes.find(n => n.id === e.source);
-                return resolveSourceValue(results[e.source], e.sourceHandle, sourceNode?.type, node.type);
-              })}
+              readOnly={isContextReadOnly}
+              inputs={
+                // Pass input values to node for visualization
+                node.type === 'GROUP'
+                  ? (() => {
+                    // For GROUP nodes, we want to pass an array of values connected to its inputs
+                    // This matches the order of handles (usually) or just raw values
+                    const incomingEdges = edges.filter(e => e.target === node.id);
+                    // Map edges to their values
+                    return incomingEdges.map(e => {
+                      const val = results[e.source]; // This is raw value from source
+                      const sourceNode = nodes.find(n => n.id === e.source);
+                      // We need to resolve it (handle object/handle specific output)
+                      // Simplified resolution:
+                      if (e.sourceHandle && typeof val === 'object' && val !== null) return val[e.sourceHandle] ?? val;
+                      return val;
+                    });
+                  })()
+                  : edges.filter(e => e.target === node.id).map(e => {
+                    const val = results[e.source];
+                    const sourceNode = nodes.find(n => n.id === e.source);
+                    return resolveSourceValue(val, e.sourceHandle, sourceNode?.type, node.type);
+                  })
+              }
               result={results[node.id]}
               selected={selectedIds.has(node.id)}
               isHovered={hoverGroup === node.id}
@@ -1057,7 +1077,6 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
               }}
               onStartConnect={handleConnectionStart}
               onEnterGroup={enterGroup}
-              readOnly={node.data.readOnly || !isActionAllowed()}
               onOpenEditor={(id, code, inputs) => setEditor({ isOpen: true, nodeId: id, code, inputs })}
               onSaveAsCustom={handleSaveAsCustomNode}
             />

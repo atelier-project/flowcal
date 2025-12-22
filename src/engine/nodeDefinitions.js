@@ -352,6 +352,76 @@ export const NODE_LOGIC = {
             return inputs.flat(Infinity);
         }
     },
+    // Data Sources
+    INPUT: {
+        type: 'INPUT',
+        label: 'Number Input',
+        category: 'Data',
+        inputs: [],
+        outputs: ['value'],
+        outputTypes: { value: 'number' },
+        compute: (inputs, data) => data.value,
+        data: { value: 0, min: 0, max: 100, step: 1, useSlider: false }
+    },
+    TEXT_INPUT: {
+        type: 'TEXT_INPUT',
+        label: 'Text Input',
+        category: 'Data',
+        inputs: [],
+        outputs: ['text'],
+        outputTypes: { text: 'string' },
+        compute: (inputs, data) => data.text ?? '',
+        data: { text: '' }
+    },
+    DATE_INPUT: {
+        type: 'DATE_INPUT',
+        label: 'Date Input',
+        category: 'Data',
+        inputs: [],
+        outputs: ['timestamp'],
+        outputTypes: { timestamp: 'number' }, // Outputs timestamp as number
+        compute: (inputs, data) => {
+            const dateStr = data.date || '';
+            if (!dateStr) return Date.now();
+            const parsed = Date.parse(dateStr);
+            return isNaN(parsed) ? Date.now() : parsed;
+        },
+        data: { date: '' }
+    },
+    RANGE: {
+        type: 'RANGE',
+        label: 'Range Generator',
+        category: 'Data',
+        inputs: ['start', 'end', 'step'],
+        inputTypes: { start: 'number', end: 'number', step: 'number' },
+        outputs: ['value'],
+        outputTypes: { value: 'number' },
+        computesMulti: true,
+        compute: ({ start, end, step }) => {
+            const s = start ?? 0;
+            const e = end ?? 10;
+            const st = step ?? 1;
+            const count = Math.floor((e - s) / st) + 1;
+            return Array.from({ length: Math.max(0, count) }, (_, i) => s + i * st);
+        },
+        data: { start: 0, end: 10, step: 1 }
+    },
+    CSV_DATA: {
+        type: 'CSV_DATA',
+        label: 'CSV Data',
+        category: 'Data',
+        inputs: [],
+        outputs: ['data', 'columns'],
+        outputTypes: { data: { type: 'array', itemType: 'object' }, columns: { type: 'array', itemType: 'string' } },
+        compute: (inputs, data) => {
+            return {
+                data: data.jsonData || [],
+                columns: data.columns || []
+            };
+        },
+        data: { csvText: '', jsonData: [], columns: [] }
+    },
+
     OBJECT_COMBINE: {
         type: 'OBJECT_COMBINE',
         label: 'Combine Objects',
@@ -457,46 +527,146 @@ export const NODE_LOGIC = {
         data: { keys: [] }
     },
 
+    // Logic & Math
     SUM: {
         type: 'SUM',
         label: 'Sum',
         category: 'Math',
-        inputs: ['*'], // Variable inputs
-        compute: (inputs) => inputs.flat(Infinity).reduce((a, b) => a + b, 0)
+        inputs: ['a', 'b'],
+        inputTypes: { a: 'number', b: 'number' },
+        outputs: ['result'],
+        outputTypes: { result: 'number' },
+        compute: ({ a, b }) => (a ?? 0) + (b ?? 0)
     },
-    SUB: {
-        type: 'SUB',
+    SUBTRACT: {
+        type: 'SUBTRACT',
         label: 'Subtract',
         category: 'Math',
-        inputs: ['*'],
-        compute: (inputs) => {
-            const flat = inputs.flat(Infinity);
-            return flat.length > 0 ? flat.reduce((a, b) => a - b) : 0;
-        }
+        inputs: ['a', 'b'],
+        inputTypes: { a: 'number', b: 'number' },
+        outputs: ['result'],
+        outputTypes: { result: 'number' },
+        compute: ({ a, b }) => (a ?? 0) - (b ?? 0)
     },
-    MUL: {
-        type: 'MUL',
+    MULTIPLY: {
+        type: 'MULTIPLY',
         label: 'Multiply',
         category: 'Math',
-        inputs: ['*'],
-        compute: (inputs) => inputs.flat(Infinity).reduce((a, b) => a * b, 1)
+        inputs: ['a', 'b'],
+        inputTypes: { a: 'number', b: 'number' },
+        outputs: ['result'],
+        outputTypes: { result: 'number' },
+        compute: ({ a, b }) => (a ?? 1) * (b ?? 1)
     },
-    DIV: {
-        type: 'DIV',
+    DIVIDE: {
+        type: 'DIVIDE',
         label: 'Divide',
         category: 'Math',
         inputs: ['a', 'b'],
-        compute: ({ a, b }) => {
-            const num = a ?? 0;
-            const den = b ?? 1; // Prevent division by zero default
-            return den === 0 ? 0 : num / den;
+        inputTypes: { a: 'number', b: 'number' },
+        outputs: ['result'],
+        outputTypes: { result: 'number' },
+        compute: ({ a, b }) => (b === 0 ? 0 : (a ?? 0) / (b ?? 1))
+    },
+    GREATER_THAN: {
+        type: 'GREATER_THAN',
+        label: 'Greater Than',
+        category: 'Logic',
+        inputs: ['a', 'b'],
+        inputTypes: { a: 'number', b: 'number' },
+        outputs: ['result'],
+        outputTypes: { result: 'boolean' },
+        compute: ({ a, b }) => (a ?? 0) > (b ?? 0)
+    },
+    LESS_THAN: {
+        type: 'LESS_THAN',
+        label: 'Less Than',
+        category: 'Logic',
+        inputs: ['a', 'b'],
+        inputTypes: { a: 'number', b: 'number' },
+        outputs: ['result'],
+        outputTypes: { result: 'boolean' },
+        compute: ({ a, b }) => (a ?? 0) < (b ?? 0)
+    },
+    IF: {
+        type: 'IF',
+        label: 'If / Else',
+        category: 'Logic',
+        inputs: ['condition', 'trueVal', 'falseVal'],
+        inputTypes: { condition: 'boolean', trueVal: 'any', falseVal: 'any' },
+        outputs: ['result'],
+        outputTypes: { result: 'any' },
+        compute: ({ condition, trueVal, falseVal }) => condition ? trueVal : falseVal
+    },
+
+    // Transformations
+    FILTER: {
+        type: 'FILTER',
+        label: 'Filter',
+        category: 'Transform',
+        inputs: ['data', 'threshold'],
+        inputTypes: { data: 'array', threshold: 'number' },
+        outputs: ['params'],
+        outputTypes: { params: 'array' }, // Should ideally match input itemType, simplified for now
+        compute: ({ data, threshold }) => {
+            const arr = Array.isArray(data) ? data : [];
+            const th = threshold ?? 0;
+            return arr.filter(v => v > th);
         }
     },
+    MAP: {
+        type: 'MAP',
+        label: 'Map (Scale)',
+        category: 'Transform',
+        inputs: ['data', 'factor'],
+        inputTypes: { data: 'array', factor: 'number' },
+        outputs: ['result'],
+        outputTypes: { result: 'array' },
+        compute: ({ data, factor }) => {
+            const arr = Array.isArray(data) ? data : [];
+            const f = factor ?? 1;
+            return arr.map(v => v * f);
+        }
+    },
+    GET_KEY: {
+        type: 'GET_KEY',
+        label: 'Get Object Key',
+        category: 'Transform',
+        inputs: ['object', 'key'],
+        inputTypes: { object: 'any', key: 'string' },
+        outputs: ['value'],
+        outputTypes: { value: 'any' },
+        compute: ({ object, key }) => {
+            // Handle Array Parsing (Pluck)
+            if (Array.isArray(object)) {
+                return object.map(item => item?.[key]);
+            }
+            // Handle Single Object
+            return object?.[key];
+        },
+        data: { key: '' }
+    },
+    COLLECTOR: {
+        type: 'COLLECTOR',
+        label: 'Collector',
+        category: 'Transform',
+        inputs: ['in_0', 'in_1'], // Dynamic
+        inputTypes: {}, // Dynamic
+        outputs: ['list'],
+        outputTypes: { list: 'array' },
+        compute: (inputs) => {
+            return Object.values(inputs);
+        },
+        data: { inputCount: 2 }
+    },
+
+    // Aggregation
     MIN: {
         type: 'MIN',
         label: 'Min',
         category: 'Math',
         inputs: ['*'],
+        inputTypes: { '*': 'number' }, // Wildcard input type
         compute: (inputs) => {
             const flat = inputs.flat(Infinity);
             return flat.length > 0 ? Math.min(...flat) : 0;
@@ -507,6 +677,7 @@ export const NODE_LOGIC = {
         label: 'Max',
         category: 'Math',
         inputs: ['*'],
+        inputTypes: { '*': 'number' },
         compute: (inputs) => {
             const flat = inputs.flat(Infinity);
             return flat.length > 0 ? Math.max(...flat) : 0;
@@ -517,6 +688,9 @@ export const NODE_LOGIC = {
         label: 'Round',
         category: 'Math',
         inputs: ['val', 'decimals'],
+        inputTypes: { val: 'number', decimals: 'number' },
+        outputs: ['result'],
+        outputTypes: { result: 'number' },
         compute: ({ val, decimals }) => {
             const v = val ?? 0;
             const d = decimals ?? 0;
@@ -529,6 +703,9 @@ export const NODE_LOGIC = {
         label: 'Floor',
         category: 'Math',
         inputs: ['val'],
+        inputTypes: { val: 'number' },
+        outputs: ['result'],
+        outputTypes: { result: 'number' },
         compute: ({ val }) => Math.floor(val ?? 0)
     },
     CEIL: {
@@ -536,6 +713,9 @@ export const NODE_LOGIC = {
         label: 'Ceil',
         category: 'Math',
         inputs: ['val'],
+        inputTypes: { val: 'number' },
+        outputs: ['result'],
+        outputTypes: { result: 'number' },
         compute: ({ val }) => Math.ceil(val ?? 0)
     },
     RANDOM: {
@@ -543,6 +723,9 @@ export const NODE_LOGIC = {
         label: 'Random',
         category: 'Math',
         inputs: ['min', 'max'],
+        inputTypes: { min: 'number', max: 'number' },
+        outputs: ['value'],
+        outputTypes: { value: 'number' },
         compute: ({ min, max }) => {
             const mn = min ?? 0;
             const mx = max ?? 1;
@@ -554,6 +737,9 @@ export const NODE_LOGIC = {
         label: 'Custom JS',
         category: 'Advanced',
         inputs: ['*'],
+        inputTypes: { '*': 'any' },
+        outputs: ['result'], // Custom outputs are dynamic usually, but default is 'result'
+        outputTypes: { result: 'any' },
         compute: (inputs, data) => {
             try {
                 // Security: Shadow global objects to prevent access
@@ -584,6 +770,8 @@ export const NODE_LOGIC = {
         label: 'Gauge',
         category: 'Visuals',
         inputs: ['val', 'min', 'max'],
+        inputTypes: { val: 'number', min: 'number', max: 'number' },
+        outputs: [],
         compute: ({ val }) => val ?? 0
     },
     PROGRESS: {
@@ -591,6 +779,8 @@ export const NODE_LOGIC = {
         label: 'Progress Bar',
         category: 'Visuals',
         inputs: ['val', 'max'],
+        inputTypes: { val: 'number', max: 'number' },
+        outputs: [],
         compute: ({ val }) => val ?? 0
     },
     LINE_CHART: {
@@ -598,7 +788,9 @@ export const NODE_LOGIC = {
         label: 'Line Chart',
         category: 'Visuals',
         inputs: ['data'],
-        compute: ({ data }) => Array.isArray(data) && data.length > 0 ? data[0] : 0
+        inputTypes: { data: { type: 'array', itemType: 'number' } }, // Expect array of numbers
+        outputs: [],
+        compute: ({ data }) => data
     },
     BAR_CHART: {
         type: 'BAR_CHART',
@@ -612,14 +804,27 @@ export const NODE_LOGIC = {
         label: 'Data Table',
         category: 'Visuals',
         inputs: ['data'],
-        compute: ({ data }) => Array.isArray(data) && data.length > 0 ? data[0] : 0
+        inputTypes: { data: { type: 'array', itemType: 'object' } }, // Expect array of objects
+        outputs: [],
+        compute: ({ data }) => data
     },
-    TEMPLATE: {
-        type: 'TEMPLATE',
-        label: 'Text Template',
+    SINGLE_VALUE: {
+        type: 'SINGLE_VALUE',
+        label: 'Single Value',
+        category: 'Visuals',
+        inputs: ['val'],
+        inputTypes: { val: 'any' },
+        outputs: [],
+        compute: ({ val }) => val
+    },
+    TEXT_DISPLAY: {
+        type: 'TEXT_DISPLAY',
+        label: 'Text Display',
         category: 'Visuals',
         inputs: ['*'],
+        inputTypes: { '*': 'any' },
         outputs: ['text'],
+        outputTypes: { text: 'string' },
         compute: (inputs, data) => {
             let template = data.template || '{0}';
             // Replace placeholders with input values
@@ -635,6 +840,7 @@ export const NODE_LOGIC = {
         label: 'Final Result',
         category: 'Visuals',
         inputs: ['val'],
+        inputTypes: { val: 'any' },
         compute: (inputs) => inputs.length > 0 ? inputs[0] : 0,
         data: { width: 200 }
     },
@@ -650,8 +856,10 @@ export const NODE_LOGIC = {
         type: 'GROUP_INPUT',
         label: 'Group Input',
         category: 'Advanced',
+        outputs: ['value'], // It has one output inside the group
+        outputTypes: { value: 'any' }, // Default, configurable via data.typeDef
         compute: (inputs, data) => data.value || 0,
-        data: { label: '', description: '' }
+        data: { label: '', description: '', typeDef: { type: 'any' } }
     },
     GROUP_INPUT_LIST: {
         type: 'GROUP_INPUT_LIST',
@@ -659,6 +867,7 @@ export const NODE_LOGIC = {
         category: 'Advanced',
         inputs: [],
         outputs: ['value'],
+        outputTypes: { value: 'array' },
         compute: (inputs, data) => Array.isArray(data.value) ? data.value : [],
         data: { label: '', description: '', value: [] }
     },
@@ -667,14 +876,16 @@ export const NODE_LOGIC = {
         label: 'Group Output',
         category: 'Advanced',
         inputs: ['val'],
+        inputTypes: { val: 'any' }, // Default, configurable via data.typeDef
         compute: ({ val }) => val ?? 0,
-        data: { label: '', description: '' }
+        data: { label: '', description: '', typeDef: { type: 'any' } }
     },
     WARP_IN: {
         type: 'WARP_IN',
         label: 'Warp In',
         category: 'Advanced',
         inputs: ['val'],
+        inputTypes: { val: 'any' },
         outputs: [], // No physical output wire
         compute: ({ val }) => val ?? 0,
         data: { tag: 'A' }
@@ -685,6 +896,7 @@ export const NODE_LOGIC = {
         category: 'Advanced',
         inputs: [],
         outputs: ['value'],
+        outputTypes: { value: 'any' }, // Technically matches source, but difficult to track statically
         compute: () => 0, // Handled by evaluator
         data: { tag: 'A' }
     },
@@ -712,6 +924,7 @@ export const NODE_LOGIC = {
         category: 'Advanced',
         dynamicInputs: true,
         outputs: ['result'],
+        outputTypes: { result: 'any' },
         compute: (inputs, data) => {
             const params = data.params || [];
             const code = data.code || 'return 0';
