@@ -42,17 +42,30 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
         
         const def = NODE_LOGIC[node.type] || {};
 
-        if (node.type === 'GROUP_INPUT') {
-             return contextInputs[node.id] !== undefined ? contextInputs[node.id] : (node.data.value || 0);
+        if (node.type === 'GROUP_INPUT' || node.type === 'GROUP_INPUT_LIST') {
+             return contextInputs[node.id] !== undefined ? contextInputs[node.id] : (node.data.value || (node.type === 'GROUP_INPUT_LIST' ? [] : 0));
+        }
+
+        // Warp Logic: Wireless connection
+        if (node.type === 'WARP_OUT') {
+            const tag = node.data.tag;
+            const sourceNode = nodes.find(n => n.type === 'WARP_IN' && n.data.tag === tag);
+            if (sourceNode) {
+                const val = getNodeValue(sourceNode.id, [...stack, nodeId]);
+                results[nodeId] = val; // Store result before returning!
+                return val;
+            }
+            results[nodeId] = 0;
+            return 0; // Default if not found
         }
 
         const connectedEdges = edges.filter(e => e.target === node.id);
         
         const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
             // Whitelist target nodes that need raw objects
-            if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'UNPACK') return rawVal;
+            if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'UNPACK' || targetType === 'GROUP_INPUT_LIST') return rawVal;
             // Whitelist source types that pass through raw objects
-            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT') return rawVal;
+            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST') return rawVal;
             // Extract specific handle from object if requested
             if (typeof rawVal === 'object' && rawVal !== null && handle) {
                 return rawVal[handle] ?? 0;
@@ -140,12 +153,38 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
                 const subContext = {};
                 connectedEdges.forEach((edge) => {
                     const sourceNode = nodes.find(n => n.id === edge.source);
-                    const sourceVal = resolveSourceValue(getNodeValue(edge.source, [...stack, nodeId]), edge.sourceHandle, sourceNode?.type);
+                    
+                    // Determine internal target type
+                    let internalTargetType = undefined;
                     if (edge.targetHandle) {
-                        subContext[edge.targetHandle] = sourceVal;
+                        const targetNode = subGraph.nodes.find(n => n.id === edge.targetHandle);
+                        if (targetNode) internalTargetType = targetNode.type;
                     } else {
-                        const firstInput = subGraph.nodes.find(n => n.type === 'GROUP_INPUT');
-                        if (firstInput) subContext[firstInput.id] = sourceVal;
+                         const firstInput = subGraph.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
+                         if (firstInput) internalTargetType = firstInput.type;
+                    }
+
+                    const sourceVal = resolveSourceValue(getNodeValue(edge.source, [...stack, nodeId]), edge.sourceHandle, sourceNode?.type, internalTargetType);
+                    
+                    if (edge.targetHandle) {
+                        const targetNode = subGraph.nodes.find(n => n.id === edge.targetHandle);
+                        if (targetNode && targetNode.type === 'GROUP_INPUT_LIST') {
+                            if (!subContext[edge.targetHandle]) subContext[edge.targetHandle] = [];
+                            subContext[edge.targetHandle].push(sourceVal);
+                        } else {
+                            subContext[edge.targetHandle] = sourceVal;
+                        }
+                    } else {
+                         // Default to first input if not specified - check if it's a list type
+                        const firstInput = subGraph.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
+                        if (firstInput) {
+                             if (firstInput.type === 'GROUP_INPUT_LIST') {
+                                if (!subContext[firstInput.id]) subContext[firstInput.id] = [];
+                                subContext[firstInput.id].push(sourceVal);
+                             } else {
+                                subContext[firstInput.id] = sourceVal;
+                             }
+                        }
                     }
                 });
                 
@@ -197,7 +236,6 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
         // Registry Lookup
         const def = NODE_LOGIC[node.type] || {};
 
-
         // 1. Check if Value is provided via Context (e.g. Group Inputs)
         if (contextInputs[node.id] !== undefined) {
             const val = contextInputs[node.id];
@@ -205,13 +243,26 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
             return val;
         }
 
+        // Warp Logic
+        if (node.type === 'WARP_OUT') {
+            const tag = node.data.tag;
+            const sourceNode = nodes.find(n => n.type === 'WARP_IN' && n.data.tag === tag);
+            if (sourceNode) {
+                const val = getNodeValue(sourceNode.id, [...stack, nodeId]);
+                results[nodeId] = val; // Store result before returning!
+                return val;
+            }
+            results[nodeId] = 0;
+            return 0;
+        }
+
         const connectedEdges = edges.filter(e => e.target === node.id);
 
         const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
             // Whitelist target nodes that need raw objects
-            if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'UNPACK') return rawVal;
+            if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'UNPACK' || targetType === 'GROUP_INPUT_LIST') return rawVal;
             // Priority: Whitelisted types pass through raw value (Objects)
-            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT') {
+            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST') {
                 return rawVal;
             }
             // Logic: If specific handle requested and exists on object, return it
@@ -248,7 +299,8 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                 if (!edge) return undefined;
                 const sourceNode = nodes.find(n => n.id === edge.source);
                 const raw = getNodeValue(edge.source, [...stack, nodeId]);
-                return resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type, node.type);
+                const resolved = resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type, node.type);
+                return resolved;
             };
 
             if (def.dynamicInputs || node.type === 'COLLECTOR') {
@@ -284,7 +336,8 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
             return connectedEdges.map(e => {
                 const sourceNode = nodes.find(n => n.id === e.source);
                 const raw = getNodeValue(e.source, [...stack, nodeId]);
-                return resolveSourceValue(raw, e.sourceHandle, sourceNode?.type, node.type);
+                const resolved = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type, node.type);
+                return resolved;
             });
         };
 
@@ -297,12 +350,37 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                 const subContext = {};
                 connectedEdges.forEach((edge) => {
                     const sourceNode = nodes.find(n => n.id === edge.source);
-                    const sourceVal = resolveSourceValue(getNodeValue(edge.source, [...stack, nodeId]), edge.sourceHandle, sourceNode?.type);
+
+                    // Determine internal target type
+                    let internalTargetType = undefined;
                     if (edge.targetHandle) {
-                        subContext[edge.targetHandle] = sourceVal;
+                        const targetNode = subGraph.nodes.find(n => n.id === edge.targetHandle);
+                        if (targetNode) internalTargetType = targetNode.type;
                     } else {
-                        const firstInput = subGraph.nodes.find(n => n.type === 'GROUP_INPUT');
-                        if (firstInput) subContext[firstInput.id] = sourceVal;
+                        const firstInput = subGraph.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
+                        if (firstInput) internalTargetType = firstInput.type;
+                    }
+
+                    const sourceVal = resolveSourceValue(getNodeValue(edge.source, [...stack, nodeId]), edge.sourceHandle, sourceNode?.type, internalTargetType);
+
+                    if (edge.targetHandle) {
+                        const targetNode = subGraph.nodes.find(n => n.id === edge.targetHandle);
+                        if (targetNode && targetNode.type === 'GROUP_INPUT_LIST') {
+                            if (!subContext[edge.targetHandle]) subContext[edge.targetHandle] = [];
+                            subContext[edge.targetHandle].push(sourceVal);
+                        } else {
+                            subContext[edge.targetHandle] = sourceVal;
+                        }
+                    } else {
+                        const firstInput = subGraph.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
+                        if (firstInput) {
+                            if (firstInput.type === 'GROUP_INPUT_LIST') {
+                                if (!subContext[firstInput.id]) subContext[firstInput.id] = [];
+                                subContext[firstInput.id].push(sourceVal);
+                            } else {
+                                subContext[firstInput.id] = sourceVal;
+                            }
+                        }
                     }
                 });
 

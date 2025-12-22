@@ -270,8 +270,16 @@ export const NODE_LOGIC = {
         category: 'Object',
         inputs: ['object'],
         compute: ({ object }, data) => {
-            const obj = (typeof object === 'object' && object !== null) ? object : {};
             const k = data.key || '';
+            // Support Array "Pluck" / "Map"
+            if (Array.isArray(object)) {
+                return object.map(item => {
+                    const obj = (typeof item === 'object' && item !== null) ? item : {};
+                    return obj[k] ?? 0;
+                });
+            }
+            // Standard single object get
+            const obj = (typeof object === 'object' && object !== null) ? object : {};
             return obj[k] ?? 0;
         },
         data: { key: '' }
@@ -454,21 +462,24 @@ export const NODE_LOGIC = {
         label: 'Sum',
         category: 'Math',
         inputs: ['*'], // Variable inputs
-        compute: (inputs) => inputs.reduce((a, b) => a + b, 0)
+        compute: (inputs) => inputs.flat(Infinity).reduce((a, b) => a + b, 0)
     },
     SUB: {
         type: 'SUB',
         label: 'Subtract',
         category: 'Math',
         inputs: ['*'],
-        compute: (inputs) => inputs.length > 0 ? inputs.reduce((a, b) => a - b) : 0
+        compute: (inputs) => {
+            const flat = inputs.flat(Infinity);
+            return flat.length > 0 ? flat.reduce((a, b) => a - b) : 0;
+        }
     },
     MUL: {
         type: 'MUL',
         label: 'Multiply',
         category: 'Math',
         inputs: ['*'],
-        compute: (inputs) => inputs.reduce((a, b) => a * b, 1)
+        compute: (inputs) => inputs.flat(Infinity).reduce((a, b) => a * b, 1)
     },
     DIV: {
         type: 'DIV',
@@ -486,14 +497,20 @@ export const NODE_LOGIC = {
         label: 'Min',
         category: 'Math',
         inputs: ['*'],
-        compute: (inputs) => inputs.length > 0 ? Math.min(...inputs) : 0
+        compute: (inputs) => {
+            const flat = inputs.flat(Infinity);
+            return flat.length > 0 ? Math.min(...flat) : 0;
+        }
     },
     MAX: {
         type: 'MAX',
         label: 'Max',
         category: 'Math',
         inputs: ['*'],
-        compute: (inputs) => inputs.length > 0 ? Math.max(...inputs) : 0
+        compute: (inputs) => {
+            const flat = inputs.flat(Infinity);
+            return flat.length > 0 ? Math.max(...flat) : 0;
+        }
     },
     ROUND: {
         type: 'ROUND',
@@ -539,7 +556,20 @@ export const NODE_LOGIC = {
         inputs: ['*'],
         compute: (inputs, data) => {
             try {
-                const fn = new Function('inputs', data.func || 'return 0');
+                // Security: Shadow global objects to prevent access
+                // Note: This is not a perfect sandbox, but prevents accidental access and basic malicious attempts
+                const fn = new Function(
+                    'inputs',
+                    'window',
+                    'document',
+                    'fetch',
+                    'XMLHttpRequest',
+                    'localStorage',
+                    'sessionStorage',
+                    'globalThis',
+                    `"use strict"; ${data.func || 'return 0'}`
+                );
+                // Call with undefined for all shadowed globals
                 return fn(inputs);
             } catch (e) {
                 return `Error: ${e.message}`;
@@ -623,12 +653,40 @@ export const NODE_LOGIC = {
         compute: (inputs, data) => data.value || 0,
         data: { label: '', description: '' }
     },
+    GROUP_INPUT_LIST: {
+        type: 'GROUP_INPUT_LIST',
+        label: 'Group List Input',
+        category: 'Advanced',
+        inputs: [],
+        outputs: ['value'],
+        compute: (inputs, data) => Array.isArray(data.value) ? data.value : [],
+        data: { label: '', description: '', value: [] }
+    },
     GROUP_OUTPUT: {
         type: 'GROUP_OUTPUT',
         label: 'Group Output',
         category: 'Advanced',
-        compute: (inputs) => inputs.length > 0 ? inputs[0] : 0,
+        inputs: ['val'],
+        compute: ({ val }) => val ?? 0,
         data: { label: '', description: '' }
+    },
+    WARP_IN: {
+        type: 'WARP_IN',
+        label: 'Warp In',
+        category: 'Advanced',
+        inputs: ['val'],
+        outputs: [], // No physical output wire
+        compute: ({ val }) => val ?? 0,
+        data: { tag: 'A' }
+    },
+    WARP_OUT: {
+        type: 'WARP_OUT',
+        label: 'Warp Out',
+        category: 'Advanced',
+        inputs: [],
+        outputs: ['value'],
+        compute: () => 0, // Handled by evaluator
+        data: { tag: 'A' }
     },
     COMMENT: {
         type: 'COMMENT',

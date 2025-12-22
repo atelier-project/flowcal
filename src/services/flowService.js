@@ -7,7 +7,7 @@ export const flowService = {
     async listFlows() {
         const { data, error } = await supabase
             .from('flows')
-            .select('id, name, updated_at, is_public, owner_id')
+            .select('id, name, updated_at, is_public, owner_id, profiles:owner_id(full_name, email)')
             .order('updated_at', { ascending: false });
 
         if (error) throw error;
@@ -79,5 +79,32 @@ export const flowService = {
 
         if (error) throw error;
         return true;
+    },
+
+    /**
+     * Duplicate an existing flow
+     */
+    async duplicateFlow(id) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        // 1. Get original flow data
+        const original = await this.getFlow(id);
+        if (!original) throw new Error('Flow not found');
+
+        // 2. Create new flow with copy suffix
+        const { data, error } = await supabase
+            .from('flows')
+            .insert({
+                name: `${original.name} (Copy)`,
+                owner_id: user.id, // Current user becomes owner of copy
+                data: original.data, // Copy nodes/edges
+                is_public: false // Default to private
+            })
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
     }
 };

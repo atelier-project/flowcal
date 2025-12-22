@@ -1,9 +1,16 @@
 import {
-    Plus, Minus, X, Code, GripVertical, Activity, ListPlus,
-    Gauge, Percent, TrendingUp, BarChart as BarChartIcon,
-    Table as TableIcon, FileText, Flag, Box, ArrowRight, ArrowLeft,
-    GitBranch, ArrowLeftRight, Divide,
-    Filter, ListOrdered, Scissors, Hash, List, LayoutTemplate, MessageSquare, Braces, PackageOpen, Package
+    Calculator, Calendar, Type, List, CheckSquare,
+    ArrowRight, ArrowLeft, Layout, Box,
+    BarChart3, LineChart, Table, MousePointer2,
+    Play, Settings, Code, FileText, Database,
+    Plus, Minus, X, Divide, Percent, Hash,
+    Maximize, Minimize, ArrowDownUp,
+    Gauge, Activity, AlignLeft,
+    HelpCircle, MoreHorizontal,
+    ListPlus, Radio,
+    GripVertical, LayoutTemplate, ArrowLeftRight, GitBranch,
+    ListOrdered, Scissors, Filter, TrendingUp,
+    MessageSquare, Braces, PackageOpen, Package, Flag
 } from 'lucide-react';
 
 export const NODE_UI = {
@@ -39,15 +46,18 @@ export const NODE_UI = {
     GAUGE: { icon: Gauge, color: 'teal', colorClass: 'bg-teal-100 text-teal-600' },
     PROGRESS: { icon: Percent, color: 'teal', colorClass: 'bg-teal-100 text-teal-600' },
     LINE_CHART: { icon: TrendingUp, color: 'teal', colorClass: 'bg-teal-100 text-teal-600' },
-    BAR_CHART: { icon: BarChartIcon, color: 'teal', colorClass: 'bg-teal-100 text-teal-600' },
-    TABLE: { icon: TableIcon, color: 'teal', colorClass: 'bg-teal-100 text-teal-600' },
+    BAR_CHART: { icon: BarChart3, color: 'teal', colorClass: 'bg-teal-100 text-teal-600' },
+    TABLE: { icon: Table, color: 'teal', colorClass: 'bg-teal-100 text-teal-600' },
     TEMPLATE: { icon: FileText, color: 'yellow', colorClass: 'bg-yellow-100 text-yellow-600' },
     FINAL: { icon: Flag, color: 'green', colorClass: 'bg-green-100 text-green-600' },
 
     // Advanced
     GROUP: { icon: Box, color: 'indigo', colorClass: 'bg-indigo-100 text-indigo-600' },
     GROUP_INPUT: { icon: ArrowRight, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
+    GROUP_INPUT_LIST: { icon: ListPlus, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
     GROUP_OUTPUT: { icon: ArrowLeft, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
+    WARP_IN: { icon: Radio, color: 'purple', colorClass: 'bg-purple-100 text-purple-600' },
+    WARP_OUT: { icon: Radio, color: 'purple', colorClass: 'bg-purple-100 text-purple-600' },
     COMMENT: { icon: MessageSquare, color: 'amber', colorClass: 'bg-amber-100 text-amber-600' },
     FUNCTION: { icon: Braces, color: 'emerald', colorClass: 'bg-emerald-100 text-emerald-600' },
     FRAME: { icon: Box, color: 'sky', colorClass: 'bg-sky-100 text-sky-600' },
