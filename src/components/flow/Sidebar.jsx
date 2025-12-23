@@ -55,7 +55,7 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
             <>
                 <p style={{ color: 'var(--text-muted)' }} className="text-xs font-bold uppercase tracking-wider mb-2 mt-4 first:mt-0">{title}</p>
                 {nodes.map(def => {
-                    if (def.type === 'GROUP_INPUT' || def.type === 'GROUP_OUTPUT' || def.type === 'GROUP_INPUT_LIST') {
+                    if (def.type === 'GROUP_INPUT' || def.type === 'GROUP_OUTPUT' || def.type === 'GROUP_INPUT_LIST' || def.type === 'GROUP_OUTPUT_LIST') {
                         if (pathLength === 0) return null; // Show only inside groups
                     } else if (def.type === 'WARP_IN' || def.type === 'WARP_OUT') {
                         // Visible everywhere, no condition needed (or maybe restrict if desired, but "Advanced" implies broad use)

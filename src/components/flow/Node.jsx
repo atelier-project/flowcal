@@ -1,6 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import {
-    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp, Package, Eye, EyeOff, Lock, Unlock, Shield, ShieldAlert, MoreVertical
+    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp, Package, Eye, EyeOff, Lock, Unlock, Shield, ShieldAlert, MoreVertical, Type
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getNodeHeight } from '../../utils/layout';
@@ -9,11 +9,14 @@ import { DataTable } from '../ui/DataTable';
 import { Handle } from './Handle';
 import { getUI } from './nodeUIMap';
 import { getDefinition } from '../../engine/nodeDefinitions';
+import { TypeDefinitionModal } from './TypeDefinitionModal';
+import { getTypeDisplayName } from '../../utils/typeUtils';
 
-export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly }) => {
+export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings }) => {
     const nodeRef = useRef(null);
     const ui = getUI(type);
     const [showMenu, setShowMenu] = React.useState(false);
+    const [showTypeModal, setShowTypeModal] = React.useState(false);
 
     // Close menu when clicking outside
     React.useEffect(() => {
@@ -118,8 +121,8 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         } else if (type === 'TEMPLATE') {
             // TEMPLATE has variable textarea, so fix input at top of body area
             handles = [{ id: null, top: 60 }];
-        } else if (type === 'GROUP_OUTPUT') {
-            // GROUP_OUTPUT has single input - calculate position based on height
+        } else if (type === 'GROUP_OUTPUT' || type === 'GROUP_OUTPUT_LIST') {
+            // GROUP_OUTPUT/GROUP_OUTPUT_LIST has single input - calculate position based on height
             const height = getNodeHeight({ type, data });
             handles = [{ id: null, top: height / 2 }];
         } else if (type !== 'INPUT' && type !== 'GROUP_INPUT') {
@@ -154,7 +157,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         let handles = [];
         if (type === 'GROUP' && data.subGraph && data.subGraph.nodes) {
             handles = data.subGraph.nodes
-                .filter(n => n.type === 'GROUP_OUTPUT')
+                .filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST')
                 .map((n, idx) => ({
                     id: n.id,
                     label: n.data.label || `Output ${idx + 1}`,
@@ -182,7 +185,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 id: name,
                 label: name.charAt(0).toUpperCase() + name.slice(1),
             }));
-        } else if (!['GROUP_OUTPUT', 'FINAL', 'GAUGE', 'PROGRESS', 'LINE_CHART', 'BAR_CHART', 'TABLE'].includes(type) && def.category !== 'Visuals' && type !== 'FINAL') {
+        } else if (!['GROUP_OUTPUT', 'GROUP_OUTPUT_LIST', 'FINAL', 'GAUGE', 'PROGRESS', 'LINE_CHART', 'BAR_CHART', 'TABLE'].includes(type) && def.category !== 'Visuals' && type !== 'FINAL') {
             // Default single output - use calculated height for FORM nodes
             if (type === 'FORM') {
                 handles = [{ id: null, top: minHeight / 2 }];
@@ -468,6 +471,15 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     title="Toggle Slider"
                                 >
                                     <Settings size={14} />
+                                </button>
+                            )}
+                            {(type === 'GROUP_INPUT' || type === 'GROUP_OUTPUT' || type === 'GROUP_INPUT_LIST' || type === 'GROUP_OUTPUT_LIST') && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); setShowTypeModal(true); }}
+                                    className={`p-1 rounded ${data.typeDef && data.typeDef !== 'any' ? 'text-pink-500 bg-pink-50 dark:bg-pink-900/30' : 'text-slate-400 hover:text-pink-500 dark:hover:text-pink-400'}`}
+                                    title="Define Type Interface"
+                                >
+                                    <Type size={14} />
                                 </button>
                             )}
                             {type === 'FORM' && (
@@ -996,7 +1008,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     <div className="mt-2 flex-1 flex flex-col min-h-0 border-t border-slate-100 dark:border-slate-700/50 pt-2">
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight px-1 mb-1">Outbound Values</div>
                         <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md overflow-y-auto">
-                            {(data.subGraph?.nodes.filter(n => n.type === 'GROUP_OUTPUT') || []).map((out, i) => (
+                            {(data.subGraph?.nodes.filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST') || []).map((out, i) => (
                                 <div key={out.id} className="flex items-center justify-between p-1.5 border-b last:border-0 border-slate-100 dark:border-slate-800">
                                     <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate max-w-[100px]" title={out.data.label || `Output ${i + 1}`}>
                                         {out.data.label || `Output ${i + 1}`}
@@ -1006,7 +1018,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     </span>
                                 </div>
                             ))}
-                            {(!data.subGraph?.nodes.some(n => n.type === 'GROUP_OUTPUT')) && (
+                            {(!data.subGraph?.nodes.some(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST')) && (
                                 <div className="p-2 text-center text-[10px] italic text-slate-400">No output nodes defined</div>
                             )}
                         </div>
@@ -1014,9 +1026,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 )}
 
                 {type === 'COMMENT' && (
-                    <div className="flex-1 flex flex-col relative">
+                    <div className="flex-1 flex flex-col relative overflow-hidden">
                         {/* Color Picker */}
-                        <div className="flex items-center gap-1 mb-2">
+                        <div className="flex items-center gap-1 mb-2 shrink-0">
                             <span className="text-[10px] text-slate-500">Color:</span>
                             {['#fef3c7', '#fce7f3', '#dbeafe', '#dcfce7', '#f3e8ff', '#fed7aa'].map(c => (
                                 <button
@@ -1042,10 +1054,10 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                             placeholder="Add your notes..."
                             style={{
                                 backgroundColor: data.color || '#fef3c7',
-                                minHeight: `${data.height || 120}px`,
+                                height: `${data.height || 80}px`,
                                 width: '100%'
                             }}
-                            className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded text-sm text-slate-800 placeholder:text-slate-400 resize focus:outline-none focus:ring-2 focus:ring-amber-400"
+                            className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded text-sm text-slate-800 placeholder:text-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400 overflow-y-auto"
                             onMouseDown={(e) => e.stopPropagation()}
                         />
                     </div>
@@ -1125,6 +1137,15 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 {/* Display Value for Group Input */}
                 {type === 'GROUP_INPUT' && (
                     <div className="space-y-2">
+                        {/* Type Badge */}
+                        {data.typeDef && data.typeDef !== 'any' && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-pink-500 uppercase">Type</span>
+                                <span className="px-2 py-0.5 text-[10px] font-mono bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded border border-pink-200 dark:border-pink-800 truncate max-w-full" title={data.typeDef}>
+                                    {getTypeDisplayName(data.typeDef)}
+                                </span>
+                            </div>
+                        )}
                         <div>
                             <label className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-1">Description</label>
                             <textarea
@@ -1155,12 +1176,47 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 {/* Display Value for Group Output */}
                 {type === 'GROUP_OUTPUT' && (
                     <div className="space-y-2">
+                        {/* Type Badge */}
+                        {data.typeDef && data.typeDef !== 'any' && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-pink-500 uppercase">Type</span>
+                                <span className="px-2 py-0.5 text-[10px] font-mono bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded border border-pink-200 dark:border-pink-800 truncate max-w-full" title={data.typeDef}>
+                                    {getTypeDisplayName(data.typeDef)}
+                                </span>
+                            </div>
+                        )}
                         <div>
                             <label className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-1">Description</label>
                             <textarea
                                 value={data.description || ''}
                                 onChange={(e) => handleChange('description', e.target.value)}
                                 placeholder="e.g., Calculated total with tax"
+                                className="w-full h-12 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs focus:outline-none focus:border-pink-500 resize-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Display Value for Group Output List */}
+                {type === 'GROUP_OUTPUT_LIST' && (
+                    <div className="space-y-2">
+                        {/* Type Badge */}
+                        {data.typeDef && data.typeDef !== 'any' && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-pink-500 uppercase">Type</span>
+                                <span className="px-2 py-0.5 text-[10px] font-mono bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded border border-pink-200 dark:border-pink-800 truncate max-w-full" title={data.typeDef}>
+                                    {getTypeDisplayName(data.typeDef)}
+                                </span>
+                            </div>
+                        )}
+                        <div className="text-[10px] text-violet-500 mb-1">Aggregates multiple values into array</div>
+                        <div>
+                            <label className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-1">Description</label>
+                            <textarea
+                                value={data.description || ''}
+                                onChange={(e) => handleChange('description', e.target.value)}
+                                placeholder="e.g., Collected results from map operation"
                                 className="w-full h-12 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs focus:outline-none focus:border-pink-500 resize-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
                                 onMouseDown={(e) => e.stopPropagation()}
                             />
@@ -1289,30 +1345,56 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             </div>}
 
             {
-                inputHandles.map(h => (
-                    <Handle
-                        key={h.id || 'default'}
-                        type="input"
-                        id={h.id}
-                        position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
-                        onMouseDown={() => { }}
-                        isValid={true}
-                        description={h.description}
-                    />
-                ))
+                inputHandles.map(h => {
+                    // Check for type warning on this input handle
+                    const handleKey = h.id || 'default';
+                    const warning = typeWarnings && typeWarnings[`${id}:${handleKey}`];
+                    // Get typeDef for GROUP nodes from subGraph input nodes
+                    let handleTypeDef = null;
+                    if (type === 'GROUP' && data.subGraph) {
+                        const inputNode = data.subGraph.nodes.find(n => n.id === h.id);
+                        if (inputNode && inputNode.data) {
+                            handleTypeDef = inputNode.data.typeDef;
+                        }
+                    }
+                    return (
+                        <Handle
+                            key={handleKey}
+                            type="input"
+                            id={h.id}
+                            position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
+                            onMouseDown={() => { }}
+                            isValid={!warning}
+                            description={h.description}
+                            typeWarning={warning}
+                            typeDef={handleTypeDef}
+                        />
+                    );
+                })
             }
 
             {
-                outputHandles.map(h => (
-                    <Handle
-                        key={h.id || 'default'}
-                        type="output"
-                        id={h.id}
-                        position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
-                        onMouseDown={(e) => onStartConnect(e, id, h.id)}
-                        isValid={true}
-                    />
-                ))
+                outputHandles.map(h => {
+                    // Get typeDef for GROUP nodes from subGraph output nodes
+                    let handleTypeDef = null;
+                    if (type === 'GROUP' && data.subGraph) {
+                        const outputNode = data.subGraph.nodes.find(n => n.id === h.id);
+                        if (outputNode && outputNode.data) {
+                            handleTypeDef = outputNode.data.typeDef;
+                        }
+                    }
+                    return (
+                        <Handle
+                            key={h.id || 'default'}
+                            type="output"
+                            id={h.id}
+                            position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
+                            onMouseDown={(e) => onStartConnect(e, id, h.id)}
+                            isValid={true}
+                            typeDef={handleTypeDef}
+                        />
+                    );
+                })
             }
 
             {/* Resize Handle for FORM, FINAL, GROUP, and COMMENT */}
@@ -1345,6 +1427,18 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )
             }
+
+            {/* Type Definition Modal */}
+            {(type === 'GROUP_INPUT' || type === 'GROUP_OUTPUT' || type === 'GROUP_INPUT_LIST' || type === 'GROUP_OUTPUT_LIST') && (
+                <TypeDefinitionModal
+                    isOpen={showTypeModal}
+                    onClose={() => setShowTypeModal(false)}
+                    currentType={data.typeDef || 'any'}
+                    onSave={(newType) => handleChange('typeDef', newType)}
+                    nodeLabel={data.label || def.label}
+                    nodeType={type}
+                />
+            )}
         </div >
     );
 };

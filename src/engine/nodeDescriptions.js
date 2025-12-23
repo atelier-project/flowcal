@@ -75,6 +75,7 @@ export const NODE_DESCRIPTIONS = {
     GROUP_INPUT: 'Receives values passed into the group from outside.',
     GROUP_INPUT_LIST: 'Receives multiple values passed into the group from outside.',
     GROUP_OUTPUT: 'Sends values out of the group to the parent flow.',
+    GROUP_OUTPUT_LIST: 'Aggregates multiple values inside the group and sends as an array to the parent flow.',
     COMMENT: 'Add notes and documentation to your flow. Does not affect computation.',
     FUNCTION: 'Define named parameters and write a formula. Each parameter becomes an input port.',
     FRAME: 'A visual outline box for grouping elements. Stays behind other nodes.',

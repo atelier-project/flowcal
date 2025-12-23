@@ -651,7 +651,7 @@ export const NODE_LOGIC = {
         label: 'Group Input',
         category: 'Advanced',
         compute: (inputs, data) => data.value || 0,
-        data: { label: '', description: '' }
+        data: { label: '', description: '', typeDef: 'any' }
     },
     GROUP_INPUT_LIST: {
         type: 'GROUP_INPUT_LIST',
@@ -660,7 +660,7 @@ export const NODE_LOGIC = {
         inputs: [],
         outputs: ['value'],
         compute: (inputs, data) => Array.isArray(data.value) ? data.value : [],
-        data: { label: '', description: '', value: [] }
+        data: { label: '', description: '', typeDef: 'any', value: [] }
     },
     GROUP_OUTPUT: {
         type: 'GROUP_OUTPUT',
@@ -668,7 +668,16 @@ export const NODE_LOGIC = {
         category: 'Advanced',
         inputs: ['val'],
         compute: ({ val }) => val ?? 0,
-        data: { label: '', description: '' }
+        data: { label: '', description: '', typeDef: 'any' }
+    },
+    GROUP_OUTPUT_LIST: {
+        type: 'GROUP_OUTPUT_LIST',
+        label: 'Group List Output',
+        category: 'Advanced',
+        inputs: ['*'],
+        outputs: ['value'],
+        compute: (inputs) => Array.isArray(inputs) ? inputs : [],
+        data: { label: '', description: '', typeDef: 'any', value: [] }
     },
     WARP_IN: {
         type: 'WARP_IN',

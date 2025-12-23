@@ -7,7 +7,7 @@ import {
     Maximize, Minimize, ArrowDownUp,
     Gauge, Activity, AlignLeft,
     HelpCircle, MoreHorizontal,
-    ListPlus, Radio,
+    ListPlus, ListMinus, Radio,
     GripVertical, LayoutTemplate, ArrowLeftRight, GitBranch,
     ListOrdered, Scissors, Filter, TrendingUp,
     MessageSquare, Braces, PackageOpen, Package, Flag
@@ -56,6 +56,7 @@ export const NODE_UI = {
     GROUP_INPUT: { icon: ArrowRight, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
     GROUP_INPUT_LIST: { icon: ListPlus, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
     GROUP_OUTPUT: { icon: ArrowLeft, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
+    GROUP_OUTPUT_LIST: { icon: ListMinus, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
     WARP_IN: { icon: Radio, color: 'purple', colorClass: 'bg-purple-100 text-purple-600' },
     WARP_OUT: { icon: Radio, color: 'purple', colorClass: 'bg-purple-100 text-purple-600' },
     COMMENT: { icon: MessageSquare, color: 'amber', colorClass: 'bg-amber-100 text-amber-600' },

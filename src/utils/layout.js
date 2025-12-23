@@ -34,6 +34,11 @@ export const getNodeHeight = (node) => {
     if (node.type === 'PROGRESS') return 140;
     if (node.type === 'RANGE') return 200;
 
+    if (node.type === 'COMMENT') {
+        // Header (40) + body padding (8) + content
+        return Math.max(120, (node.data?.height || 80) + 50);
+    }
+
     if (node.type === 'FORM') {
         const fields = node.data.fields || [];
         // Header (40) + Body Pad (24) + Fields (n * 30) + Add Button (30) + Output (varies, default to ~40)

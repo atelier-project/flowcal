@@ -19,6 +19,7 @@ import { evaluateGraph, ENGINE_SCRIPT } from '../engine/evaluator';
 import { useDebounce } from '../hooks/useDebounce';
 import { useHistory } from '../hooks/useHistory';
 import { getCustomNodes, saveCustomNode, createCustomNodeFromGroup, instantiateCustomNode, deleteCustomNode, exportCustomNode, importCustomNode } from '../utils/customNodeStore';
+import { isTypeCompatible, getNodeOutputType } from '../utils/typeUtils';
 
 // Helper to match engine resolution logic
 const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
@@ -171,6 +172,36 @@ export default function Editor() {
   // Debounced state for performance
   const debouncedNodes = useDebounce(nodes, 50);
   const debouncedEdges = useDebounce(edges, 50);
+
+  // Compute type warnings for edges connected to GROUP nodes with typed inputs
+  const typeWarnings = useMemo(() => {
+    const warnings = {};
+    edges.forEach(edge => {
+      const targetNode = nodes.find(n => n.id === edge.target);
+      if (!targetNode) return;
+
+      // For GROUP nodes, check if the input has a type defined
+      if (targetNode.type === 'GROUP' && targetNode.data.subGraph) {
+        const inputNode = targetNode.data.subGraph.nodes.find(n => n.id === edge.targetHandle);
+        if (inputNode && inputNode.data?.typeDef && inputNode.data.typeDef !== 'any') {
+          // Get source type
+          const sourceNode = nodes.find(n => n.id === edge.source);
+          const sourceType = sourceNode?.type === 'GROUP'
+            ? (() => {
+              const outputNode = sourceNode.data.subGraph?.nodes.find(n => n.id === edge.sourceHandle);
+              return outputNode?.data?.typeDef || 'any';
+            })()
+            : getNodeOutputType(sourceNode?.type);
+
+          // Check compatibility
+          if (!isTypeCompatible(sourceType, inputNode.data.typeDef)) {
+            warnings[`${edge.target}:${edge.targetHandle}`] = true;
+          }
+        }
+      }
+    });
+    return warnings;
+  }, [nodes, edges]);
 
   // Theme State
   const [theme, setTheme] = useState(() => getStoredTheme());
@@ -1060,6 +1091,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
               readOnly={node.data.readOnly || !isActionAllowed()}
               onOpenEditor={(id, code, inputs) => setEditor({ isOpen: true, nodeId: id, code, inputs })}
               onSaveAsCustom={handleSaveAsCustomNode}
+              typeWarnings={typeWarnings}
             />
           ))}
           {selectionBox && <SelectionBox rect={selectionBox} />}

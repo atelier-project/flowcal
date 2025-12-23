@@ -190,7 +190,7 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
                 
                 const subResults = evaluateGraph(subGraph.nodes, subGraph.edges, subContext);
                 
-                const outputs = subGraph.nodes.filter(n => n.type === 'GROUP_OUTPUT');
+                const outputs = subGraph.nodes.filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST');
                 if (outputs.length > 0) {
                     val = {};
                     outputs.forEach(out => {
@@ -386,7 +386,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
 
                 const subResults = evaluateGraph(subGraph.nodes, subGraph.edges, subContext);
 
-                const outputs = subGraph.nodes.filter(n => n.type === 'GROUP_OUTPUT');
+                const outputs = subGraph.nodes.filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST');
                 if (outputs.length > 0) {
                     val = {};
                     outputs.forEach(out => {
