@@ -19,7 +19,7 @@ import { evaluateGraph, ENGINE_SCRIPT } from '../engine/evaluator';
 import { useDebounce } from '../hooks/useDebounce';
 import { useHistory } from '../hooks/useHistory';
 import { getCustomNodes, saveCustomNode, createCustomNodeFromGroup, instantiateCustomNode, deleteCustomNode, exportCustomNode, importCustomNode } from '../utils/customNodeStore';
-import { isTypeCompatible, getNodeOutputType } from '../utils/typeUtils';
+import { isTypeCompatible, getNodeOutputType, parseTypeDef } from '../utils/typeUtils';
 
 // Helper to match engine resolution logic
 const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
@@ -186,20 +186,49 @@ export default function Editor() {
         if (inputNode && inputNode.data?.typeDef && inputNode.data.typeDef !== 'any') {
           // Get source type
           const sourceNode = nodes.find(n => n.id === edge.source);
-          const sourceType = sourceNode?.type === 'GROUP'
-            ? (() => {
-              const outputNode = sourceNode.data.subGraph?.nodes.find(n => n.id === edge.sourceHandle);
-              return outputNode?.data?.typeDef || 'any';
-            })()
-            : getNodeOutputType(sourceNode?.type);
+          let sourceType;
 
-          // Check compatibility
-          if (!isTypeCompatible(sourceType, inputNode.data.typeDef)) {
-            warnings[`${edge.target}:${edge.targetHandle}`] = true;
+          if (sourceNode?.type === 'GROUP') {
+            // For GROUP nodes, get the output node's type
+            const outputNode = sourceNode.data.subGraph?.nodes.find(n => n.id === edge.sourceHandle);
+            sourceType = outputNode?.data?.typeDef || 'any';
+          } else if (sourceNode?.data?.typeDef && sourceNode.data.typeDef !== 'any') {
+            // For nodes with explicit type definitions (FORM, PACK), use that
+            sourceType = sourceNode.data.typeDef;
+          } else {
+            // Fall back to built-in type map
+            sourceType = getNodeOutputType(sourceNode?.type);
+          }
+
+          // Parse both type definitions to get the actual types
+          const { inputType: sourceInputType } = parseTypeDef(sourceType);
+          const { inputType: targetInputType } = parseTypeDef(inputNode.data.typeDef);
+
+          // Use the parsed input types for comparison
+          const actualSourceType = sourceInputType || sourceType;
+          const actualTargetType = targetInputType || inputNode.data.typeDef;
+
+          console.log('[Type Check]', {
+            edge: `${edge.source} -> ${edge.target}`,
+            targetHandle: edge.targetHandle,
+            rawTargetType: inputNode.data.typeDef,
+            actualTargetType,
+            sourceNodeType: sourceNode?.type,
+            rawSourceType: sourceType,
+            actualSourceType,
+            compatible: isTypeCompatible(actualSourceType, actualTargetType)
+          });
+
+          // Check compatibility using parsed types
+          if (!isTypeCompatible(actualSourceType, actualTargetType)) {
+            const warningKey = `${edge.target}:${edge.targetHandle}`;
+            console.log('[Type Warning]', warningKey);
+            warnings[warningKey] = true;
           }
         }
       }
     });
+    console.log('[Type Warnings Result]', warnings);
     return warnings;
   }, [nodes, edges]);
 

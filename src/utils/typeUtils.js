@@ -133,7 +133,7 @@ export function isTypeCompatible(sourceType, targetType, sourceInterfaces = {}, 
     // 'any' is always compatible
     if (src === 'any' || tgt === 'any') return true;
 
-    // Exact match
+    // Exact match (case-insensitive)
     if (src === tgt) return true;
 
     // Array compatibility
@@ -148,20 +148,16 @@ export function isTypeCompatible(sourceType, targetType, sourceInterfaces = {}, 
     }
 
     if (srcIsArray !== tgtIsArray) {
-        // One is array, one is not - incompatible unless target is 'any'
+        // One is array, one is not - incompatible
         return false;
     }
 
-    // Object/interface compatibility - be lenient
-    const srcBase = getBaseType(src);
-    const tgtBase = getBaseType(tgt);
-
-    if (srcBase === 'object' && tgtBase === 'object') {
-        return true; // Objects are loosely compatible
-    }
-
-    // Primitives must match
-    return srcBase === tgtBase;
+    // For strict type checking:
+    // - Primitives (number, string, boolean) must match exactly (handled above)
+    // - Custom types (MyObject, etc.) must match exactly (handled above)
+    // - Generic 'object' only matches 'object', not custom types
+    // If we get here, types don't match exactly and aren't 'any'
+    return false;
 }
 
 /**
@@ -248,4 +244,48 @@ export function getNodeOutputType(nodeType) {
         'FUNCTION': 'any',
     };
     return typeMap[nodeType] || 'any';
+}
+
+/**
+ * Validate if FORM node fields match the declared type definition.
+ * @param {Array} fields - FORM fields array with {key, value} objects
+ * @param {string} typeDef - Type definition string
+ * @returns {{ valid: boolean, message: string|null }}
+ */
+export function validateFormFields(fields = [], typeDef) {
+    if (!typeDef || typeDef === 'any') {
+        return { valid: true, message: null };
+    }
+
+    const { interfaces, inputType } = parseTypeDef(typeDef);
+
+    // If it's a simple type (not an interface), we can't validate structure
+    if (!interfaces[inputType]) {
+        return { valid: true, message: null };
+    }
+
+    const interfaceDef = interfaces[inputType];
+    const expectedProps = interfaceDef.properties || {};
+    const expectedKeys = Object.keys(expectedProps);
+    const actualKeys = fields.map(f => f.key).filter(k => k && k.trim());
+
+    // Check for missing properties
+    const missing = expectedKeys.filter(key => !actualKeys.includes(key));
+    if (missing.length > 0) {
+        return {
+            valid: false,
+            message: `Missing fields: ${missing.join(', ')}`
+        };
+    }
+
+    // Check for extra properties
+    const extra = actualKeys.filter(key => !expectedKeys.includes(key));
+    if (extra.length > 0) {
+        return {
+            valid: false,
+            message: `Unexpected fields: ${extra.join(', ')}`
+        };
+    }
+
+    return { valid: true, message: null };
 }

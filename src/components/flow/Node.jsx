@@ -10,7 +10,7 @@ import { Handle } from './Handle';
 import { getUI } from './nodeUIMap';
 import { getDefinition } from '../../engine/nodeDefinitions';
 import { TypeDefinitionModal } from './TypeDefinitionModal';
-import { getTypeDisplayName } from '../../utils/typeUtils';
+import { getTypeDisplayName, validateFormFields } from '../../utils/typeUtils';
 
 export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings }) => {
     const nodeRef = useRef(null);
@@ -473,7 +473,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     <Settings size={14} />
                                 </button>
                             )}
-                            {(type === 'GROUP_INPUT' || type === 'GROUP_OUTPUT' || type === 'GROUP_INPUT_LIST' || type === 'GROUP_OUTPUT_LIST') && (
+                            {(type === 'GROUP_INPUT' || type === 'GROUP_OUTPUT' || type === 'GROUP_INPUT_LIST' || type === 'GROUP_OUTPUT_LIST' || type === 'FORM' || type === 'PACK') && (
                                 <button
                                     onClick={(e) => { e.stopPropagation(); setShowTypeModal(true); }}
                                     className={`p-1 rounded ${data.typeDef && data.typeDef !== 'any' ? 'text-pink-500 bg-pink-50 dark:bg-pink-900/30' : 'text-slate-400 hover:text-pink-500 dark:hover:text-pink-400'}`}
@@ -673,6 +673,23 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
 
                 {type === 'FORM' && (
                     <div className="flex flex-col gap-2">
+                        {/* Type validation warning */}
+                        {data.typeDef && data.typeDef !== 'any' && (() => {
+                            const validation = validateFormFields(data.fields || [], data.typeDef);
+                            if (!validation.valid) {
+                                return (
+                                    <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-xs">
+                                        <span className="text-amber-600 dark:text-amber-400 shrink-0">⚠️</span>
+                                        <div className="flex-1">
+                                            <div className="font-semibold text-amber-800 dark:text-amber-300">Type Mismatch</div>
+                                            <div className="text-amber-700 dark:text-amber-400 mt-0.5">{validation.message}</div>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+
                         {(data.fields || []).map((field, i) => (
                             <div key={i} className="flex items-center gap-1 group/field">
                                 {/* Input Handle spacer */}
@@ -1429,7 +1446,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             }
 
             {/* Type Definition Modal */}
-            {(type === 'GROUP_INPUT' || type === 'GROUP_OUTPUT' || type === 'GROUP_INPUT_LIST' || type === 'GROUP_OUTPUT_LIST') && (
+            {(type === 'GROUP_INPUT' || type === 'GROUP_OUTPUT' || type === 'GROUP_INPUT_LIST' || type === 'GROUP_OUTPUT_LIST' || type === 'FORM' || type === 'PACK') && (
                 <TypeDefinitionModal
                     isOpen={showTypeModal}
                     onClose={() => setShowTypeModal(false)}
