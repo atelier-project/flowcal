@@ -706,6 +706,22 @@ export const NODE_LOGIC = {
         compute: () => null,
         data: { text: 'Add your notes here...', width: 256, height: 120, color: '#fef3c7' }
     },
+    TEXT_LABEL: {
+        type: 'TEXT_LABEL',
+        label: 'Text Label',
+        category: 'Advanced',
+        inputs: [],
+        outputs: [],
+        compute: () => null,
+        data: {
+            text: 'Label',
+            fontSize: 36,
+            fontFamily: 'Inter',
+            color: 'auto', // Special value that adapts to theme
+            fontWeight: 'normal',
+            textAlign: 'left'
+        }
+    },
     FRAME: {
         type: 'FRAME',
         label: 'Frame',

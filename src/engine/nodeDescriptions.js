@@ -77,6 +77,7 @@ export const NODE_DESCRIPTIONS = {
     GROUP_OUTPUT: 'Sends values out of the group to the parent flow.',
     GROUP_OUTPUT_LIST: 'Aggregates multiple values inside the group and sends as an array to the parent flow.',
     COMMENT: 'Add notes and documentation to your flow. Does not affect computation.',
+    TEXT_LABEL: 'Add floating text labels and titles to your canvas. Customize font, size, and color.',
     FUNCTION: 'Define named parameters and write a formula. Each parameter becomes an input port.',
     FRAME: 'A visual outline box for grouping elements. Stays behind other nodes.',
 };

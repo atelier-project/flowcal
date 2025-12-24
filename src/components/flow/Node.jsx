@@ -285,6 +285,130 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
         }
     };
 
+    // Special rendering for TEXT_LABEL node - floating text without card
+    if (type === 'TEXT_LABEL') {
+        // Determine actual color based on 'auto' setting and theme
+        const getTextColor = () => {
+            if (data.color === 'auto' || !data.color) {
+                // Check if dark mode via CSS variable or class
+                return 'var(--text-primary, #1e293b)';
+            }
+            return data.color;
+        };
+
+        return (
+            <div
+                ref={nodeRef}
+                style={{
+                    transform: `translate(${position.x}px, ${position.y}px)`,
+                    pointerEvents: 'all'
+                }}
+                className="absolute z-10"
+                onMouseDown={(e) => onDragStart(e, id)}
+            >
+                {/* Wrapper for better selection - has padding and hover effect */}
+                <div
+                    className={`inline-block px-2 py-1 rounded transition-colors ${selected
+                        ? 'bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-400'
+                        : isHovered
+                            ? 'bg-slate-100/50 dark:bg-slate-800/50'
+                            : ''
+                        }`}
+                    style={{ cursor: 'move' }}
+                >
+                    {/* The text itself */}
+                    <div
+                        contentEditable={!readOnly}
+                        suppressContentEditableWarning
+                        onBlur={(e) => handleChange('text', e.currentTarget.textContent)}
+                        onClick={(e) => { e.stopPropagation(); e.currentTarget.focus(); }}
+                        style={{
+                            fontSize: `${data.fontSize || 36}px`,
+                            fontFamily: data.fontFamily || 'Inter',
+                            color: getTextColor(),
+                            fontWeight: data.fontWeight || 'normal',
+                            textAlign: data.textAlign || 'left',
+                            outline: 'none',
+                            minWidth: '50px',
+                            cursor: readOnly ? 'move' : 'text',
+                            userSelect: readOnly ? 'none' : 'text'
+                        }}
+                        className="whitespace-pre-wrap"
+                    >
+                        {data.text || 'Label'}
+                    </div>
+                </div>
+
+                {/* Controls - only visible when selected */}
+                {selected && !readOnly && (
+                    <div className="absolute -top-12 left-0 flex items-center gap-2 bg-white dark:bg-slate-800 rounded px-3 py-2 shadow-lg border border-slate-200 dark:border-slate-700 z-50">
+                        {/* Font Size */}
+                        <label className="flex items-center gap-1 text-[10px] text-slate-500">
+                            <span>Size:</span>
+                            <input
+                                type="number"
+                                value={data.fontSize || 36}
+                                onChange={(e) => handleChange('fontSize', parseInt(e.target.value) || 36)}
+                                className="w-12 px-1 py-0.5 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"
+                                min="8"
+                                max="72"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            />
+                        </label>
+
+                        {/* Font Family */}
+                        <select
+                            value={data.fontFamily || 'Inter'}
+                            onChange={(e) => handleChange('fontFamily', e.target.value)}
+                            className="text-[10px] px-1 py-0.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        >
+                            <option value="Inter">Inter</option>
+                            <option value="Arial">Arial</option>
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="Times New Roman">Times</option>
+                            <option value="Courier New">Courier</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="monospace">Monospace</option>
+                        </select>
+
+                        {/* Font Weight */}
+                        <select
+                            value={data.fontWeight || 'normal'}
+                            onChange={(e) => handleChange('fontWeight', e.target.value)}
+                            className="text-[10px] px-1 py-0.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        >
+                            <option value="normal">Normal</option>
+                            <option value="bold">Bold</option>
+                            <option value="lighter">Light</option>
+                        </select>
+
+                        {/* Text Color */}
+                        <input
+                            type="color"
+                            value={data.color === 'auto' ? '#1e293b' : (data.color || '#1e293b')}
+                            onChange={(e) => handleChange('color', e.target.value)}
+                            className="w-6 h-6 cursor-pointer border border-slate-300 dark:border-slate-600 rounded"
+                            title="Text color"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+
+                        {/* Delete Button */}
+                        <button
+                            onClick={() => onDelete(id)}
+                            className="text-red-400 hover:text-red-600 p-1"
+                            title="Delete label"
+                        >
+                            <Trash2 size={12} />
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
     // Special rendering for FRAME node - always stays at back
     if (type === 'FRAME') {
         return (
