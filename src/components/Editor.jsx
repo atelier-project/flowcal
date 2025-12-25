@@ -75,6 +75,7 @@ export default function Editor() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [spacePressed, setSpacePressed] = useState(false);
 
   // Load Cloud Flow on Mount
   useEffect(() => {
@@ -704,6 +705,28 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo, canUndo, canRedo]);
 
+  // Track spacebar for pan mode
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space' && !e.repeat && !e.target.closest('input, textarea, [contenteditable="true"]')) {
+        e.preventDefault();
+        setSpacePressed(true);
+      }
+    };
+    const handleKeyUp = (e) => {
+      if (e.code === 'Space') {
+        setSpacePressed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   const handleWheel = useCallback((e) => {
     e.preventDefault(); e.stopPropagation();
     const zoomSensitivity = 0.001;
@@ -728,15 +751,33 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
   }, [handleWheel]);
 
   const handleMouseDown = (e) => {
-    if (e.button === 0 && e.target === containerRef.current) {
-      if (!e.shiftKey) setSelectedIds(new Set());
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = (e.clientX - rect.left - pan.x) / scale;
-      const y = (e.clientY - rect.top - pan.y) / scale;
-      setSelectionBox({ start: { x, y }, current: { x, y } });
-      if (!e.shiftKey) {
-        setSelectionBox(null);
+    // Middle mouse button (button 1) always pans from anywhere
+    if (e.button === 1) {
+      e.preventDefault();
+      setDragState({ type: 'pan', startPan: { ...pan }, startMouse: { x: e.clientX, y: e.clientY } });
+      return;
+    }
+
+    // Left click (button 0)
+    if (e.button === 0) {
+      // Spacebar held + left click: pan from anywhere
+      if (e.target.closest && spacePressed) {
+        e.preventDefault();
         setDragState({ type: 'pan', startPan: { ...pan }, startMouse: { x: e.clientX, y: e.clientY } });
+        return;
+      }
+
+      // Normal left click on canvas container only
+      if (e.target === containerRef.current) {
+        if (!e.shiftKey) setSelectedIds(new Set());
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = (e.clientX - rect.left - pan.x) / scale;
+        const y = (e.clientY - rect.top - pan.y) / scale;
+        setSelectionBox({ start: { x, y }, current: { x, y } });
+        if (!e.shiftKey) {
+          setSelectionBox(null);
+          setDragState({ type: 'pan', startPan: { ...pan }, startMouse: { x: e.clientX, y: e.clientY } });
+        }
       }
     }
   };
@@ -981,7 +1022,8 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
       <div
         ref={containerRef}
         style={{ backgroundColor: 'var(--bg-primary)' }}
-        className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing transition-colors duration-200"
+        className={`flex-1 relative overflow-hidden transition-colors duration-200 ${spacePressed ? 'cursor-grab' : ''
+          } ${dragState?.type === 'pan' ? 'cursor-grabbing' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
