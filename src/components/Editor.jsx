@@ -16,7 +16,7 @@ import { generateId } from '../utils/ids';
 import { getHandlePosition, getBezierPath } from '../utils/geometry';
 import { HANDLE_POSITIONS } from '../utils/handlePositions';
 import { getNodeHeight } from '../utils/layout';
-import { evaluateGraph, ENGINE_SCRIPT } from '../engine/evaluator';
+import { evaluateGraph } from '../engine/evaluator';
 import { useDebounce } from '../hooks/useDebounce';
 import { useHistory } from '../hooks/useHistory';
 import { getCustomNodes, saveCustomNode, createCustomNodeFromGroup, instantiateCustomNode, deleteCustomNode, exportCustomNode, importCustomNode } from '../utils/customNodeStore';
@@ -580,29 +580,7 @@ export default function Editor() {
     e.target.value = null;
   };
 
-  const handleExportJS = () => {
-    if (path.length > 0) {
-      alert("Please return to Root level to export the full application.");
-      return;
-    }
-    const graphData = { nodes, edges };
-    const fileContent = `
-${ENGINE_SCRIPT}
-const graphData = ${JSON.stringify(graphData, null, 2)};
-console.log("Starting Calculation...");
-const results = evaluateGraph(graphData.nodes, graphData.edges);
-console.log("Final Results:", results);
-if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData };
-`;
-    const blob = new Blob([fileContent], { type: 'text/javascript' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `flowcalc - runner.js`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+
 
   // --- Helpers ---
 
@@ -1030,7 +1008,6 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         lastSaved={lastSaved}
         isGuest={!user}
         onLoad={handleLoad}
-        onExportJS={handleExportJS}
         fileInputRef={fileInputRef}
         pathLength={path.length}
         theme={theme}

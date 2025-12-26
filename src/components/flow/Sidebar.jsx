@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Save, FolderOpen, MousePointer2, Type, FileCode, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings } from 'lucide-react';
+import { Save, FolderOpen, MousePointer2, Type, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
 import { useAuth } from '../../context/AuthContext';
 
-export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved, onOpenSettings, isRestricted }) => {
+export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved, onOpenSettings, isRestricted }) => {
     const { isAdmin } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
@@ -141,16 +141,6 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
                     className="p-1.5 rounded hover:opacity-80 transition-opacity"
                 >
                     <Upload size={14} />
-                </button>
-
-                <button
-                    onClick={onExportJS}
-                    title={isRestricted ? "Export Disabled by Owner" : "Export as JavaScript"}
-                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                    className="p-1.5 rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={isRestricted}
-                >
-                    <FileCode size={14} />
                 </button>
 
                 <button
