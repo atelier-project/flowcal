@@ -905,7 +905,12 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         let targetHandle = null;
         // Determine Target Handle based on drop position
         if (targetNode.type === 'GROUP') {
-          const handles = targetNode.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT') || [];
+          const allInputs = targetNode.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST') || [];
+          // Sort by inputOrder if it exists, otherwise use original order
+          const inputOrder = targetNode.data.inputOrder;
+          const handles = inputOrder
+            ? inputOrder.map(id => allInputs.find(h => h.id === id)).filter(Boolean)
+            : allInputs;
           let minDist = 1000;
           handles.forEach((h, i) => {
             const hy = targetNode.position.y + 40 + (i * 24);
@@ -940,6 +945,26 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
             const dist = Math.abs(my - hy);
             if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = `field_${i}`; }
           });
+        } else if (targetNode.type === 'PACK') {
+          // PACK has dynamic inputs based on keys
+          const keys = targetNode.data.keys || [];
+          console.log('[PACK Connection] keys:', keys, 'mouse Y:', my, 'node Y:', targetNode.position.y);
+          if (keys.length > 0) {
+            let minDist = Infinity;
+            let closestKey = keys[0];
+            keys.forEach((key, i) => {
+              // Matched with Node.jsx: 48 + (idx * 24)
+              const hy = targetNode.position.y + 48 + (i * 24);
+              const dist = Math.abs(my - hy);
+              console.log(`[PACK Connection] key "${key}" at y=${hy}, dist=${dist}`);
+              if (dist < minDist) {
+                minDist = dist;
+                closestKey = key;
+              }
+            });
+            targetHandle = closestKey;
+            console.log('[PACK Connection] Selected targetHandle:', targetHandle);
+          }
         }
 
         const exists = edges.some(edge =>

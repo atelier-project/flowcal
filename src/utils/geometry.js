@@ -81,8 +81,15 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             // UNPACK input - single 'object' input, positioned at 20 when collapsed, 110 otherwise
             y += node.data?.collapsed ? 20 : 110;
         } else if (node.type === 'PACK') {
-            // PACK has single values input
-            y += node.data?.collapsed ? 20 : 80;
+            // PACK inputs - match visual positions based on keys (dynamic inputs)
+            if (node.data?.collapsed) {
+                y += 20;
+            } else {
+                const keys = node.data?.keys || [];
+                const idx = keys.indexOf(handleId);
+                if (idx !== -1) y += 48 + (idx * 24);
+                else y += 80;
+            }
         } else if (node.type === 'TEMPLATE') {
             // TEMPLATE input - fixed position, or collapsed at 20
             y += node.data?.collapsed ? 20 : 60;
@@ -138,7 +145,7 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             } else {
                 const keys = node.data?.keys || [];
                 const idx = keys.indexOf(handleId);
-                if (idx !== -1) y += 80 + (idx * 28);
+                if (idx !== -1) y += 80 + (idx * 32);
                 else y += 80;
             }
         } else if (node.type === 'CUSTOM') {

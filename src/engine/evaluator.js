@@ -65,7 +65,7 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
             // Whitelist target nodes that need raw objects
             if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'UNPACK' || targetType === 'GROUP_INPUT_LIST') return rawVal;
             // Whitelist source types that pass through raw objects
-            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST') return rawVal;
+            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST' || sourceType === 'PACK') return rawVal;
             // Extract specific handle from object if requested
             if (typeof rawVal === 'object' && rawVal !== null && handle) {
                 return rawVal[handle] ?? 0;
@@ -106,6 +106,18 @@ function evaluateGraph(nodes, edges, contextInputs = {}) {
 
                 return resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type, node.type);
             };
+
+            // PACK node: Build object keyed by key names
+            if (node.type === 'PACK') {
+                const keys = node.data.keys || [];
+                const args = {};
+                keys.forEach((key) => {
+                    if (key && key.trim()) {
+                        args[key] = mapInput(key);
+                    }
+                });
+                return args;
+            }
 
             if (def.dynamicInputs || node.type === 'COLLECTOR') {
                 let count = node.data.inputCount || 2;
@@ -262,7 +274,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
             // Whitelist target nodes that need raw objects
             if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'UNPACK' || targetType === 'GROUP_INPUT_LIST') return rawVal;
             // Priority: Whitelisted types pass through raw value (Objects)
-            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST') {
+            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST' || sourceType === 'PACK') {
                 return rawVal;
             }
             // Logic: If specific handle requested and exists on object, return it
@@ -302,6 +314,18 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                 const resolved = resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type, node.type);
                 return resolved;
             };
+
+            // PACK node: Build object keyed by key names
+            if (node.type === 'PACK') {
+                const keys = node.data.keys || [];
+                const args = {};
+                keys.forEach((key) => {
+                    if (key && key.trim()) {
+                        args[key] = mapInput(key);
+                    }
+                });
+                return args;
+            }
 
             if (def.dynamicInputs || node.type === 'COLLECTOR') {
                 let count = node.data.inputCount || 2;

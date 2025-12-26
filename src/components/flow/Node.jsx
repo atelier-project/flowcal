@@ -101,15 +101,27 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 label: param.name || `p${i}`,
                 top: 80 + (i * 30)
             }));
+        } else if (type === 'PACK') {
+            // Dynamic inputs from keys array - one input per key
+            // NOTE: This must be BEFORE the generic dynamicInputs check
+            const keys = data.keys || [];
+            if (data.collapsed) {
+                // All handles at single point when collapsed
+                handles = keys.map((key) => ({ id: key, label: key, top: 20 }));
+            } else {
+                // Header ~40px, "Keys to Create" label ~20px, first key input at ~80px, each row ~28px
+                handles = keys.map((key, idx) => ({
+                    id: key,
+                    label: key,
+                    top: 48 + (idx * 24)
+                }));
+            }
         } else if (type === 'COLLECTOR' || (def && def.dynamicInputs)) {
             const count = data.inputCount || 2;
             handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}` }));
         } else if (type === 'UNPACK') {
             // UNPACK has single object input - center vertically in the node
             handles = [{ id: 'object', label: 'Object', top: data.collapsed ? 20 : 110 }];
-        } else if (type === 'PACK') {
-            // PACK has single values input
-            handles = [{ id: 'values', label: 'Values', top: data.collapsed ? 20 : 80 }];
         } else if (type === 'CUSTOM') {
             // CUSTOM JS node - single input that accepts array, centered at 100 or 20 when collapsed
             handles = [{ id: null, top: data.collapsed ? 20 : 100 }];
@@ -177,7 +189,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 handles = keys.map((key, idx) => ({
                     id: key,
                     label: key,
-                    top: 80 + (idx * 28)
+                    top: 80 + (idx * 32)
                 }));
             }
         } else if (def && def.outputs) {
@@ -1122,16 +1134,6 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         >
                             + Add Key
                         </button>
-
-                        {/* Show result preview */}
-                        {result && typeof result === 'object' && (
-                            <div className="mt-2 p-2 bg-violet-50 dark:bg-violet-900/20 rounded border border-violet-200 dark:border-violet-800">
-                                <span className="text-[10px] text-violet-500 dark:text-violet-400">Output: </span>
-                                <span className="text-[10px] font-mono text-violet-700 dark:text-violet-300">
-                                    {JSON.stringify(result)}
-                                </span>
-                            </div>
-                        )}
                     </div>
                 )}
 

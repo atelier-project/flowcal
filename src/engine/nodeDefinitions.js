@@ -441,18 +441,12 @@ export const NODE_LOGIC = {
         type: 'PACK',
         label: 'Pack Object',
         category: 'Object',
-        inputs: ['values'], // Single array input
+        dynamicInputs: true, // Inputs are dynamically generated based on keys
         outputs: ['object'],
         compute: (inputs, data) => {
-            const keys = data.keys || [];
-            const values = Array.isArray(inputs.values) ? inputs.values : [inputs.values];
-            const result = {};
-            keys.forEach((key, idx) => {
-                if (key && key.trim()) {
-                    result[key.trim()] = values[idx] !== undefined ? values[idx] : null;
-                }
-            });
-            return result;
+            // The evaluator already builds inputs as {key1: value1, key2: value2}
+            // We just return it directly
+            return inputs;
         },
         data: { keys: [] }
     },
