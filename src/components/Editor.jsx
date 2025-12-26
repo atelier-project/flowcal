@@ -21,6 +21,7 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useHistory } from '../hooks/useHistory';
 import { getCustomNodes, saveCustomNode, createCustomNodeFromGroup, instantiateCustomNode, deleteCustomNode, exportCustomNode, importCustomNode } from '../utils/customNodeStore';
 import { isTypeCompatible, getNodeOutputType, parseTypeDef } from '../utils/typeUtils';
+import { validateFlow } from '../utils/validation';
 
 // Helper to match engine resolution logic
 const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
@@ -545,19 +546,34 @@ export default function Editor() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
+        const fileSize = event.target.result.length;
         const config = JSON.parse(event.target.result);
-        if (Array.isArray(config.nodes) && Array.isArray(config.edges)) {
-          setGraph({ nodes: config.nodes, edges: config.edges }); // Commit to history
-          if (config.title) {
-            setProjectTitle(config.title);
-          }
-          if (config.viewport) {
-            setPan(config.viewport.pan || { x: 0, y: 0 });
-            setScale(config.viewport.scale || 1);
-          }
+
+        // Validate and sanitize the imported flow
+        const validation = validateFlow(config, fileSize);
+        if (!validation.valid) {
+          alert(`Import failed: ${validation.error}`);
+          return;
+        }
+
+        // Warn about code nodes
+        if (validation.warnings && validation.warnings.length > 0) {
+          const proceed = window.confirm(
+            `Warning:\n${validation.warnings.join('\n')}\n\nDo you want to continue?`
+          );
+          if (!proceed) return;
+        }
+
+        setGraph(validation.data); // Commit validated data to history
+        if (config.title) {
+          setProjectTitle(config.title);
+        }
+        if (config.viewport) {
+          setPan(config.viewport.pan || { x: 0, y: 0 });
+          setScale(config.viewport.scale || 1);
         }
       } catch (err) {
-        console.error("Failed to load config", err);
+        alert(`Failed to parse file: ${err.message}`);
       }
     };
     reader.readAsText(file);
