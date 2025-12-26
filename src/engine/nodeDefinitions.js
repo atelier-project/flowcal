@@ -743,13 +743,24 @@ export const NODE_LOGIC = {
 
             try {
                 // Create function with named parameters
+                // Security: Shadow global objects to prevent access (same as CUSTOM node)
                 const paramNames = params.map(p => p.name || `p${params.indexOf(p)}`);
-                const fn = new Function(...paramNames, code);
+                const fn = new Function(
+                    ...paramNames,
+                    'window',
+                    'document',
+                    'fetch',
+                    'XMLHttpRequest',
+                    'localStorage',
+                    'sessionStorage',
+                    'globalThis',
+                    `"use strict"; ${code}`
+                );
+                // Call with undefined for all shadowed globals
                 const result = fn(...paramNames.map(name => paramValues[name]));
                 return result;
             } catch (e) {
-                console.error('Function node error:', e);
-                return NaN;
+                return `Error: ${e.message}`;
             }
         },
         data: {
