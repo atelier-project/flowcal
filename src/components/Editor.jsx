@@ -14,6 +14,7 @@ import { CustomNodeModal } from './ui/CustomNodeModal';
 import { FlowSettingsPanel } from './flow/FlowSettingsPanel';
 import { generateId } from '../utils/ids';
 import { getHandlePosition, getBezierPath } from '../utils/geometry';
+import { HANDLE_POSITIONS } from '../utils/handlePositions';
 import { getNodeHeight } from '../utils/layout';
 import { evaluateGraph, ENGINE_SCRIPT } from '../engine/evaluator';
 import { useDebounce } from '../hooks/useDebounce';
@@ -928,8 +929,9 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         } else if (targetNode.type === 'FORM' && targetNode.data.showInputs) {
           const fields = targetNode.data.fields || [];
           let minDist = 1000;
-          fields.forEach((_, i) => {
-            const hy = targetNode.position.y + 48 + (i * 30);
+          const formPos = HANDLE_POSITIONS.FORM;
+          fields.forEach((f, i) => {
+            const hy = targetNode.position.y + formPos.base + (i * formPos.rowHeight);
             const dist = Math.abs(my - hy);
             if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = `field_${i}`; }
           });
@@ -937,11 +939,11 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
           // PACK has dynamic inputs based on keys
           const keys = targetNode.data.keys || [];
           if (keys.length > 0) {
+            const packPos = HANDLE_POSITIONS.PACK;
             let minDist = Infinity;
             let closestKey = keys[0];
             keys.forEach((key, i) => {
-              // Matched with Node.jsx: 48 + (idx * 24)
-              const hy = targetNode.position.y + 48 + (i * 24);
+              const hy = targetNode.position.y + packPos.base + (i * packPos.rowHeight);
               const dist = Math.abs(my - hy);
               if (dist < minDist) {
                 minDist = dist;

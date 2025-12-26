@@ -1,5 +1,6 @@
 import { getNodeHeight } from './layout';
 import { getDefinition } from '../engine/nodeDefinitions';
+import { HANDLE_POSITIONS } from './handlePositions';
 
 /**
  * Utility: Calculate Bezier Curve Path for connections
@@ -35,71 +36,59 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
 
     if (type === 'input') {
         const def = getDefinition(node.type);
+        const pos = HANDLE_POSITIONS[node.type] || HANDLE_POSITIONS.DEFAULT;
 
         if (node.type === 'GROUP' && handleId) {
             let handles = node.data.subGraph?.nodes
                 .filter(n => n.type === 'GROUP_INPUT')
                 .map(n => n.id) || [];
 
-            // Apply Order
             handles = getSortedOrder(handles, node.data.inputOrder);
 
             const idx = handles.indexOf(handleId);
-            // If collapsed, all handles at single point
             if (node.data?.collapsed) {
-                y += 20;
+                y += HANDLE_POSITIONS.COLLAPSED;
             } else if (idx !== -1) {
-                y += 40 + (idx * 24);
+                y += pos.base + (idx * pos.rowHeight);
             } else {
                 y += 50;
             }
         } else if (node.type === 'COLLECTOR') {
             const idx = parseInt(handleId?.split('_')[1] || '0', 10);
-            y += 40 + (idx * 24);
+            y += pos.base + (idx * pos.rowHeight);
         } else if (node.type === 'FORM') {
             const idx = parseInt(handleId?.split('_')[1] || '0', 10);
-            // Matched with Node.jsx: 48 + (i * 30)
-            y += 48 + (idx * 30);
+            y += pos.base + (idx * pos.rowHeight);
         } else if (node.type === 'FUNCTION') {
             const idx = parseInt(handleId?.split('_')[1] || '0', 10);
-            // Matched with Node.jsx: 80 + (i * 30)
-            y += 80 + (idx * 30);
+            y += pos.base + (idx * pos.rowHeight);
         } else if (node.type === 'GAUGE') {
-            // Hardcoded legacy
-            if (handleId === 'val') y += 40;
-            else if (handleId === 'min') y += 64;
-            else if (handleId === 'max') y += 88;
-            else y += 40;
+            y += HANDLE_POSITIONS.GAUGE[handleId] || HANDLE_POSITIONS.GAUGE.val;
         } else if (node.type === 'PROGRESS') {
-            if (handleId === 'val') y += 40;
-            else if (handleId === 'max') y += 64;
-            else y += 40;
+            y += HANDLE_POSITIONS.PROGRESS[handleId] || HANDLE_POSITIONS.PROGRESS.val;
         } else if (node.type === 'CUSTOM') {
-            // Custom JS node - collapsed at 20, otherwise at 100
-            y += node.data?.collapsed ? 20 : 100;
+            y += node.data?.collapsed ? HANDLE_POSITIONS.COLLAPSED : 100;
         } else if (node.type === 'UNPACK') {
-            // UNPACK input - single 'object' input, positioned at 20 when collapsed, 110 otherwise
-            y += node.data?.collapsed ? 20 : 110;
+            y += node.data?.collapsed ? HANDLE_POSITIONS.COLLAPSED : 110;
         } else if (node.type === 'PACK') {
-            // PACK inputs - match visual positions based on keys (dynamic inputs)
+            const packPos = HANDLE_POSITIONS.PACK;
             if (node.data?.collapsed) {
-                y += 20;
+                y += HANDLE_POSITIONS.COLLAPSED;
             } else {
                 const keys = node.data?.keys || [];
                 const idx = keys.indexOf(handleId);
-                if (idx !== -1) y += 48 + (idx * 24);
-                else y += 80;
+                if (idx !== -1) y += packPos.base + (idx * packPos.rowHeight);
+                else y += packPos.base;
             }
         } else if (node.type === 'TEMPLATE') {
-            // TEMPLATE input - fixed position, or collapsed at 20
-            y += node.data?.collapsed ? 20 : 60;
+            y += node.data?.collapsed ? HANDLE_POSITIONS.COLLAPSED : 60;
         } else if (def.inputs && !def.inputs.includes('*')) {
-            // Registry Defined
             let handles = [...def.inputs];
             handles = getSortedOrder(handles, node.data.inputOrder);
             const idx = handles.indexOf(handleId);
-            if (idx !== -1) y += 40 + (idx * 24);
-            else y += 40;
+            const defPos = HANDLE_POSITIONS.DEFAULT;
+            if (idx !== -1) y += defPos.base + (idx * defPos.rowHeight);
+            else y += defPos.base;
         } else if (node.type === 'GROUP_OUTPUT') {
             // GROUP_OUTPUT has single input - center it
             const h = getNodeHeight(node);
@@ -110,7 +99,7 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             y += h / 2;
         } else {
             // Input nodes main port
-            y += 20;
+            y += HANDLE_POSITIONS.COLLAPSED;
         }
 
     } else {
@@ -124,13 +113,13 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
                 .map(n => n.id) || [];
 
             handles = getSortedOrder(handles, node.data.outputOrder);
+            const groupPos = HANDLE_POSITIONS.GROUP;
 
             const idx = handles.indexOf(handleId);
-            // If collapsed, all handles at single point
             if (node.data?.collapsed) {
-                y += 20;
+                y += HANDLE_POSITIONS.COLLAPSED;
             } else if (idx !== -1) {
-                y += 40 + (idx * 24);
+                y += groupPos.base + (idx * groupPos.rowHeight);
             } else {
                 y += 50;
             }
@@ -139,21 +128,19 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             const height = getNodeHeight(node);
             y += height / 2;
         } else if (node.type === 'UNPACK') {
-            // UNPACK outputs - match visual positions
+            const unpackPos = HANDLE_POSITIONS.UNPACK;
             if (node.data?.collapsed) {
-                y += 20;
+                y += HANDLE_POSITIONS.COLLAPSED;
             } else {
                 const keys = node.data?.keys || [];
                 const idx = keys.indexOf(handleId);
-                if (idx !== -1) y += 80 + (idx * 32);
-                else y += 80;
+                if (idx !== -1) y += unpackPos.base + (idx * unpackPos.rowHeight);
+                else y += unpackPos.base;
             }
         } else if (node.type === 'CUSTOM') {
-            // CUSTOM output - at 100 or 20 when collapsed
-            y += node.data?.collapsed ? 20 : 100;
+            y += node.data?.collapsed ? HANDLE_POSITIONS.COLLAPSED : 100;
         } else if (node.type === 'TEMPLATE') {
-            // TEMPLATE output - fixed position, or collapsed at 20
-            y += node.data?.collapsed ? 20 : 60;
+            y += node.data?.collapsed ? HANDLE_POSITIONS.COLLAPSED : 60;
         } else if (node.type === 'GROUP_INPUT') {
             // GROUP_INPUT has single output - center it
             const height = getNodeHeight(node);
@@ -162,8 +149,9 @@ export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 25
             let handles = [...def.outputs];
             handles = getSortedOrder(handles, node.data.outputOrder);
             const idx = handles.indexOf(handleId);
-            if (idx !== -1) y += 40 + (idx * 24);
-            else y += 40; // Fallback
+            const defPos = HANDLE_POSITIONS.DEFAULT;
+            if (idx !== -1) y += defPos.base + (idx * defPos.rowHeight);
+            else y += defPos.base;
         } else {
             const height = getNodeHeight(node);
             y += height / 2;
