@@ -209,27 +209,15 @@ export default function Editor() {
           const actualSourceType = sourceInputType || sourceType;
           const actualTargetType = targetInputType || inputNode.data.typeDef;
 
-          console.log('[Type Check]', {
-            edge: `${edge.source} -> ${edge.target}`,
-            targetHandle: edge.targetHandle,
-            rawTargetType: inputNode.data.typeDef,
-            actualTargetType,
-            sourceNodeType: sourceNode?.type,
-            rawSourceType: sourceType,
-            actualSourceType,
-            compatible: isTypeCompatible(actualSourceType, actualTargetType)
-          });
 
           // Check compatibility using parsed types
           if (!isTypeCompatible(actualSourceType, actualTargetType)) {
             const warningKey = `${edge.target}:${edge.targetHandle}`;
-            console.log('[Type Warning]', warningKey);
             warnings[warningKey] = true;
           }
         }
       }
     });
-    console.log('[Type Warnings Result]', warnings);
     return warnings;
   }, [nodes, edges]);
 
@@ -948,7 +936,6 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         } else if (targetNode.type === 'PACK') {
           // PACK has dynamic inputs based on keys
           const keys = targetNode.data.keys || [];
-          console.log('[PACK Connection] keys:', keys, 'mouse Y:', my, 'node Y:', targetNode.position.y);
           if (keys.length > 0) {
             let minDist = Infinity;
             let closestKey = keys[0];
@@ -956,14 +943,12 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
               // Matched with Node.jsx: 48 + (idx * 24)
               const hy = targetNode.position.y + 48 + (i * 24);
               const dist = Math.abs(my - hy);
-              console.log(`[PACK Connection] key "${key}" at y=${hy}, dist=${dist}`);
               if (dist < minDist) {
                 minDist = dist;
                 closestKey = key;
               }
             });
             targetHandle = closestKey;
-            console.log('[PACK Connection] Selected targetHandle:', targetHandle);
           }
         }
 
