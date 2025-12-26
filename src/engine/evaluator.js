@@ -238,11 +238,14 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
 
     const results = {};
 
+    // Performance: Create node lookup Map for O(1) access instead of O(n) find() calls
+    const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
     const getNodeValue = (nodeId, stack = []) => {
         if (stack.includes(nodeId)) return NaN;
         if (results[nodeId] !== undefined) return results[nodeId];
 
-        const node = nodes.find(n => n.id === nodeId);
+        const node = nodeMap.get(nodeId);
         if (!node) return 0;
 
         // Registry Lookup
@@ -309,7 +312,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                 }
 
                 if (!edge) return undefined;
-                const sourceNode = nodes.find(n => n.id === edge.source);
+                const sourceNode = nodeMap.get(edge.source);
                 const raw = getNodeValue(edge.source, [...stack, nodeId]);
                 const resolved = resolveSourceValue(raw, edge.sourceHandle, sourceNode?.type, node.type);
                 return resolved;
@@ -340,7 +343,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                 connectedEdges.forEach(e => {
                     const idx = parseInt(e.targetHandle?.split('_')[1] || '0', 10);
                     if (!isNaN(idx)) {
-                        const sourceNode = nodes.find(n => n.id === e.source);
+                        const sourceNode = nodeMap.get(e.source);
                         const raw = getNodeValue(e.source, [...stack, nodeId]);
                         arr[idx] = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type, node.type);
                     }
@@ -358,7 +361,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
 
             // Default linear mapping for variable inputs ('*')
             return connectedEdges.map(e => {
-                const sourceNode = nodes.find(n => n.id === e.source);
+                const sourceNode = nodeMap.get(e.source);
                 const raw = getNodeValue(e.source, [...stack, nodeId]);
                 const resolved = resolveSourceValue(raw, e.sourceHandle, sourceNode?.type, node.type);
                 return resolved;
@@ -373,7 +376,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                 const subGraph = node.data.subGraph || { nodes: [], edges: [] };
                 const subContext = {};
                 connectedEdges.forEach((edge) => {
-                    const sourceNode = nodes.find(n => n.id === edge.source);
+                    const sourceNode = nodeMap.get(edge.source);
 
                     // Determine internal target type
                     let internalTargetType = undefined;
