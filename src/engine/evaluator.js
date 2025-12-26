@@ -48,13 +48,14 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
         const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
             // Whitelist target nodes that need raw objects
             if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'UNPACK' || targetType === 'GROUP_INPUT_LIST') return rawVal;
-            // Priority: Whitelisted types pass through raw value (Objects)
+            // Priority: Whitelisted source types pass through raw value (Objects)
             if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST' || sourceType === 'PACK') {
                 return rawVal;
             }
             // Logic: If specific handle requested and exists on object, return it
             if (typeof rawVal === 'object' && rawVal !== null && handle) {
-                return rawVal[handle] ?? 0;
+                const val = rawVal[handle];
+                return val !== undefined && val !== null ? val : 0;
             }
             // Fallback: Unwrap single valid object values
             if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {

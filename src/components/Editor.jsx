@@ -22,6 +22,7 @@ import { useHistory } from '../hooks/useHistory';
 import { getCustomNodes, saveCustomNode, createCustomNodeFromGroup, instantiateCustomNode, deleteCustomNode, exportCustomNode, importCustomNode } from '../utils/customNodeStore';
 import { isTypeCompatible, getNodeOutputType, parseTypeDef } from '../utils/typeUtils';
 import { validateFlow } from '../utils/validation';
+import { copyToClipboard, prepareForPaste, hasClipboardContent, canCopyFromContext } from '../utils/clipboardStore';
 
 // Helper to match engine resolution logic
 const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
@@ -230,10 +231,38 @@ export default function Editor() {
     applyTheme(theme);
   }, [theme]);
 
-  // Load custom nodes on mount
   useEffect(() => {
     setCustomNodes(getCustomNodes());
   }, []);
+
+  // Keyboard shortcuts for Copy/Cut/Paste
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
+      }
+
+      // Check for Ctrl+C (Copy)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        handleCopy();
+      }
+      // Check for Ctrl+V (Paste)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        handlePaste();
+      }
+      // Check for Ctrl+X (Cut)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
+        e.preventDefault();
+        handleCut();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nodes, edges, selectedIds, path, isAdmin]);
 
   // Handle saving a GROUP as a custom node
   const handleSaveAsCustomNode = (groupNode) => {
@@ -305,6 +334,64 @@ export default function Editor() {
     }
     return true;
   }, [isContextReadOnly, user]);
+
+  // --- Copy/Paste Handlers ---
+  const handleCopy = useCallback(() => {
+    if (selectedIds.size === 0) return;
+
+    // Check read-only permission
+    if (isContextReadOnly && !canCopyFromContext(isContextReadOnly, isAdmin)) {
+      alert('Cannot copy from this read-only context.');
+      return;
+    }
+
+    const selectedNodes = nodes.filter(n => selectedIds.has(n.id));
+    const sourceLevel = path.length > 0 ? path[path.length - 1].id : 'root';
+    copyToClipboard(selectedNodes, edges, sourceLevel);
+  }, [nodes, edges, selectedIds, path, isContextReadOnly, isAdmin]);
+
+  const handlePaste = useCallback(() => {
+    if (!hasClipboardContent()) return;
+
+    // Check if action is allowed in current context
+    if (isContextReadOnly && !isAdmin) {
+      alert('Cannot paste in this read-only context.');
+      return;
+    }
+
+    const { nodes: pastedNodes, edges: pastedEdges } = prepareForPaste({ x: 30, y: 30 });
+
+    if (pastedNodes.length === 0) return;
+
+    // Add pasted nodes and edges to graph
+    setGraph({
+      nodes: [...nodes, ...pastedNodes],
+      edges: [...edges, ...pastedEdges]
+    });
+
+    // Select the newly pasted nodes
+    setSelectedIds(new Set(pastedNodes.map(n => n.id)));
+  }, [nodes, edges, isContextReadOnly, isAdmin, setGraph]);
+
+  const handleCut = useCallback(() => {
+    if (selectedIds.size === 0) return;
+
+    // Check if action is allowed
+    if (isContextReadOnly && !isAdmin) {
+      alert('Cannot cut from this read-only context.');
+      return;
+    }
+
+    // Copy first
+    handleCopy();
+
+    // Then delete selected nodes and their edges
+    const newNodes = nodes.filter(n => !selectedIds.has(n.id));
+    const newEdges = edges.filter(e => !selectedIds.has(e.source) && !selectedIds.has(e.target));
+
+    setGraph({ nodes: newNodes, edges: newEdges });
+    setSelectedIds(new Set());
+  }, [nodes, edges, selectedIds, isContextReadOnly, isAdmin, handleCopy, setGraph]);
 
   // --- Engine Integration ---
   useEffect(() => {
