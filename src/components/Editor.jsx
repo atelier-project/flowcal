@@ -24,23 +24,8 @@ import { isTypeCompatible, getNodeOutputType, parseTypeDef } from '../utils/type
 import { validateFlow } from '../utils/validation';
 import { copyToClipboard, prepareForPaste, hasClipboardContent, canCopyFromContext } from '../utils/clipboardStore';
 
-// Helper to match engine resolution logic
-const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
-  // GROUP outputs are always wrapped as { outputNodeId: value }, extract first
-  if (sourceType === 'GROUP' && typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal) && handle) {
-    const extracted = rawVal[handle];
-    if (extracted !== undefined) {
-      rawVal = extracted;
-    }
-  }
-
-  if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'GROUP_INPUT_LIST') return rawVal;
-  // GROUP is included because we already extracted using handle above
-  if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST' || sourceType === 'GROUP') return rawVal;
-  if (typeof rawVal === 'object' && rawVal !== null && handle) return rawVal[handle] ?? 0;
-  if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) return Object.values(rawVal)[0] ?? 0;
-  return rawVal;
-};
+// Use centralized value resolution logic (single source of truth)
+import { resolveSourceValue } from '../engine/valueResolution';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -482,8 +467,9 @@ export default function Editor() {
             const previewItem = inputArray.length > 0 ? inputArray[0] : null;
             const previewIndex = 0;
 
-            // Find context nodes and set their preview values
-            const subNodes = groupNode.data.subGraph?.nodes || [];
+            // Find context nodes in the CURRENT subgraph (debouncedNodes), not the stale path data
+            // This is critical because user may have added context nodes AFTER entering the iterator
+            const subNodes = debouncedNodes;
             if (groupNode.type === 'MAP') {
               const mapItemNode = subNodes.find(n => n.type === 'MAP_ITEM');
               const mapIndexNode = subNodes.find(n => n.type === 'MAP_INDEX');
@@ -1168,6 +1154,15 @@ export default function Editor() {
         onExportCustomNode={exportCustomNode}
         onOpenSettings={() => setSettingsPanelOpen(true)}
         isRestricted={(flowSettings.preventDownload && user?.id !== flowOwnerId && !user?.app_metadata?.claims_admin) || nodes.some(n => n.data.locked && n.data.lockedBy !== user?.id && !user?.app_metadata?.claims_admin)}
+        currentIterator={path.length > 0 ? (() => {
+          // Determine which iterator type we're currently inside (if any)
+          const lastFrame = path[path.length - 1];
+          const groupNode = lastFrame.nodes.find(n => n.id === lastFrame.id);
+          if (groupNode && ['MAP', 'FILTER', 'REDUCE'].includes(groupNode.type)) {
+            return groupNode.type;
+          }
+          return null;
+        })() : null}
       />
 
       {/* Canvas */}

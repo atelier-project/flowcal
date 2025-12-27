@@ -725,7 +725,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             </div>
 
             {/* Body - conditionally render based on collapsed state */}
-            {!data.collapsed && <div className="p-3 space-y-3 flex-1 flex flex-col">
+            {!data.collapsed && <div className="p-3 space-y-3 flex-1 flex flex-col overflow-y-auto">
                 {type === 'INPUT' && (
                     <div>
                         <div className="flex items-center justify-between mb-1">
@@ -831,7 +831,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                 {/* Input Handle spacer */}
                                 {data.showInputs && <div className="w-3" />}
                                 <input
-                                    className="w-20 text-xs font-bold text-slate-600 dark:text-slate-300 bg-transparent border-b border-transparent focus:border-blue-400 focus:outline-none px-1 disabled:opacity-50"
+                                    className="shrink-0 min-w-16 max-w-24 text-xs font-bold text-slate-600 dark:text-slate-300 bg-transparent border-b border-transparent focus:border-blue-400 focus:outline-none px-1 disabled:opacity-50"
                                     value={field.key}
                                     onChange={(e) => updateFormField(i, 'key', e.target.value)}
                                     placeholder="Key"
@@ -839,9 +839,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     onKeyDown={e => e.stopPropagation()}
                                     disabled={!canEdit}
                                 />
-                                <span className="text-slate-300 dark:text-slate-600">:</span>
+                                <span className="text-slate-300 dark:text-slate-600 shrink-0">:</span>
                                 <input
-                                    className="flex-1 min-w-0 text-xs font-mono bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-1 py-[2px] focus:border-blue-500 focus:outline-none dark:text-slate-300 disabled:opacity-50"
+                                    className="flex-1 min-w-12 text-xs font-mono bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-1 py-[2px] focus:border-blue-500 focus:outline-none dark:text-slate-300 disabled:opacity-50"
                                     value={field.value}
                                     onChange={(e) => updateFormField(i, 'value', e.target.value)} // String input allowed
                                     placeholder="Value"
@@ -849,7 +849,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     onKeyDown={e => e.stopPropagation()}
                                     disabled={!canEdit}
                                 />
-                                <button disabled={!canEdit} onClick={(e) => { e.stopPropagation(); removeFormField(i); }} className="opacity-0 group-hover/field:opacity-100 text-slate-400 hover:text-red-500 dark:hover:text-red-400 disabled:hidden">
+                                <button disabled={!canEdit} onClick={(e) => { e.stopPropagation(); removeFormField(i); }} className="opacity-0 group-hover/field:opacity-100 text-slate-400 hover:text-red-500 dark:hover:text-red-400 disabled:hidden shrink-0">
                                     <Trash2 size={12} />
                                 </button>
                             </div>
@@ -1134,6 +1134,29 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         >
                             + Add Key
                         </button>
+                    </div>
+                )}
+
+                {type === 'REDUCE' && (
+                    <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Initial Value</label>
+                        <input
+                            type="text"
+                            value={data.initialValue ?? 0}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                // Try to parse as number, otherwise keep as string
+                                const parsed = parseFloat(val);
+                                handleChange('initialValue', isNaN(parsed) ? val : parsed);
+                            }}
+                            placeholder="0"
+                            className="w-full h-8 px-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm font-mono focus:outline-none focus:border-cyan-500"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            disabled={!canEdit}
+                        />
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                            Enter inside to add: Current Item, Accumulator, and New Accumulator nodes
+                        </p>
                     </div>
                 )}
 
@@ -1465,6 +1488,20 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                 <div className="text-sm font-bold text-blue-600 dark:text-blue-400 font-mono whitespace-pre-wrap break-words bg-slate-50 dark:bg-slate-900 p-2 rounded border border-slate-100 dark:border-slate-700">
                                     {formatResult(result)}
                                 </div>
+                            </div>
+                        ) : type === 'UNPACK' && typeof result === 'object' && result !== null ? (
+                            /* UNPACK: Show each key's value separately */
+                            <div className="flex flex-col gap-1">
+                                {(data.keys || []).map((key, i) => (
+                                    <div key={i} className="flex flex-col gap-0.5">
+                                        <span className="text-[10px] font-bold text-violet-500 dark:text-violet-400">{key}:</span>
+                                        <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-1 rounded border border-slate-100 dark:border-slate-700 break-all whitespace-pre-wrap max-h-16 overflow-y-auto">
+                                            {result[key] !== undefined
+                                                ? JSON.stringify(result[key], null, 1).replace(/"/g, '')
+                                                : 'null'}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : (
                             <div className="flex flex-col gap-1">

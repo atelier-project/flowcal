@@ -426,12 +426,23 @@ export const NODE_LOGIC = {
             const obj = inputs.object;
             const keys = data.keys || [];
             const results = {};
-            keys.forEach(key => {
-                if (typeof obj === 'object' && obj !== null && key in obj) {
-                    results[key] = obj[key];
-                } else {
-                    results[key] = null;
+
+            // Helper to traverse object path using dot notation
+            const getNestedValue = (object, path) => {
+                if (typeof object !== 'object' || object === null) return null;
+                const parts = path.split('.');
+                let current = object;
+                for (const part of parts) {
+                    if (current === null || current === undefined) return null;
+                    if (typeof current !== 'object') return null;
+                    current = current[part];
                 }
+                return current !== undefined ? current : null;
+            };
+
+            keys.forEach(key => {
+                // Support dot notation for nested paths
+                results[key] = getNestedValue(obj, key);
             });
             return results;
         },
@@ -804,7 +815,7 @@ export const NODE_LOGIC = {
     // --- Iterator Context Nodes (only valid inside iterator subGraphs) ---
     MAP_ITEM: {
         type: 'MAP_ITEM',
-        label: 'Current Item',
+        label: 'MAP: Current Item',
         category: 'Iterator Context',
         inputs: [],
         outputs: ['item'],
@@ -814,7 +825,7 @@ export const NODE_LOGIC = {
     },
     MAP_INDEX: {
         type: 'MAP_INDEX',
-        label: 'Current Index',
+        label: 'MAP: Current Index',
         category: 'Iterator Context',
         inputs: [],
         outputs: ['index'],
@@ -824,7 +835,7 @@ export const NODE_LOGIC = {
     },
     MAP_OUTPUT: {
         type: 'MAP_OUTPUT',
-        label: 'Map Output',
+        label: 'MAP: Output',
         category: 'Iterator Context',
         inputs: ['value'],
         outputs: [],
@@ -834,7 +845,7 @@ export const NODE_LOGIC = {
     },
     FILTER_ITEM: {
         type: 'FILTER_ITEM',
-        label: 'Current Item',
+        label: 'FILTER: Current Item',
         category: 'Iterator Context',
         inputs: [],
         outputs: ['item'],
@@ -844,7 +855,7 @@ export const NODE_LOGIC = {
     },
     FILTER_INDEX: {
         type: 'FILTER_INDEX',
-        label: 'Current Index',
+        label: 'FILTER: Current Index',
         category: 'Iterator Context',
         inputs: [],
         outputs: ['index'],
@@ -854,7 +865,7 @@ export const NODE_LOGIC = {
     },
     FILTER_INCLUDE: {
         type: 'FILTER_INCLUDE',
-        label: 'Include Item',
+        label: 'FILTER: Include?',
         category: 'Iterator Context',
         inputs: ['condition'],
         outputs: [],
@@ -864,7 +875,7 @@ export const NODE_LOGIC = {
     },
     REDUCE_ITEM: {
         type: 'REDUCE_ITEM',
-        label: 'Current Item',
+        label: 'REDUCE: Current Item',
         category: 'Iterator Context',
         inputs: [],
         outputs: ['item'],
@@ -874,7 +885,7 @@ export const NODE_LOGIC = {
     },
     REDUCE_INDEX: {
         type: 'REDUCE_INDEX',
-        label: 'Current Index',
+        label: 'REDUCE: Current Index',
         category: 'Iterator Context',
         inputs: [],
         outputs: ['index'],
@@ -884,7 +895,7 @@ export const NODE_LOGIC = {
     },
     REDUCE_ACCUMULATOR: {
         type: 'REDUCE_ACCUMULATOR',
-        label: 'Accumulator',
+        label: 'REDUCE: Accumulator',
         category: 'Iterator Context',
         inputs: [],
         outputs: ['value'],
@@ -894,7 +905,7 @@ export const NODE_LOGIC = {
     },
     REDUCE_OUTPUT: {
         type: 'REDUCE_OUTPUT',
-        label: 'New Accumulator',
+        label: 'REDUCE: New Accumulator',
         category: 'Iterator Context',
         inputs: ['value'],
         outputs: [],

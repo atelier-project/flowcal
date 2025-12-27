@@ -41,7 +41,7 @@ export const NODE_DESCRIPTIONS = {
     OBJECT_FLATTEN: 'Flattens nested objects into a single-level object.',
     OBJECT_KEYS: 'Returns an array of all keys in an object.',
     OBJECT_VALUES: 'Returns an array of all values in an object.',
-    UNPACK: 'Extract specific keys from an object as separate outputs.',
+    UNPACK: 'Extract specific keys from an object as separate outputs. Supports dot notation for nested values (e.g., VMs.Qty).',
     PACK: 'Combine multiple named inputs into a single object.',
 
     // Logic

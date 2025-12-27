@@ -6,7 +6,7 @@ import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
 import { useAuth } from '../../context/AuthContext';
 
-export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved, onOpenSettings, isRestricted }) => {
+export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved, onOpenSettings, isRestricted, currentIterator }) => {
     const { isAdmin } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
@@ -15,11 +15,19 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
     const categories = useMemo(() => {
         const cats = {};
         Object.values(NODE_LOGIC).forEach(def => {
+            // Filter Iterator Context nodes based on currentIterator
+            // If we're inside an iterator, only show context nodes for that iterator type
+            // If we're not inside an iterator, hide all context nodes
+            if (def.category === 'Iterator Context') {
+                if (!currentIterator) return; // Hide all context nodes when not in an iterator
+                if (def.iteratorContext !== currentIterator) return; // Hide non-matching context nodes
+            }
+
             if (!cats[def.category]) cats[def.category] = [];
             cats[def.category].push(def);
         });
         return cats;
-    }, []);
+    }, [currentIterator]);
 
     const filteredCategories = useMemo(() => {
         if (!searchQuery.trim()) return categories;

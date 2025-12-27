@@ -4,6 +4,7 @@
  */
 
 import { NODE_LOGIC } from './nodeDefinitions';
+import { resolveSourceValue } from './valueResolution';
 
 // Evaluates the graph and returns computed results for all nodes
 export function evaluateGraph(nodes, edges, contextInputs = {}) {
@@ -44,39 +45,6 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
         }
 
         const connectedEdges = edges.filter(e => e.target === node.id);
-
-        const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
-            // GROUP outputs are always wrapped as { outputNodeId: value }
-            // Extract the actual value using handle BEFORE any other processing
-            if (sourceType === 'GROUP' && typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal) && handle) {
-                const extracted = rawVal[handle];
-                if (extracted !== undefined) {
-                    rawVal = extracted;
-                }
-            }
-
-            // Whitelist target nodes that need raw objects/arrays
-            if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'UNPACK' || targetType === 'GROUP_INPUT_LIST' ||
-                targetType === 'MAP' || targetType === 'FILTER' || targetType === 'REDUCE' ||
-                targetType === 'MAP_OUTPUT' || targetType === 'FILTER_INCLUDE' || targetType === 'REDUCE_OUTPUT') return rawVal;
-            // Priority: Whitelisted source types pass through raw value (Objects)
-            // Note: GROUP is included here because we already extracted using handle above
-            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST' || sourceType === 'PACK' ||
-                sourceType === 'MAP_ITEM' || sourceType === 'FILTER_ITEM' || sourceType === 'REDUCE_ITEM' || sourceType === 'REDUCE_ACCUMULATOR' ||
-                sourceType === 'MAP' || sourceType === 'FILTER' || sourceType === 'REDUCE' || sourceType === 'GROUP') {
-                return rawVal;
-            }
-            // Logic: If specific handle requested and exists on object, return it
-            if (typeof rawVal === 'object' && rawVal !== null && handle) {
-                const val = rawVal[handle];
-                return val !== undefined && val !== null ? val : 0;
-            }
-            // Fallback: Unwrap single valid object values
-            if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) {
-                return Object.values(rawVal)[0] ?? 0;
-            }
-            return rawVal;
-        };
 
         const getInputs = () => {
             const mapInput = (handleId, inputIndex) => {
