@@ -46,10 +46,24 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
         const connectedEdges = edges.filter(e => e.target === node.id);
 
         const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
-            // Whitelist target nodes that need raw objects
-            if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'UNPACK' || targetType === 'GROUP_INPUT_LIST') return rawVal;
+            // GROUP outputs are always wrapped as { outputNodeId: value }
+            // Extract the actual value using handle BEFORE any other processing
+            if (sourceType === 'GROUP' && typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal) && handle) {
+                const extracted = rawVal[handle];
+                if (extracted !== undefined) {
+                    rawVal = extracted;
+                }
+            }
+
+            // Whitelist target nodes that need raw objects/arrays
+            if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'UNPACK' || targetType === 'GROUP_INPUT_LIST' ||
+                targetType === 'MAP' || targetType === 'FILTER' || targetType === 'REDUCE' ||
+                targetType === 'MAP_OUTPUT' || targetType === 'FILTER_INCLUDE' || targetType === 'REDUCE_OUTPUT') return rawVal;
             // Priority: Whitelisted source types pass through raw value (Objects)
-            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST' || sourceType === 'PACK') {
+            // Note: GROUP is included here because we already extracted using handle above
+            if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST' || sourceType === 'PACK' ||
+                sourceType === 'MAP_ITEM' || sourceType === 'FILTER_ITEM' || sourceType === 'REDUCE_ITEM' || sourceType === 'REDUCE_ACCUMULATOR' ||
+                sourceType === 'MAP' || sourceType === 'FILTER' || sourceType === 'REDUCE' || sourceType === 'GROUP') {
                 return rawVal;
             }
             // Logic: If specific handle requested and exists on object, return it
@@ -195,6 +209,77 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                 } else {
                     val = 0;
                 }
+            } else if (node.type === 'MAP') {
+                // MAP: Evaluate subGraph once per array item, collect outputs
+                const subGraph = node.data.subGraph || { nodes: [], edges: [] };
+                const inputArray = Array.isArray(inputVals.array) ? inputVals.array :
+                    (Array.isArray(inputVals[0]) ? inputVals[0] : []);
+                const results = [];
+
+                const mapItemNode = subGraph.nodes.find(n => n.type === 'MAP_ITEM');
+                const mapIndexNode = subGraph.nodes.find(n => n.type === 'MAP_INDEX');
+                const mapOutputNode = subGraph.nodes.find(n => n.type === 'MAP_OUTPUT');
+
+                inputArray.forEach((item, index) => {
+                    const iterContext = {};
+                    if (mapItemNode) iterContext[mapItemNode.id] = item;
+                    if (mapIndexNode) iterContext[mapIndexNode.id] = index;
+
+                    const iterResults = evaluateGraph(subGraph.nodes, subGraph.edges, iterContext);
+
+                    if (mapOutputNode) {
+                        results.push(iterResults[mapOutputNode.id]);
+                    }
+                });
+                val = results;
+            } else if (node.type === 'FILTER') {
+                // FILTER: Evaluate subGraph per item, include item if condition is true
+                const subGraph = node.data.subGraph || { nodes: [], edges: [] };
+                const inputArray = Array.isArray(inputVals.array) ? inputVals.array :
+                    (Array.isArray(inputVals[0]) ? inputVals[0] : []);
+                const results = [];
+
+                const filterItemNode = subGraph.nodes.find(n => n.type === 'FILTER_ITEM');
+                const filterIndexNode = subGraph.nodes.find(n => n.type === 'FILTER_INDEX');
+                const filterIncludeNode = subGraph.nodes.find(n => n.type === 'FILTER_INCLUDE');
+
+                inputArray.forEach((item, index) => {
+                    const iterContext = {};
+                    if (filterItemNode) iterContext[filterItemNode.id] = item;
+                    if (filterIndexNode) iterContext[filterIndexNode.id] = index;
+
+                    const iterResults = evaluateGraph(subGraph.nodes, subGraph.edges, iterContext);
+
+                    if (filterIncludeNode && iterResults[filterIncludeNode.id]) {
+                        results.push(item);
+                    }
+                });
+                val = results;
+            } else if (node.type === 'REDUCE') {
+                // REDUCE: Evaluate subGraph per item with accumulator, return final value
+                const subGraph = node.data.subGraph || { nodes: [], edges: [] };
+                const inputArray = Array.isArray(inputVals.array) ? inputVals.array :
+                    (Array.isArray(inputVals[0]) ? inputVals[0] : []);
+                let accumulator = node.data.initialValue ?? 0;
+
+                const reduceItemNode = subGraph.nodes.find(n => n.type === 'REDUCE_ITEM');
+                const reduceIndexNode = subGraph.nodes.find(n => n.type === 'REDUCE_INDEX');
+                const reduceAccNode = subGraph.nodes.find(n => n.type === 'REDUCE_ACCUMULATOR');
+                const reduceOutputNode = subGraph.nodes.find(n => n.type === 'REDUCE_OUTPUT');
+
+                inputArray.forEach((item, index) => {
+                    const iterContext = {};
+                    if (reduceItemNode) iterContext[reduceItemNode.id] = item;
+                    if (reduceIndexNode) iterContext[reduceIndexNode.id] = index;
+                    if (reduceAccNode) iterContext[reduceAccNode.id] = accumulator;
+
+                    const iterResults = evaluateGraph(subGraph.nodes, subGraph.edges, iterContext);
+
+                    if (reduceOutputNode) {
+                        accumulator = iterResults[reduceOutputNode.id];
+                    }
+                });
+                val = accumulator;
             } else if (def.compute) {
                 val = def.compute(inputVals, node.data || {});
             } else {

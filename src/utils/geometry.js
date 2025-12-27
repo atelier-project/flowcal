@@ -37,7 +37,7 @@ const parseHandleIndex = (handleId) => parseInt(handleId?.split('_')[1] || '0', 
 const inputStrategies = {
     GROUP: (node, handleId, def, pos) => {
         let handles = node.data.subGraph?.nodes
-            .filter(n => n.type === 'GROUP_INPUT')
+            .filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST')
             .map(n => n.id) || [];
         handles = getSortedOrder(handles, node.data.inputOrder);
         const idx = handles.indexOf(handleId);
@@ -94,7 +94,7 @@ const inputStrategies = {
 const outputStrategies = {
     GROUP: (node, handleId, def, pos) => {
         let handles = node.data.subGraph?.nodes
-            .filter(n => n.type === 'GROUP_OUTPUT')
+            .filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST')
             .map(n => n.id) || [];
         handles = getSortedOrder(handles, node.data.outputOrder);
         const idx = handles.indexOf(handleId);

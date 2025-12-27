@@ -10,7 +10,8 @@ import {
     ListPlus, ListMinus, Radio,
     GripVertical, LayoutTemplate, ArrowLeftRight, GitBranch,
     ListOrdered, Scissors, Filter, TrendingUp,
-    MessageSquare, Braces, PackageOpen, Package, Flag
+    MessageSquare, Braces, PackageOpen, Package, Flag,
+    Repeat, IterationCw, Target, CheckCircle, Sigma
 } from 'lucide-react';
 
 export const NODE_UI = {
@@ -65,6 +66,21 @@ export const NODE_UI = {
     FRAME: { icon: Box, color: 'sky', colorClass: 'bg-sky-100 text-sky-600' },
     UNPACK: { icon: PackageOpen, color: 'violet', colorClass: 'bg-violet-100 text-violet-600' },
     PACK: { icon: Package, color: 'violet', colorClass: 'bg-violet-100 text-violet-600' },
+
+    // Iterator
+    MAP: { icon: Repeat, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    FILTER: { icon: Filter, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    REDUCE: { icon: Sigma, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    MAP_ITEM: { icon: Box, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    MAP_INDEX: { icon: Hash, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    MAP_OUTPUT: { icon: Target, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    FILTER_ITEM: { icon: Box, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    FILTER_INDEX: { icon: Hash, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    FILTER_INCLUDE: { icon: CheckCircle, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    REDUCE_ITEM: { icon: Box, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    REDUCE_INDEX: { icon: Hash, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    REDUCE_ACCUMULATOR: { icon: Sigma, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    REDUCE_OUTPUT: { icon: Target, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
 };
 
 export const getUI = (type) => NODE_UI[type] || { icon: Activity, color: 'slate', colorClass: 'bg-slate-100 text-slate-600' };

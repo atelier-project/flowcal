@@ -26,8 +26,17 @@ import { copyToClipboard, prepareForPaste, hasClipboardContent, canCopyFromConte
 
 // Helper to match engine resolution logic
 const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
+  // GROUP outputs are always wrapped as { outputNodeId: value }, extract first
+  if (sourceType === 'GROUP' && typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal) && handle) {
+    const extracted = rawVal[handle];
+    if (extracted !== undefined) {
+      rawVal = extracted;
+    }
+  }
+
   if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'GROUP_INPUT_LIST') return rawVal;
-  if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST') return rawVal;
+  // GROUP is included because we already extracted using handle above
+  if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST' || sourceType === 'GROUP') return rawVal;
   if (typeof rawVal === 'object' && rawVal !== null && handle) return rawVal[handle] ?? 0;
   if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) return Object.values(rawVal)[0] ?? 0;
   return rawVal;
@@ -409,44 +418,92 @@ export default function Editor() {
         if (groupNode) {
           const subContext = {};
           const connectedEdges = frame.edges.filter(e => e.target === groupId);
-          connectedEdges.forEach(edge => {
-            const rawVal = frameResults[edge.source];
-            const sourceNode = frame.nodes.find(n => n.id === edge.source);
 
-            // Determine internal target type
-            let internalTargetType = undefined;
-            if (edge.targetHandle) {
-              const targetNode = groupNode.data.subGraph?.nodes.find(n => n.id === edge.targetHandle);
-              if (targetNode) internalTargetType = targetNode.type;
-            } else {
-              const firstInput = groupNode.data.subGraph?.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
-              if (firstInput) internalTargetType = firstInput.type;
-            }
+          // Handle GROUP nodes
+          if (groupNode.type === 'GROUP') {
+            connectedEdges.forEach(edge => {
+              const rawVal = frameResults[edge.source];
+              const sourceNode = frame.nodes.find(n => n.id === edge.source);
 
-            // Use shared helper
-            const val = resolveSourceValue(rawVal, edge.sourceHandle, sourceNode?.type, internalTargetType);
-
-            if (edge.targetHandle) {
-              const targetNode = groupNode.data.subGraph?.nodes.find(n => n.id === edge.targetHandle);
-              if (targetNode && targetNode.type === 'GROUP_INPUT_LIST') {
-                if (!subContext[edge.targetHandle]) subContext[edge.targetHandle] = [];
-                subContext[edge.targetHandle].push(val);
+              // Determine internal target type
+              let internalTargetType = undefined;
+              if (edge.targetHandle) {
+                const targetNode = groupNode.data.subGraph?.nodes.find(n => n.id === edge.targetHandle);
+                if (targetNode) internalTargetType = targetNode.type;
               } else {
-                subContext[edge.targetHandle] = val;
+                const firstInput = groupNode.data.subGraph?.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
+                if (firstInput) internalTargetType = firstInput.type;
               }
-            } else {
-              // Default handle logic for groups (rarely used but good for completeness)
-              const firstInput = groupNode.data.subGraph?.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
-              if (firstInput) {
-                if (firstInput.type === 'GROUP_INPUT_LIST') {
-                  if (!subContext[firstInput.id]) subContext[firstInput.id] = [];
-                  subContext[firstInput.id].push(val);
+
+              // Use shared helper
+              const val = resolveSourceValue(rawVal, edge.sourceHandle, sourceNode?.type, internalTargetType);
+
+              if (edge.targetHandle) {
+                const targetNode = groupNode.data.subGraph?.nodes.find(n => n.id === edge.targetHandle);
+                if (targetNode && targetNode.type === 'GROUP_INPUT_LIST') {
+                  if (!subContext[edge.targetHandle]) subContext[edge.targetHandle] = [];
+                  subContext[edge.targetHandle].push(val);
                 } else {
-                  subContext[firstInput.id] = val;
+                  subContext[edge.targetHandle] = val;
+                }
+              } else {
+                // Default handle logic for groups (rarely used but good for completeness)
+                const firstInput = groupNode.data.subGraph?.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
+                if (firstInput) {
+                  if (firstInput.type === 'GROUP_INPUT_LIST') {
+                    if (!subContext[firstInput.id]) subContext[firstInput.id] = [];
+                    subContext[firstInput.id].push(val);
+                  } else {
+                    subContext[firstInput.id] = val;
+                  }
                 }
               }
+            });
+          }
+          // Handle Iterator nodes (MAP, FILTER, REDUCE) - use first array item for preview
+          else if (groupNode.type === 'MAP' || groupNode.type === 'FILTER' || groupNode.type === 'REDUCE') {
+            // Get the input array from edges
+            let inputArray = [];
+            connectedEdges.forEach(edge => {
+              const rawVal = frameResults[edge.source];
+              if (Array.isArray(rawVal)) {
+                inputArray = rawVal;
+              } else if (rawVal && typeof rawVal === 'object') {
+                // Try to get from handle or first value
+                const sourceNode = frame.nodes.find(n => n.id === edge.source);
+                const val = resolveSourceValue(rawVal, edge.sourceHandle, sourceNode?.type, groupNode.type);
+                if (Array.isArray(val)) {
+                  inputArray = val;
+                }
+              }
+            });
+
+            // Use first item as preview
+            const previewItem = inputArray.length > 0 ? inputArray[0] : null;
+            const previewIndex = 0;
+
+            // Find context nodes and set their preview values
+            const subNodes = groupNode.data.subGraph?.nodes || [];
+            if (groupNode.type === 'MAP') {
+              const mapItemNode = subNodes.find(n => n.type === 'MAP_ITEM');
+              const mapIndexNode = subNodes.find(n => n.type === 'MAP_INDEX');
+              if (mapItemNode) subContext[mapItemNode.id] = previewItem;
+              if (mapIndexNode) subContext[mapIndexNode.id] = previewIndex;
+            } else if (groupNode.type === 'FILTER') {
+              const filterItemNode = subNodes.find(n => n.type === 'FILTER_ITEM');
+              const filterIndexNode = subNodes.find(n => n.type === 'FILTER_INDEX');
+              if (filterItemNode) subContext[filterItemNode.id] = previewItem;
+              if (filterIndexNode) subContext[filterIndexNode.id] = previewIndex;
+            } else if (groupNode.type === 'REDUCE') {
+              const reduceItemNode = subNodes.find(n => n.type === 'REDUCE_ITEM');
+              const reduceIndexNode = subNodes.find(n => n.type === 'REDUCE_INDEX');
+              const reduceAccNode = subNodes.find(n => n.type === 'REDUCE_ACCUMULATOR');
+              if (reduceItemNode) subContext[reduceItemNode.id] = previewItem;
+              if (reduceIndexNode) subContext[reduceIndexNode.id] = previewIndex;
+              if (reduceAccNode) subContext[reduceAccNode.id] = groupNode.data.initialValue ?? 0;
             }
-          });
+          }
+
           currentContext = subContext;
         }
       }
@@ -671,13 +728,16 @@ export default function Editor() {
 
   // --- Helpers ---
 
+  // Node types that have subGraphs (can be entered by double-click)
+  const SUBGRAPH_NODE_TYPES = ['GROUP', 'MAP', 'FILTER', 'REDUCE'];
+
   const enterGroup = (groupId) => {
     const groupNode = nodes.find(n => n.id === groupId);
-    if (!groupNode || groupNode.type !== 'GROUP') return;
+    if (!groupNode || !SUBGRAPH_NODE_TYPES.includes(groupNode.type)) return;
     const subGraph = groupNode.data.subGraph || { nodes: [], edges: [] };
 
     // Push current level to path
-    setPath(prev => [...prev, { id: groupId, label: groupNode.data.label || 'Group', nodes, edges, viewport: { pan, scale } }]);
+    setPath(prev => [...prev, { id: groupId, label: groupNode.data.label || groupNode.type, nodes, edges, viewport: { pan, scale } }]);
 
     // We set the graph state to the subgraph, but we need to handle history carefully.
     // For simplicity: History is cleared/reset when entering a group (new context).

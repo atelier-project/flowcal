@@ -767,6 +767,140 @@ export const NODE_LOGIC = {
             params: [], // Array of { name: 'x', default: 0 }
             code: 'return 0'
         }
+    },
+
+    // --- Iterator Nodes ---
+    MAP: {
+        type: 'MAP',
+        label: 'Map',
+        category: 'Iterator',
+        inputs: ['array'],
+        outputs: ['results'],
+        hasSubGraph: true,
+        compute: () => [], // Handled specially in evaluator
+        data: { subGraph: { nodes: [], edges: [] } }
+    },
+    FILTER: {
+        type: 'FILTER',
+        label: 'Filter',
+        category: 'Iterator',
+        inputs: ['array'],
+        outputs: ['results'],
+        hasSubGraph: true,
+        compute: () => [], // Handled specially in evaluator
+        data: { subGraph: { nodes: [], edges: [] } }
+    },
+    REDUCE: {
+        type: 'REDUCE',
+        label: 'Reduce',
+        category: 'Iterator',
+        inputs: ['array'],
+        outputs: ['result'],
+        hasSubGraph: true,
+        compute: () => 0, // Handled specially in evaluator
+        data: { subGraph: { nodes: [], edges: [] }, initialValue: 0 }
+    },
+
+    // --- Iterator Context Nodes (only valid inside iterator subGraphs) ---
+    MAP_ITEM: {
+        type: 'MAP_ITEM',
+        label: 'Current Item',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['item'],
+        compute: (inputs, data) => data.value ?? null,
+        data: { value: null },
+        iteratorContext: 'MAP'
+    },
+    MAP_INDEX: {
+        type: 'MAP_INDEX',
+        label: 'Current Index',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['index'],
+        compute: (inputs, data) => data.value ?? 0,
+        data: { value: 0 },
+        iteratorContext: 'MAP'
+    },
+    MAP_OUTPUT: {
+        type: 'MAP_OUTPUT',
+        label: 'Map Output',
+        category: 'Iterator Context',
+        inputs: ['value'],
+        outputs: [],
+        compute: (inputs) => inputs.value ?? inputs[0] ?? null,
+        data: {},
+        iteratorContext: 'MAP'
+    },
+    FILTER_ITEM: {
+        type: 'FILTER_ITEM',
+        label: 'Current Item',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['item'],
+        compute: (inputs, data) => data.value ?? null,
+        data: { value: null },
+        iteratorContext: 'FILTER'
+    },
+    FILTER_INDEX: {
+        type: 'FILTER_INDEX',
+        label: 'Current Index',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['index'],
+        compute: (inputs, data) => data.value ?? 0,
+        data: { value: 0 },
+        iteratorContext: 'FILTER'
+    },
+    FILTER_INCLUDE: {
+        type: 'FILTER_INCLUDE',
+        label: 'Include Item',
+        category: 'Iterator Context',
+        inputs: ['condition'],
+        outputs: [],
+        compute: (inputs) => Boolean(inputs.condition ?? inputs[0] ?? false),
+        data: {},
+        iteratorContext: 'FILTER'
+    },
+    REDUCE_ITEM: {
+        type: 'REDUCE_ITEM',
+        label: 'Current Item',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['item'],
+        compute: (inputs, data) => data.value ?? null,
+        data: { value: null },
+        iteratorContext: 'REDUCE'
+    },
+    REDUCE_INDEX: {
+        type: 'REDUCE_INDEX',
+        label: 'Current Index',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['index'],
+        compute: (inputs, data) => data.value ?? 0,
+        data: { value: 0 },
+        iteratorContext: 'REDUCE'
+    },
+    REDUCE_ACCUMULATOR: {
+        type: 'REDUCE_ACCUMULATOR',
+        label: 'Accumulator',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['value'],
+        compute: (inputs, data) => data.value ?? 0,
+        data: { value: 0 },
+        iteratorContext: 'REDUCE'
+    },
+    REDUCE_OUTPUT: {
+        type: 'REDUCE_OUTPUT',
+        label: 'New Accumulator',
+        category: 'Iterator Context',
+        inputs: ['value'],
+        outputs: [],
+        compute: (inputs) => inputs.value ?? inputs[0] ?? 0,
+        data: {},
+        iteratorContext: 'REDUCE'
     }
 };
 

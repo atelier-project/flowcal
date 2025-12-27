@@ -633,7 +633,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                             {type === 'CUSTOM' && (
                                 <button onClick={(e) => { e.stopPropagation(); onOpenEditor(id, data.func); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Open Editor"><Maximize2 size={14} /></button>
                             )}
-                            {type === 'GROUP' ? (
+                            {(type === 'GROUP' || type === 'MAP' || type === 'FILTER' || type === 'REDUCE') ? (
                                 <div className="relative">
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onEnterGroup(id); }}

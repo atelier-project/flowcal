@@ -55,11 +55,19 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
             <>
                 <p style={{ color: 'var(--text-muted)' }} className="text-xs font-bold uppercase tracking-wider mb-2 mt-4 first:mt-0">{title}</p>
                 {nodes.map(def => {
+                    // Group Logic nodes: only show inside groups
                     if (def.type === 'GROUP_INPUT' || def.type === 'GROUP_OUTPUT' || def.type === 'GROUP_INPUT_LIST' || def.type === 'GROUP_OUTPUT_LIST') {
-                        if (pathLength === 0) return null; // Show only inside groups
-                    } else if (def.type === 'WARP_IN' || def.type === 'WARP_OUT') {
-                        // Visible everywhere, no condition needed (or maybe restrict if desired, but "Advanced" implies broad use)
+                        if (pathLength === 0) return null;
                     }
+                    // Iterator context nodes: only show inside their respective iterator
+                    const iteratorContextType = def.iteratorContext;
+                    if (iteratorContextType) {
+                        // These are context nodes (MAP_ITEM, FILTER_INCLUDE, etc.)
+                        // Only show if we're inside the correct iterator type
+                        // For now, show if pathLength > 0 (inside any group-like container)
+                        if (pathLength === 0) return null;
+                    }
+                    // WARP nodes are visible everywhere
                     // GROUP nodes should always be available to allow nesting
                     const ui = getUI(def.type);
                     const Icon = ui.icon;
@@ -200,6 +208,8 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
                 <CategorySection title="Object" nodes={filteredCategories['Object']} />
                 <CategorySection title="Logic" nodes={filteredCategories['Logic']} />
                 <CategorySection title="Math" nodes={filteredCategories['Math']} />
+                <CategorySection title="Iterator" nodes={filteredCategories['Iterator']} />
+                <CategorySection title="Iterator Context" nodes={filteredCategories['Iterator Context']} />
                 <CategorySection title="Visuals" nodes={filteredCategories['Visuals']} />
                 <CategorySection title="Advanced" nodes={filteredCategories['Advanced']} />
 
