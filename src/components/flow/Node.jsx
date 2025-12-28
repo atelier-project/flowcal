@@ -1,7 +1,5 @@
 import React, { useRef, useMemo } from 'react';
-import {
-    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp, Package, Eye, EyeOff, Lock, Unlock, Shield, ShieldAlert, MoreVertical, Type
-} from 'lucide-react';
+import { Plus, Maximize2, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getNodeHeight } from '../../utils/layout';
 import { GaugeChart, LineChart, BarChart } from '../ui/Charts';
@@ -13,7 +11,6 @@ import { TypeDefinitionModal } from './TypeDefinitionModal';
 import { getTypeDisplayName, validateFormFields } from '../../utils/typeUtils';
 import { NodeHeader } from './node/NodeHeader';
 import { useNodeHandles, NodeHandles } from './node/NodeHandles';
-import { NodeBody } from './node/NodeBody';
 
 export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings }) => {
     const nodeRef = useRef(null);
