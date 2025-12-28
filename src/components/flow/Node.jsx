@@ -12,6 +12,7 @@ import { getDefinition } from '../../engine/nodeDefinitions';
 import { TypeDefinitionModal } from './TypeDefinitionModal';
 import { getTypeDisplayName, validateFormFields } from '../../utils/typeUtils';
 import { NodeHeader } from './node/NodeHeader';
+import { useNodeHandles, NodeHandles } from './node/NodeHandles';
 
 export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings }) => {
     const nodeRef = useRef(null);
@@ -71,169 +72,12 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
 
     const Icon = ui.icon || Plus;
 
-    // --- Handle Logic ---
-
-    const inputHandles = useMemo(() => {
-        let handles = [];
-        if (type === 'GROUP' && data.subGraph && data.subGraph.nodes) {
-            handles = data.subGraph.nodes
-                .filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST')
-                .map((n, idx) => ({
-                    id: n.id,
-                    label: n.data.label || `Input ${idx + 1}`,
-                    description: n.data.description || ''
-                }));
-        } else if (type === 'FORM') {
-            const fields = data.fields || [];
-            // Only generate handles if showInputs is true
-            if (data.showInputs) {
-                handles = fields.map((field, i) => ({
-                    id: `field_${i}`,
-                    label: '', // Don't show label on handle, it's next to the input
-                    top: 48 + (i * 30)
-                }));
-            } else {
-                handles = [];
-            }
-        } else if (type === 'FUNCTION') {
-            const params = data.params || [];
-            handles = params.map((param, i) => ({
-                id: `param_${i}`,
-                label: param.name || `p${i}`,
-                top: 80 + (i * 30)
-            }));
-        } else if (type === 'PACK') {
-            // Dynamic inputs from keys array - one input per key
-            // NOTE: This must be BEFORE the generic dynamicInputs check
-            const keys = data.keys || [];
-            if (data.collapsed) {
-                // All handles at single point when collapsed
-                handles = keys.map((key) => ({ id: key, label: key, top: 20 }));
-            } else {
-                // Header ~40px, "Keys to Create" label ~20px, first key input at ~80px, each row ~28px
-                handles = keys.map((key, idx) => ({
-                    id: key,
-                    label: key,
-                    top: 48 + (idx * 24)
-                }));
-            }
-        } else if (type === 'COLLECTOR' || (def && def.dynamicInputs)) {
-            const count = data.inputCount || 2;
-            handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}` }));
-        } else if (type === 'UNPACK') {
-            // UNPACK has single object input - center vertically in the node
-            handles = [{ id: 'object', label: 'Object', top: data.collapsed ? 20 : 110 }];
-        } else if (type === 'CUSTOM') {
-            // CUSTOM JS node - single input that accepts array, centered at 100 or 20 when collapsed
-            handles = [{ id: null, top: data.collapsed ? 20 : 100 }];
-        } else if (def && def.inputs && !def.inputs.includes('*')) {
-            handles = def.inputs.map((name) => ({
-                id: name,
-                label: name.charAt(0).toUpperCase() + name.slice(1),
-            }));
-        } else if (type === 'TEMPLATE') {
-            // TEMPLATE has variable textarea, so fix input at top of body area
-            handles = [{ id: null, top: 60 }];
-        } else if (type === 'GROUP_OUTPUT' || type === 'GROUP_OUTPUT_LIST') {
-            // GROUP_OUTPUT/GROUP_OUTPUT_LIST has single input - calculate position based on height
-            const height = getNodeHeight({ type, data });
-            handles = [{ id: null, top: height / 2 }];
-        } else if (type !== 'INPUT' && type !== 'GROUP_INPUT') {
-            // Default single input for most nodes
-            handles = [{ id: null, top: '50%' }];
-        }
-
-        // Apply custom order if exists
-        if (data.inputOrder && Array.isArray(data.inputOrder) && handles.length > 0) {
-            handles.sort((a, b) => {
-                const idxA = data.inputOrder.indexOf(a.id);
-                const idxB = data.inputOrder.indexOf(b.id);
-                if (idxA === -1 && idxB === -1) return 0;
-                if (idxA === -1) return 1;
-                if (idxB === -1) return -1;
-                return idxA - idxB;
-            });
-        }
-
-        // Assign positions - if collapsed, all handles at single point
-        if (data.collapsed) {
-            return handles.map((h) => ({ ...h, top: 20 }));
-        }
-        if (handles.length === 1 && handles[0].top) return handles; // Keep default centered
-        return handles.map((h, i) => ({ ...h, top: 40 + (i * 24) }));
-
-    }, [type, data.subGraph, data.inputCount, data.params, data.keys, def, data.inputOrder, data.collapsed]);
-
+    // --- Handle Logic (extracted to hook) ---
+    const { inputHandles, outputHandles } = useNodeHandles(type, data);
     const minHeight = getNodeHeight({ type, data });
 
-    const outputHandles = useMemo(() => {
-        let handles = [];
-        if (type === 'GROUP' && data.subGraph && data.subGraph.nodes) {
-            handles = data.subGraph.nodes
-                .filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST')
-                .map((n, idx) => ({
-                    id: n.id,
-                    label: n.data.label || `Output ${idx + 1}`,
-                    description: n.data.description || ''
-                }));
-        } else if (type === 'TEMPLATE') {
-            // TEMPLATE output - fixed at same height as input for visual balance
-            handles = [{ id: 'text', label: 'Text', top: 60 }];
-        } else if (type === 'UNPACK') {
-            // Dynamic outputs from keys array - position to align with key inputs
-            const keys = data.keys || [];
-            if (data.collapsed) {
-                // All handles at single point when collapsed
-                handles = keys.map((key) => ({ id: key, label: key, top: 20 }));
-            } else {
-                // Header ~40px, "Keys to Extract" label ~20px, first key input at ~80px, each row ~28px
-                handles = keys.map((key, idx) => ({
-                    id: key,
-                    label: key,
-                    top: 80 + (idx * 32)
-                }));
-            }
-        } else if (def && def.outputs) {
-            handles = def.outputs.map((name) => ({
-                id: name,
-                label: name.charAt(0).toUpperCase() + name.slice(1),
-            }));
-        } else if (!['GROUP_OUTPUT', 'GROUP_OUTPUT_LIST', 'FINAL', 'GAUGE', 'PROGRESS', 'LINE_CHART', 'BAR_CHART', 'TABLE'].includes(type) && def.category !== 'Visuals' && type !== 'FINAL') {
-            // Default single output - use calculated height for FORM nodes
-            if (type === 'FORM') {
-                handles = [{ id: null, top: minHeight / 2 }];
-            } else if (type === 'GROUP_INPUT') {
-                // GROUP_INPUT has content that affects height - calculate dynamically
-                handles = [{ id: null, top: minHeight / 2 }];
-            } else if (type === 'CUSTOM') {
-                // CUSTOM JS node output - at 100 or 20 when collapsed
-                handles = [{ id: null, top: data.collapsed ? 20 : 100 }];
-            } else {
-                handles = [{ id: null, top: '50%' }];
-            }
-        }
-
-        // Apply custom order
-        if (data.outputOrder && Array.isArray(data.outputOrder) && handles.length > 0) {
-            handles.sort((a, b) => {
-                const idxA = data.outputOrder.indexOf(a.id);
-                const idxB = data.outputOrder.indexOf(b.id);
-                if (idxA === -1 && idxB === -1) return 0;
-                if (idxA === -1) return 1;
-                if (idxB === -1) return -1;
-                return idxA - idxB;
-            });
-        }
-
-        // All handles at single point when collapsed (except UNPACK which handles it above)
-        if (data.collapsed && type !== 'UNPACK') {
-            return handles.map((h) => ({ ...h, top: 20 }));
-        }
-
-        if (handles.length === 1 && handles[0].top) return handles;
-        return handles.map((h, i) => h.top ? h : { ...h, top: 40 + (i * 24) });
-    }, [type, data.subGraph, data.keys, def, data.outputOrder, minHeight, data.collapsed]);
-
+    // Note: The detailed handle calculation logic is now in useNodeHandles hook
+    // The original inputHandles and outputHandles useMemo blocks have been moved there
 
     // --- Helpers ---
     const addCollectorInput = () => {
