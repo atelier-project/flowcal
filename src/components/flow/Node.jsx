@@ -1,7 +1,5 @@
 import React, { useRef, useMemo } from 'react';
-import {
-    Plus, Settings, Maximize2, Trash2, ArrowUp, ArrowDown, Plug, Copy, ChevronDown, ChevronUp, Package, Eye, EyeOff, Lock, Unlock, Shield, ShieldAlert, MoreVertical
-} from 'lucide-react';
+import { Plus, Maximize2, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getNodeHeight } from '../../utils/layout';
 import { GaugeChart, LineChart, BarChart } from '../ui/Charts';
@@ -9,11 +7,16 @@ import { DataTable } from '../ui/DataTable';
 import { Handle } from './Handle';
 import { getUI } from './nodeUIMap';
 import { getDefinition } from '../../engine/nodeDefinitions';
+import { TypeDefinitionModal } from './TypeDefinitionModal';
+import { getTypeDisplayName, validateFormFields } from '../../utils/typeUtils';
+import { NodeHeader } from './node/NodeHeader';
+import { useNodeHandles, NodeHandles } from './node/NodeHandles';
 
-export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly }) => {
+export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings }) => {
     const nodeRef = useRef(null);
     const ui = getUI(type);
     const [showMenu, setShowMenu] = React.useState(false);
+    const [showTypeModal, setShowTypeModal] = React.useState(false);
 
     // Close menu when clicking outside
     React.useEffect(() => {
@@ -67,157 +70,12 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
 
     const Icon = ui.icon || Plus;
 
-    // --- Handle Logic ---
-
-    const inputHandles = useMemo(() => {
-        let handles = [];
-        if (type === 'GROUP' && data.subGraph && data.subGraph.nodes) {
-            handles = data.subGraph.nodes
-                .filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST')
-                .map((n, idx) => ({
-                    id: n.id,
-                    label: n.data.label || `Input ${idx + 1}`,
-                    description: n.data.description || ''
-                }));
-        } else if (type === 'FORM') {
-            const fields = data.fields || [];
-            // Only generate handles if showInputs is true
-            if (data.showInputs) {
-                handles = fields.map((field, i) => ({
-                    id: `field_${i}`,
-                    label: '', // Don't show label on handle, it's next to the input
-                    top: 48 + (i * 30)
-                }));
-            } else {
-                handles = [];
-            }
-        } else if (type === 'FUNCTION') {
-            const params = data.params || [];
-            handles = params.map((param, i) => ({
-                id: `param_${i}`,
-                label: param.name || `p${i}`,
-                top: 80 + (i * 30)
-            }));
-        } else if (type === 'COLLECTOR' || (def && def.dynamicInputs)) {
-            const count = data.inputCount || 2;
-            handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}` }));
-        } else if (type === 'UNPACK') {
-            // UNPACK has single object input - center vertically in the node
-            handles = [{ id: 'object', label: 'Object', top: data.collapsed ? 20 : 110 }];
-        } else if (type === 'PACK') {
-            // PACK has single values input
-            handles = [{ id: 'values', label: 'Values', top: data.collapsed ? 20 : 80 }];
-        } else if (type === 'CUSTOM') {
-            // CUSTOM JS node - single input that accepts array, centered at 100 or 20 when collapsed
-            handles = [{ id: null, top: data.collapsed ? 20 : 100 }];
-        } else if (def && def.inputs && !def.inputs.includes('*')) {
-            handles = def.inputs.map((name) => ({
-                id: name,
-                label: name.charAt(0).toUpperCase() + name.slice(1),
-            }));
-        } else if (type === 'TEMPLATE') {
-            // TEMPLATE has variable textarea, so fix input at top of body area
-            handles = [{ id: null, top: 60 }];
-        } else if (type === 'GROUP_OUTPUT') {
-            // GROUP_OUTPUT has single input - calculate position based on height
-            const height = getNodeHeight({ type, data });
-            handles = [{ id: null, top: height / 2 }];
-        } else if (type !== 'INPUT' && type !== 'GROUP_INPUT') {
-            // Default single input for most nodes
-            handles = [{ id: null, top: '50%' }];
-        }
-
-        // Apply custom order if exists
-        if (data.inputOrder && Array.isArray(data.inputOrder) && handles.length > 0) {
-            handles.sort((a, b) => {
-                const idxA = data.inputOrder.indexOf(a.id);
-                const idxB = data.inputOrder.indexOf(b.id);
-                if (idxA === -1 && idxB === -1) return 0;
-                if (idxA === -1) return 1;
-                if (idxB === -1) return -1;
-                return idxA - idxB;
-            });
-        }
-
-        // Assign positions - if collapsed, all handles at single point
-        if (data.collapsed) {
-            return handles.map((h) => ({ ...h, top: 20 }));
-        }
-        if (handles.length === 1 && handles[0].top) return handles; // Keep default centered
-        return handles.map((h, i) => ({ ...h, top: 40 + (i * 24) }));
-
-    }, [type, data.subGraph, data.inputCount, data.params, data.keys, def, data.inputOrder, data.collapsed]);
-
+    // --- Handle Logic (extracted to hook) ---
+    const { inputHandles, outputHandles } = useNodeHandles(type, data);
     const minHeight = getNodeHeight({ type, data });
 
-    const outputHandles = useMemo(() => {
-        let handles = [];
-        if (type === 'GROUP' && data.subGraph && data.subGraph.nodes) {
-            handles = data.subGraph.nodes
-                .filter(n => n.type === 'GROUP_OUTPUT')
-                .map((n, idx) => ({
-                    id: n.id,
-                    label: n.data.label || `Output ${idx + 1}`,
-                    description: n.data.description || ''
-                }));
-        } else if (type === 'TEMPLATE') {
-            // TEMPLATE output - fixed at same height as input for visual balance
-            handles = [{ id: 'text', label: 'Text', top: 60 }];
-        } else if (type === 'UNPACK') {
-            // Dynamic outputs from keys array - position to align with key inputs
-            const keys = data.keys || [];
-            if (data.collapsed) {
-                // All handles at single point when collapsed
-                handles = keys.map((key) => ({ id: key, label: key, top: 20 }));
-            } else {
-                // Header ~40px, "Keys to Extract" label ~20px, first key input at ~80px, each row ~28px
-                handles = keys.map((key, idx) => ({
-                    id: key,
-                    label: key,
-                    top: 80 + (idx * 28)
-                }));
-            }
-        } else if (def && def.outputs) {
-            handles = def.outputs.map((name) => ({
-                id: name,
-                label: name.charAt(0).toUpperCase() + name.slice(1),
-            }));
-        } else if (!['GROUP_OUTPUT', 'FINAL', 'GAUGE', 'PROGRESS', 'LINE_CHART', 'BAR_CHART', 'TABLE'].includes(type) && def.category !== 'Visuals' && type !== 'FINAL') {
-            // Default single output - use calculated height for FORM nodes
-            if (type === 'FORM') {
-                handles = [{ id: null, top: minHeight / 2 }];
-            } else if (type === 'GROUP_INPUT') {
-                // GROUP_INPUT has content that affects height - calculate dynamically
-                handles = [{ id: null, top: minHeight / 2 }];
-            } else if (type === 'CUSTOM') {
-                // CUSTOM JS node output - at 100 or 20 when collapsed
-                handles = [{ id: null, top: data.collapsed ? 20 : 100 }];
-            } else {
-                handles = [{ id: null, top: '50%' }];
-            }
-        }
-
-        // Apply custom order
-        if (data.outputOrder && Array.isArray(data.outputOrder) && handles.length > 0) {
-            handles.sort((a, b) => {
-                const idxA = data.outputOrder.indexOf(a.id);
-                const idxB = data.outputOrder.indexOf(b.id);
-                if (idxA === -1 && idxB === -1) return 0;
-                if (idxA === -1) return 1;
-                if (idxB === -1) return -1;
-                return idxA - idxB;
-            });
-        }
-
-        // All handles at single point when collapsed (except UNPACK which handles it above)
-        if (data.collapsed && type !== 'UNPACK') {
-            return handles.map((h) => ({ ...h, top: 20 }));
-        }
-
-        if (handles.length === 1 && handles[0].top) return handles;
-        return handles.map((h, i) => h.top ? h : { ...h, top: 40 + (i * 24) });
-    }, [type, data.subGraph, data.keys, def, data.outputOrder, minHeight, data.collapsed]);
-
+    // Note: The detailed handle calculation logic is now in useNodeHandles hook
+    // The original inputHandles and outputHandles useMemo blocks have been moved there
 
     // --- Helpers ---
     const addCollectorInput = () => {
@@ -281,6 +139,130 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             handleChange('keys', keys);
         }
     };
+
+    // Special rendering for TEXT_LABEL node - floating text without card
+    if (type === 'TEXT_LABEL') {
+        // Determine actual color based on 'auto' setting and theme
+        const getTextColor = () => {
+            if (data.color === 'auto' || !data.color) {
+                // Check if dark mode via CSS variable or class
+                return 'var(--text-primary, #1e293b)';
+            }
+            return data.color;
+        };
+
+        return (
+            <div
+                ref={nodeRef}
+                style={{
+                    transform: `translate(${position.x}px, ${position.y}px)`,
+                    pointerEvents: 'all'
+                }}
+                className="absolute z-10"
+                onMouseDown={(e) => onDragStart(e, id)}
+            >
+                {/* Wrapper for better selection - has padding and hover effect */}
+                <div
+                    className={`inline-block px-2 py-1 rounded transition-colors ${selected
+                        ? 'bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-400'
+                        : isHovered
+                            ? 'bg-slate-100/50 dark:bg-slate-800/50'
+                            : ''
+                        }`}
+                    style={{ cursor: 'move' }}
+                >
+                    {/* The text itself */}
+                    <div
+                        contentEditable={!readOnly}
+                        suppressContentEditableWarning
+                        onBlur={(e) => handleChange('text', e.currentTarget.textContent)}
+                        onClick={(e) => { e.stopPropagation(); e.currentTarget.focus(); }}
+                        style={{
+                            fontSize: `${data.fontSize || 36}px`,
+                            fontFamily: data.fontFamily || 'Inter',
+                            color: getTextColor(),
+                            fontWeight: data.fontWeight || 'normal',
+                            textAlign: data.textAlign || 'left',
+                            outline: 'none',
+                            minWidth: '50px',
+                            cursor: readOnly ? 'move' : 'text',
+                            userSelect: readOnly ? 'none' : 'text'
+                        }}
+                        className="whitespace-pre-wrap"
+                    >
+                        {data.text || 'Label'}
+                    </div>
+                </div>
+
+                {/* Controls - only visible when selected */}
+                {selected && !readOnly && (
+                    <div className="absolute -top-12 left-0 flex items-center gap-2 bg-white dark:bg-slate-800 rounded px-3 py-2 shadow-lg border border-slate-200 dark:border-slate-700 z-50">
+                        {/* Font Size */}
+                        <label className="flex items-center gap-1 text-[10px] text-slate-500">
+                            <span>Size:</span>
+                            <input
+                                type="number"
+                                value={data.fontSize || 36}
+                                onChange={(e) => handleChange('fontSize', parseInt(e.target.value) || 36)}
+                                className="w-12 px-1 py-0.5 text-xs border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200"
+                                min="8"
+                                max="72"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            />
+                        </label>
+
+                        {/* Font Family */}
+                        <select
+                            value={data.fontFamily || 'Inter'}
+                            onChange={(e) => handleChange('fontFamily', e.target.value)}
+                            className="text-[10px] px-1 py-0.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        >
+                            <option value="Inter">Inter</option>
+                            <option value="Arial">Arial</option>
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="Times New Roman">Times</option>
+                            <option value="Courier New">Courier</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="monospace">Monospace</option>
+                        </select>
+
+                        {/* Font Weight */}
+                        <select
+                            value={data.fontWeight || 'normal'}
+                            onChange={(e) => handleChange('fontWeight', e.target.value)}
+                            className="text-[10px] px-1 py-0.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        >
+                            <option value="normal">Normal</option>
+                            <option value="bold">Bold</option>
+                            <option value="lighter">Light</option>
+                        </select>
+
+                        {/* Text Color */}
+                        <input
+                            type="color"
+                            value={data.color === 'auto' ? '#1e293b' : (data.color || '#1e293b')}
+                            onChange={(e) => handleChange('color', e.target.value)}
+                            className="w-6 h-6 cursor-pointer border border-slate-300 dark:border-slate-600 rounded"
+                            title="Text color"
+                            onMouseDown={(e) => e.stopPropagation()}
+                        />
+
+                        {/* Delete Button */}
+                        <button
+                            onClick={() => onDelete(id)}
+                            className="text-red-400 hover:text-red-600 p-1"
+                            title="Delete label"
+                        >
+                            <Trash2 size={12} />
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
 
     // Special rendering for FRAME node - always stays at back
     if (type === 'FRAME') {
@@ -407,177 +389,33 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             onMouseDown={(e) => onDragStart(e, id)}
         >
             {/* Header */}
-            <div
-                style={{
-                    backgroundColor: type === 'FINAL' ? undefined : 'var(--bg-tertiary)',
-                    borderColor: 'var(--border-primary)'
-                }}
-                className={`flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
-        ${type === 'FINAL' ? 'bg-green-50 border-green-100 dark:bg-green-900/20 dark:border-green-800' : ''}
-      `}>
-                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0">
-                    <span className={`p-1 rounded shadow-sm shrink-0 ${ui.colorClass?.split(' ')[1] ? 'bg-white dark:bg-slate-700 ' + ui.colorClass.split(' ')[1] : 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400'}`}>
-                        <Icon size={16} />
-                    </span>
-                    <input
-                        type="text"
-                        value={data.label || ''}
-                        placeholder={def.label || 'Node'}
-                        onChange={(e) => handleChange('label', e.target.value)}
-                        className="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
-                        onMouseDown={(e) => e.stopPropagation()}
-                    />
-                </div>
-                <div className="flex gap-1 items-center">
-                    {/* Lock Toggle for Owner/Admin OR Lock Indicator for others */}
-                    {(data.locked || canUnlock) && (
-                        <button
-                            onClick={handleLockToggle}
-                            disabled={!canUnlock && data.locked}
-                            className={`p-1 rounded ${data.locked ? 'text-red-500 bg-red-50 dark:bg-red-900/20' : 'text-slate-300 hover:text-slate-500'}`}
-                            title={data.locked ? (canUnlock ? "Unlock Node" : "Locked by Owner") : "Lock Node"}
-                        >
-                            {data.locked ? <Lock size={14} /> : <Unlock size={14} />}
-                        </button>
-                    )}
-
-                    {/* Read-Only Toggle */}
-                    {(data.readOnly || canUnlock) && !data.locked && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (canUnlock) {
-                                    onUpdateData(id, { ...data, readOnly: !data.readOnly });
-                                }
-                            }}
-                            disabled={!canUnlock && data.readOnly}
-                            className={`p-1 rounded ${data.readOnly ? 'text-orange-500 bg-orange-50 dark:bg-orange-900/20' : 'text-slate-300 hover:text-slate-500'}`}
-                            title={data.readOnly ? (canUnlock ? "Make Editable" : "Read-Only") : "Make Read-Only"}
-                        >
-                            {data.readOnly ? <ShieldAlert size={14} /> : <Shield size={14} />}
-                        </button>
-                    )}
-
-                    {/* Hide regular controls if effectively locked */}
-                    {!isEffectivelyLocked && (
-                        <>
-                            {type === 'INPUT' && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleChange('useSlider', !data.useSlider); }}
-                                    className={`p-1 rounded ${data.useSlider ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'text-slate-400 hover:text-blue-500 dark:hover:text-blue-400'}`}
-                                    title="Toggle Slider"
-                                >
-                                    <Settings size={14} />
-                                </button>
-                            )}
-                            {type === 'FORM' && (
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); handleChange('showInputs', !data.showInputs); }}
-                                    className={`p-1 rounded ${data.showInputs ? 'text-blue-500 bg-blue-50 dark:bg-blue-900/30' : 'text-slate-400 hover:text-blue-500 dark:hover:text-blue-400'}`}
-                                    title={data.showInputs ? "Hide Input Ports" : "Show Input Ports (Enable Overrides)"}
-                                >
-                                    <Plug size={14} />
-                                </button>
-                            )}
-                            {type === 'COLLECTOR' && (
-                                <button onClick={(e) => { e.stopPropagation(); addCollectorInput(); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Add Input Port"><Plus size={14} /></button>
-                            )}
-                            {type === 'CUSTOM' && (
-                                <button onClick={(e) => { e.stopPropagation(); onOpenEditor(id, data.func); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Open Editor"><Maximize2 size={14} /></button>
-                            )}
-                            {type === 'GROUP' ? (
-                                <div className="relative">
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); onEnterGroup(id); }}
-                                        className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1 mr-1"
-                                        title="Edit Group"
-                                    >
-                                        <Settings size={14} />
-                                    </button>
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-                                        className={`p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 ${showMenu ? 'text-slate-600 dark:text-slate-200' : 'text-slate-400'}`}
-                                    >
-                                        <MoreVertical size={14} />
-                                    </button>
-
-                                    {showMenu && (
-                                        <div className="absolute right-0 top-full mt-1 w-40 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 z-50 overflow-hidden">
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleChange('showResults', !data.showResults); setShowMenu(false); }}
-                                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                                            >
-                                                {data.showResults ? <EyeOff size={14} /> : <Eye size={14} />}
-                                                {data.showResults ? "Hide Results" : "Show Results"}
-                                            </button>
-
-                                            {onSaveAsCustom && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); onSaveAsCustom({ id, type, data, position }); setShowMenu(false); }}
-                                                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                                                >
-                                                    <Package size={14} />
-                                                    Save as Node
-                                                </button>
-                                            )}
-
-                                            <div className="my-1 border-t border-slate-100 dark:border-slate-700"></div>
-
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); handleChange('collapsed', !data.collapsed); setShowMenu(false); }}
-                                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                                            >
-                                                {data.collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-                                                {data.collapsed ? "Expand" : "Collapse"}
-                                            </button>
-
-                                            {onDuplicate && (
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); onDuplicate(id); setShowMenu(false); }}
-                                                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-                                                >
-                                                    <Copy size={14} />
-                                                    Duplicate
-                                                </button>
-                                            )}
-
-                                            <div className="my-1 border-t border-slate-100 dark:border-slate-700"></div>
-
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); onDelete(id); setShowMenu(false); }}
-                                                className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
-                                            >
-                                                <Trash2 size={14} />
-                                                Delete
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <>
-                                    {/* Collapse toggle for large nodes */}
-                                    {['TEMPLATE', 'FORM', 'COMMENT', 'UNPACK', 'PACK', 'CUSTOM'].includes(type) && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); handleChange('collapsed', !data.collapsed); }}
-                                            className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
-                                            title={data.collapsed ? 'Expand' : 'Collapse'}
-                                        >
-                                            {data.collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-                                        </button>
-                                    )}
-                                    {onDuplicate && (
-                                        <button onClick={(e) => { e.stopPropagation(); onDuplicate(id); }} className="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1" title="Duplicate (Ctrl+D)"><Copy size={14} /></button>
-                                    )}
-                                    <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"><Trash2 size={14} /></button>
-                                </>
-                            )}
-                        </>
-                    )}
-                </div>
-            </div>
+            <NodeHeader
+                id={id}
+                type={type}
+                data={data}
+                Icon={Icon}
+                ui={ui}
+                def={def}
+                showMenu={showMenu}
+                setShowMenu={setShowMenu}
+                canEdit={canEdit}
+                canUnlock={canUnlock}
+                isEffectivelyLocked={isEffectivelyLocked}
+                handleChange={handleChange}
+                handleLockToggle={handleLockToggle}
+                onUpdateData={onUpdateData}
+                onDelete={onDelete}
+                onDuplicate={onDuplicate}
+                onEnterGroup={onEnterGroup}
+                onOpenEditor={onOpenEditor}
+                onSaveAsCustom={onSaveAsCustom}
+                setShowTypeModal={setShowTypeModal}
+                addCollectorInput={addCollectorInput}
+                position={position}
+            />
 
             {/* Body - conditionally render based on collapsed state */}
-            {!data.collapsed && <div className="p-3 space-y-3 flex-1 flex flex-col">
+            {!data.collapsed && <div className="p-3 space-y-3 flex-1 flex flex-col overflow-y-auto">
                 {type === 'INPUT' && (
                     <div>
                         <div className="flex items-center justify-between mb-1">
@@ -661,12 +499,29 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
 
                 {type === 'FORM' && (
                     <div className="flex flex-col gap-2">
+                        {/* Type validation warning */}
+                        {data.typeDef && data.typeDef !== 'any' && (() => {
+                            const validation = validateFormFields(data.fields || [], data.typeDef);
+                            if (!validation.valid) {
+                                return (
+                                    <div className="flex items-start gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-xs">
+                                        <span className="text-amber-600 dark:text-amber-400 shrink-0">⚠️</span>
+                                        <div className="flex-1">
+                                            <div className="font-semibold text-amber-800 dark:text-amber-300">Type Mismatch</div>
+                                            <div className="text-amber-700 dark:text-amber-400 mt-0.5">{validation.message}</div>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
+
                         {(data.fields || []).map((field, i) => (
                             <div key={i} className="flex items-center gap-1 group/field">
                                 {/* Input Handle spacer */}
                                 {data.showInputs && <div className="w-3" />}
                                 <input
-                                    className="w-20 text-xs font-bold text-slate-600 dark:text-slate-300 bg-transparent border-b border-transparent focus:border-blue-400 focus:outline-none px-1 disabled:opacity-50"
+                                    className="shrink-0 min-w-16 max-w-24 text-xs font-bold text-slate-600 dark:text-slate-300 bg-transparent border-b border-transparent focus:border-blue-400 focus:outline-none px-1 disabled:opacity-50"
                                     value={field.key}
                                     onChange={(e) => updateFormField(i, 'key', e.target.value)}
                                     placeholder="Key"
@@ -674,9 +529,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     onKeyDown={e => e.stopPropagation()}
                                     disabled={!canEdit}
                                 />
-                                <span className="text-slate-300 dark:text-slate-600">:</span>
+                                <span className="text-slate-300 dark:text-slate-600 shrink-0">:</span>
                                 <input
-                                    className="flex-1 min-w-0 text-xs font-mono bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-1 py-[2px] focus:border-blue-500 focus:outline-none dark:text-slate-300 disabled:opacity-50"
+                                    className="flex-1 min-w-12 text-xs font-mono bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded px-1 py-[2px] focus:border-blue-500 focus:outline-none dark:text-slate-300 disabled:opacity-50"
                                     value={field.value}
                                     onChange={(e) => updateFormField(i, 'value', e.target.value)} // String input allowed
                                     placeholder="Value"
@@ -684,7 +539,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     onKeyDown={e => e.stopPropagation()}
                                     disabled={!canEdit}
                                 />
-                                <button disabled={!canEdit} onClick={(e) => { e.stopPropagation(); removeFormField(i); }} className="opacity-0 group-hover/field:opacity-100 text-slate-400 hover:text-red-500 dark:hover:text-red-400 disabled:hidden">
+                                <button disabled={!canEdit} onClick={(e) => { e.stopPropagation(); removeFormField(i); }} className="opacity-0 group-hover/field:opacity-100 text-slate-400 hover:text-red-500 dark:hover:text-red-400 disabled:hidden shrink-0">
                                     <Trash2 size={12} />
                                 </button>
                             </div>
@@ -969,16 +824,29 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         >
                             + Add Key
                         </button>
+                    </div>
+                )}
 
-                        {/* Show result preview */}
-                        {result && typeof result === 'object' && (
-                            <div className="mt-2 p-2 bg-violet-50 dark:bg-violet-900/20 rounded border border-violet-200 dark:border-violet-800">
-                                <span className="text-[10px] text-violet-500 dark:text-violet-400">Output: </span>
-                                <span className="text-[10px] font-mono text-violet-700 dark:text-violet-300">
-                                    {JSON.stringify(result)}
-                                </span>
-                            </div>
-                        )}
+                {type === 'REDUCE' && (
+                    <div className="space-y-2">
+                        <label className="block text-xs font-medium text-slate-500 dark:text-slate-400">Initial Value</label>
+                        <input
+                            type="text"
+                            value={data.initialValue ?? 0}
+                            onChange={(e) => {
+                                const val = e.target.value;
+                                // Try to parse as number, otherwise keep as string
+                                const parsed = parseFloat(val);
+                                handleChange('initialValue', isNaN(parsed) ? val : parsed);
+                            }}
+                            placeholder="0"
+                            className="w-full h-8 px-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm font-mono focus:outline-none focus:border-cyan-500"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            disabled={!canEdit}
+                        />
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                            Enter inside to add: Current Item, Accumulator, and New Accumulator nodes
+                        </p>
                     </div>
                 )}
 
@@ -996,7 +864,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     <div className="mt-2 flex-1 flex flex-col min-h-0 border-t border-slate-100 dark:border-slate-700/50 pt-2">
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-tight px-1 mb-1">Outbound Values</div>
                         <div className="flex-1 min-h-0 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-md overflow-y-auto">
-                            {(data.subGraph?.nodes.filter(n => n.type === 'GROUP_OUTPUT') || []).map((out, i) => (
+                            {(data.subGraph?.nodes.filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST') || []).map((out, i) => (
                                 <div key={out.id} className="flex items-center justify-between p-1.5 border-b last:border-0 border-slate-100 dark:border-slate-800">
                                     <span className="text-xs font-medium text-slate-500 dark:text-slate-400 truncate max-w-[100px]" title={out.data.label || `Output ${i + 1}`}>
                                         {out.data.label || `Output ${i + 1}`}
@@ -1006,7 +874,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     </span>
                                 </div>
                             ))}
-                            {(!data.subGraph?.nodes.some(n => n.type === 'GROUP_OUTPUT')) && (
+                            {(!data.subGraph?.nodes.some(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST')) && (
                                 <div className="p-2 text-center text-[10px] italic text-slate-400">No output nodes defined</div>
                             )}
                         </div>
@@ -1014,9 +882,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 )}
 
                 {type === 'COMMENT' && (
-                    <div className="flex-1 flex flex-col relative">
+                    <div className="flex-1 flex flex-col relative overflow-hidden">
                         {/* Color Picker */}
-                        <div className="flex items-center gap-1 mb-2">
+                        <div className="flex items-center gap-1 mb-2 shrink-0">
                             <span className="text-[10px] text-slate-500">Color:</span>
                             {['#fef3c7', '#fce7f3', '#dbeafe', '#dcfce7', '#f3e8ff', '#fed7aa'].map(c => (
                                 <button
@@ -1042,10 +910,10 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                             placeholder="Add your notes..."
                             style={{
                                 backgroundColor: data.color || '#fef3c7',
-                                minHeight: `${data.height || 120}px`,
+                                height: `${data.height || 80}px`,
                                 width: '100%'
                             }}
-                            className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded text-sm text-slate-800 placeholder:text-slate-400 resize focus:outline-none focus:ring-2 focus:ring-amber-400"
+                            className="flex-1 p-2 border border-slate-300 dark:border-slate-600 rounded text-sm text-slate-800 placeholder:text-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400 overflow-y-auto"
                             onMouseDown={(e) => e.stopPropagation()}
                         />
                     </div>
@@ -1125,6 +993,15 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 {/* Display Value for Group Input */}
                 {type === 'GROUP_INPUT' && (
                     <div className="space-y-2">
+                        {/* Type Badge */}
+                        {data.typeDef && data.typeDef !== 'any' && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-pink-500 uppercase">Type</span>
+                                <span className="px-2 py-0.5 text-[10px] font-mono bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded border border-pink-200 dark:border-pink-800 truncate max-w-full" title={data.typeDef}>
+                                    {getTypeDisplayName(data.typeDef)}
+                                </span>
+                            </div>
+                        )}
                         <div>
                             <label className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-1">Description</label>
                             <textarea
@@ -1155,12 +1032,47 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 {/* Display Value for Group Output */}
                 {type === 'GROUP_OUTPUT' && (
                     <div className="space-y-2">
+                        {/* Type Badge */}
+                        {data.typeDef && data.typeDef !== 'any' && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-pink-500 uppercase">Type</span>
+                                <span className="px-2 py-0.5 text-[10px] font-mono bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded border border-pink-200 dark:border-pink-800 truncate max-w-full" title={data.typeDef}>
+                                    {getTypeDisplayName(data.typeDef)}
+                                </span>
+                            </div>
+                        )}
                         <div>
                             <label className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-1">Description</label>
                             <textarea
                                 value={data.description || ''}
                                 onChange={(e) => handleChange('description', e.target.value)}
                                 placeholder="e.g., Calculated total with tax"
+                                className="w-full h-12 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs focus:outline-none focus:border-pink-500 resize-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Display Value for Group Output List */}
+                {type === 'GROUP_OUTPUT_LIST' && (
+                    <div className="space-y-2">
+                        {/* Type Badge */}
+                        {data.typeDef && data.typeDef !== 'any' && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-pink-500 uppercase">Type</span>
+                                <span className="px-2 py-0.5 text-[10px] font-mono bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded border border-pink-200 dark:border-pink-800 truncate max-w-full" title={data.typeDef}>
+                                    {getTypeDisplayName(data.typeDef)}
+                                </span>
+                            </div>
+                        )}
+                        <div className="text-[10px] text-violet-500 mb-1">Aggregates multiple values into array</div>
+                        <div>
+                            <label className="block text-[10px] font-medium text-slate-400 dark:text-slate-500 mb-1">Description</label>
+                            <textarea
+                                value={data.description || ''}
+                                onChange={(e) => handleChange('description', e.target.value)}
+                                placeholder="e.g., Collected results from map operation"
                                 className="w-full h-12 px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs focus:outline-none focus:border-pink-500 resize-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
                                 onMouseDown={(e) => e.stopPropagation()}
                             />
@@ -1267,6 +1179,20 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     {formatResult(result)}
                                 </div>
                             </div>
+                        ) : type === 'UNPACK' && typeof result === 'object' && result !== null ? (
+                            /* UNPACK: Show each key's value separately */
+                            <div className="flex flex-col gap-1">
+                                {(data.keys || []).map((key, i) => (
+                                    <div key={i} className="flex flex-col gap-0.5">
+                                        <span className="text-[10px] font-bold text-violet-500 dark:text-violet-400">{key}:</span>
+                                        <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900 p-1 rounded border border-slate-100 dark:border-slate-700 break-all whitespace-pre-wrap max-h-16 overflow-y-auto">
+                                            {result[key] !== undefined
+                                                ? JSON.stringify(result[key], null, 1).replace(/"/g, '')
+                                                : 'null'}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         ) : (
                             <div className="flex flex-col gap-1">
                                 <div className="flex justify-between items-center">
@@ -1286,33 +1212,60 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         )}
                     </div>
                 )}
-            </div>}
-
-            {
-                inputHandles.map(h => (
-                    <Handle
-                        key={h.id || 'default'}
-                        type="input"
-                        id={h.id}
-                        position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
-                        onMouseDown={() => { }}
-                        isValid={true}
-                        description={h.description}
-                    />
-                ))
+            </div>
             }
 
             {
-                outputHandles.map(h => (
-                    <Handle
-                        key={h.id || 'default'}
-                        type="output"
-                        id={h.id}
-                        position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
-                        onMouseDown={(e) => onStartConnect(e, id, h.id)}
-                        isValid={true}
-                    />
-                ))
+                inputHandles.map(h => {
+                    // Check for type warning on this input handle
+                    const handleKey = h.id || 'default';
+                    const warning = typeWarnings && typeWarnings[`${id}:${handleKey}`];
+                    // Get typeDef for GROUP nodes from subGraph input nodes
+                    let handleTypeDef = null;
+                    if (type === 'GROUP' && data.subGraph) {
+                        const inputNode = data.subGraph.nodes.find(n => n.id === h.id);
+                        if (inputNode && inputNode.data) {
+                            handleTypeDef = inputNode.data.typeDef;
+                        }
+                    }
+                    return (
+                        <Handle
+                            key={handleKey}
+                            type="input"
+                            id={h.id}
+                            position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
+                            onMouseDown={() => { }}
+                            isValid={!warning}
+                            description={h.description}
+                            typeWarning={warning}
+                            typeDef={handleTypeDef}
+                        />
+                    );
+                })
+            }
+
+            {
+                outputHandles.map(h => {
+                    // Get typeDef for GROUP nodes from subGraph output nodes
+                    let handleTypeDef = null;
+                    if (type === 'GROUP' && data.subGraph) {
+                        const outputNode = data.subGraph.nodes.find(n => n.id === h.id);
+                        if (outputNode && outputNode.data) {
+                            handleTypeDef = outputNode.data.typeDef;
+                        }
+                    }
+                    return (
+                        <Handle
+                            key={h.id || 'default'}
+                            type="output"
+                            id={h.id}
+                            position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
+                            onMouseDown={(e) => onStartConnect(e, id, h.id)}
+                            isValid={true}
+                            typeDef={handleTypeDef}
+                        />
+                    );
+                })
             }
 
             {/* Resize Handle for FORM, FINAL, GROUP, and COMMENT */}
@@ -1343,6 +1296,20 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                             <path d="M21 15L15 21M21 8L8 21" />
                         </svg>
                     </div>
+                )
+            }
+
+            {/* Type Definition Modal */}
+            {
+                (type === 'GROUP_INPUT' || type === 'GROUP_OUTPUT' || type === 'GROUP_INPUT_LIST' || type === 'GROUP_OUTPUT_LIST' || type === 'FORM' || type === 'PACK') && (
+                    <TypeDefinitionModal
+                        isOpen={showTypeModal}
+                        onClose={() => setShowTypeModal(false)}
+                        currentType={data.typeDef || 'any'}
+                        onSave={(newType) => handleChange('typeDef', newType)}
+                        nodeLabel={data.label || def.label}
+                        nodeType={type}
+                    />
                 )
             }
         </div >

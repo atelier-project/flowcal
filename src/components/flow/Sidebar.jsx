@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Save, FolderOpen, MousePointer2, Type, FileCode, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings } from 'lucide-react';
+import { Save, FolderOpen, MousePointer2, Type, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
 import { useAuth } from '../../context/AuthContext';
 
-export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved, onOpenSettings, isRestricted }) => {
+export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved, onOpenSettings, isRestricted, currentIterator }) => {
     const { isAdmin } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
@@ -15,11 +15,19 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
     const categories = useMemo(() => {
         const cats = {};
         Object.values(NODE_LOGIC).forEach(def => {
+            // Filter Iterator Context nodes based on currentIterator
+            // If we're inside an iterator, only show context nodes for that iterator type
+            // If we're not inside an iterator, hide all context nodes
+            if (def.category === 'Iterator Context') {
+                if (!currentIterator) return; // Hide all context nodes when not in an iterator
+                if (def.iteratorContext !== currentIterator) return; // Hide non-matching context nodes
+            }
+
             if (!cats[def.category]) cats[def.category] = [];
             cats[def.category].push(def);
         });
         return cats;
-    }, []);
+    }, [currentIterator]);
 
     const filteredCategories = useMemo(() => {
         if (!searchQuery.trim()) return categories;
@@ -55,17 +63,20 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
             <>
                 <p style={{ color: 'var(--text-muted)' }} className="text-xs font-bold uppercase tracking-wider mb-2 mt-4 first:mt-0">{title}</p>
                 {nodes.map(def => {
-                    if (def.type === 'GROUP_INPUT' || def.type === 'GROUP_OUTPUT' || def.type === 'GROUP_INPUT_LIST') {
-                        if (pathLength === 0) return null; // Show only inside groups
-                    } else if (def.type === 'WARP_IN' || def.type === 'WARP_OUT') {
-                        // Visible everywhere, no condition needed (or maybe restrict if desired, but "Advanced" implies broad use)
-                    } else if (pathLength > 0 && def.type === 'GROUP') {
-                        // GROUP and CUSTOM nodes should not be addable from sidebar if inside a group (pathLength > 0)
-                        // This condition is to prevent them from being rendered in the sidebar when pathLength > 0
-                        // The original logic was to prevent them from being rendered if pathLength === 0, which is incorrect.
-                        // If pathLength > 0, we are inside a group, so we should not show GROUP or CUSTOM nodes to add.
-                        return null;
+                    // Group Logic nodes: only show inside groups
+                    if (def.type === 'GROUP_INPUT' || def.type === 'GROUP_OUTPUT' || def.type === 'GROUP_INPUT_LIST' || def.type === 'GROUP_OUTPUT_LIST') {
+                        if (pathLength === 0) return null;
                     }
+                    // Iterator context nodes: only show inside their respective iterator
+                    const iteratorContextType = def.iteratorContext;
+                    if (iteratorContextType) {
+                        // These are context nodes (MAP_ITEM, FILTER_INCLUDE, etc.)
+                        // Only show if we're inside the correct iterator type
+                        // For now, show if pathLength > 0 (inside any group-like container)
+                        if (pathLength === 0) return null;
+                    }
+                    // WARP nodes are visible everywhere
+                    // GROUP nodes should always be available to allow nesting
                     const ui = getUI(def.type);
                     const Icon = ui.icon;
                     return (
@@ -149,16 +160,6 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
                 </button>
 
                 <button
-                    onClick={onExportJS}
-                    title={isRestricted ? "Export Disabled by Owner" : "Export as JavaScript"}
-                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                    className="p-1.5 rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={isRestricted}
-                >
-                    <FileCode size={14} />
-                </button>
-
-                <button
                     onClick={onOpenSettings}
                     title="Flow Settings"
                     style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
@@ -215,6 +216,8 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, onExportJS, fi
                 <CategorySection title="Object" nodes={filteredCategories['Object']} />
                 <CategorySection title="Logic" nodes={filteredCategories['Logic']} />
                 <CategorySection title="Math" nodes={filteredCategories['Math']} />
+                <CategorySection title="Iterator" nodes={filteredCategories['Iterator']} />
+                <CategorySection title="Iterator Context" nodes={filteredCategories['Iterator Context']} />
                 <CategorySection title="Visuals" nodes={filteredCategories['Visuals']} />
                 <CategorySection title="Advanced" nodes={filteredCategories['Advanced']} />
 

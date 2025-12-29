@@ -1,0 +1,1807 @@
+
+> flowcal@0.0.0 test:run
+> vitest run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.16 [39m[90mC:/Users/exfho/OneDrive/Desktop/Code/flowcal[39m
+
+ [32mÔ£ô[39m src/engine/evaluator.test.js [2m([22m[2m16 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/components/flow/node/NodeHandles.test.js [2m([22m[2m18 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [31mÔØ»[39m src/components/flow/node/NodeHeader.test.jsx [2m([22m[2m11 tests[22m[2m | [22m[31m9 failed[39m[2m)[22m[32m 70[2mms[22m[39m
+     [32mÔ£ô[39m renders node label correctly[32m 21[2mms[22m[39m
+[31m     [31m├ù[31m renders node type label[39m[32m 10[2mms[22m[39m
+[31m     [31m├ù[31m calls handleChange when label is edited[39m[32m 4[2mms[22m[39m
+[31m     [31m├ù[31m shows default label if data.label is missing[39m[32m 4[2mms[22m[39m
+[31m     [31m├ù[31m unlock icon shown when locked and canUnlock is true[39m[32m 5[2mms[22m[39m
+     [32mÔ£ô[39m lock icon shown when not locked[32m 2[2mms[22m[39m
+[31m     [31m├ù[31m calls handleLockToggle when lock icon clicked[39m[32m 4[2mms[22m[39m
+[31m     [31m├ù[31m duplicate button calls onDuplicate[39m[32m 5[2mms[22m[39m
+[31m     [31m├ù[31m delete button calls onDelete[39m[32m 5[2mms[22m[39m
+[31m     [31m├ù[31m delete button disabled when cannot edit[39m[32m 5[2mms[22m[39m
+[31m     [31m├ù[31m shows type warning if present[39m[32m 4[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 9 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/components/flow/node/NodeHeader.test.jsx > NodeHeader Component > renders node type label
+TestingLibraryElementError: Unable to find an element with the text: Number Input. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+ ÔØ» Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ÔØ» src/components/flow/node/NodeHeader.test.jsx:64:23
+     62|         render(<NodeHeader {...defaultProps} />);
+     63|         // "Number Input" is expected for INPUT type
+     64|         expect(screen.getByText('Number Input')).toBeDefined();
+       |                       ^
+     65|     });
+     66| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/9]ÔÄ»
+
+ FAIL  src/components/flow/node/NodeHeader.test.jsx > NodeHeader Component > calls handleChange when label is edited
+TestingLibraryElementError: Found multiple elements with the display value: Test Node.
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+<input
+  class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+  placeholder="Number Input"
+  type="text"
+  value="Test Node"
+/>
+
+Ignored nodes: comments, script, style
+<input
+  class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+  placeholder="Number Input"
+  type="text"
+  value="Test Node"
+/>
+
+Ignored nodes: comments, script, style
+<input
+  class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+  placeholder="Number Input"
+  type="text"
+  value="Test Node"
+/>
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+ ÔØ» Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ÔØ» getElementError node_modules/@testing-library/dom/dist/query-helpers.js:20:35
+ ÔØ» getMultipleElementsFoundError node_modules/@testing-library/dom/dist/query-helpers.js:23:10
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ÔØ» src/components/flow/node/NodeHeader.test.jsx:69:30
+     67|     test('calls handleChange when label is edited', () => {
+     68|         render(<NodeHeader {...defaultProps} />);
+     69|         const input = screen.getByDisplayValue('Test Node');
+       |                              ^
+     70|         fireEvent.change(input, { target: { value: 'New Name' } });
+     71|         expect(mockHandleChange).toHaveBeenCalledWith('label', 'New NaÔÇª
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/9]ÔÄ»
+
+ FAIL  src/components/flow/node/NodeHeader.test.jsx > NodeHeader Component > shows default label if data.label is missing
+TestingLibraryElementError: Unable to find an element with the placeholder text of: Node Name
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value=""
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+ ÔØ» Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ÔØ» src/components/flow/node/NodeHeader.test.jsx:76:23
+     74|     test('shows default label if data.label is missing', () => {
+     75|         render(<NodeHeader {...defaultProps} data={{}} />);
+     76|         expect(screen.getByPlaceholderText('Node Name')).toBeDefined();
+       |                       ^
+     77|     });
+     78| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/9]ÔÄ»
+
+ FAIL  src/components/flow/node/NodeHeader.test.jsx > NodeHeader Component > unlock icon shown when locked and canUnlock is true
+TestingLibraryElementError: Found multiple elements by: [data-testid="icon-unlock"]
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-unlock"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-unlock"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-unlock"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-unlock"
+/>
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-7...
+ ÔØ» Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ÔØ» getElementError node_modules/@testing-library/dom/dist/query-helpers.js:20:35
+ ÔØ» getMultipleElementsFoundError node_modules/@testing-library/dom/dist/query-helpers.js:23:10
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ÔØ» src/components/flow/node/NodeHeader.test.jsx:81:23
+     79|     test('unlock icon shown when locked and canUnlock is true', () => {
+     80|         render(<NodeHeader {...defaultProps} data={{ locked: true }} cÔÇª
+     81|         expect(screen.getByTestId('icon-unlock')).toBeDefined();
+       |                       ^
+     82|     });
+     83| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/9]ÔÄ»
+
+ FAIL  src/components/flow/node/NodeHeader.test.jsx > NodeHeader Component > calls handleLockToggle when lock icon clicked
+AssertionError: expected "vi.fn()" to be called at least once
+ ÔØ» src/components/flow/node/NodeHeader.test.jsx:93:38
+     91|         const lockBtn = screen.getByTestId('icon-lock').parentElement;
+     92|         fireEvent.mouseDown(lockBtn); // It uses onMouseDown
+     93|         expect(mockHandleLockToggle).toHaveBeenCalled();
+       |                                      ^
+     94|     });
+     95| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/9]ÔÄ»
+
+ FAIL  src/components/flow/node/NodeHeader.test.jsx > NodeHeader Component > duplicate button calls onDuplicate
+TestingLibraryElementError: Found multiple elements by: [data-testid="icon-copy"]
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-copy"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-copy"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-copy"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-copy"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-copy"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-copy"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-copy"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-copy"
+/>
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-7...
+ ÔØ» Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ÔØ» getElementError node_modules/@testing-library/dom/dist/query-helpers.js:20:35
+ ÔØ» getMultipleElementsFoundError node_modules/@testing-library/dom/dist/query-helpers.js:23:10
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ÔØ» src/components/flow/node/NodeHeader.test.jsx:98:32
+     96|     test('duplicate button calls onDuplicate', () => {
+     97|         render(<NodeHeader {...defaultProps} />);
+     98|         const copyBtn = screen.getByTestId('icon-copy').parentElement;
+       |                                ^
+     99|         fireEvent.click(copyBtn);
+    100|         expect(mockOnDuplicate).toHaveBeenCalledWith('node-1', expect.ÔÇª
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/9]ÔÄ»
+
+ FAIL  src/components/flow/node/NodeHeader.test.jsx > NodeHeader Component > delete button calls onDelete
+TestingLibraryElementError: Found multiple elements by: [data-testid="icon-trash"]
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-7...
+ ÔØ» Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ÔØ» getElementError node_modules/@testing-library/dom/dist/query-helpers.js:20:35
+ ÔØ» getMultipleElementsFoundError node_modules/@testing-library/dom/dist/query-helpers.js:23:10
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ÔØ» src/components/flow/node/NodeHeader.test.jsx:105:33
+    103|     test('delete button calls onDelete', () => {
+    104|         render(<NodeHeader {...defaultProps} />);
+    105|         const trashBtn = screen.getByTestId('icon-trash').parentElemenÔÇª
+       |                                 ^
+    106|         fireEvent.click(trashBtn);
+    107|         expect(mockOnDelete).toHaveBeenCalledWith('node-1');
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[7/9]ÔÄ»
+
+ FAIL  src/components/flow/node/NodeHeader.test.jsx > NodeHeader Component > delete button disabled when cannot edit
+TestingLibraryElementError: Found multiple elements by: [data-testid="icon-trash"]
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+Ignored nodes: comments, script, style
+<div
+  data-testid="icon-trash"
+/>
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-7...
+ ÔØ» Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ÔØ» getElementError node_modules/@testing-library/dom/dist/query-helpers.js:20:35
+ ÔØ» getMultipleElementsFoundError node_modules/@testing-library/dom/dist/query-helpers.js:23:10
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:55:13
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ÔØ» src/components/flow/node/NodeHeader.test.jsx:115:33
+    113|         // The implementation might hide it or disable styling. 
+    114|         // Let's check if the button has disabled class or attribute iÔÇª
+    115|         const trashBtn = screen.getByTestId('icon-trash').parentElemenÔÇª
+       |                                 ^
+    116|         // In NodeHeader implementation: generic buttons might not be ÔÇª
+    117|         // Let's assume implementation does legitimate check.
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[8/9]ÔÄ»
+
+ FAIL  src/components/flow/node/NodeHeader.test.jsx > NodeHeader Component > shows type warning if present
+TestingLibraryElementError: Unable to find an element by: [data-testid="icon-shield-alert"]
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-700 dark:text-slate-200 font-semibold text-sm w-full focus:outline-none focus:ring-0 placeholder:text-slate-500 dark:placeholder:text-slate-500 truncate"
+          placeholder="Number Input"
+          type="text"
+          value="Test Node"
+        />
+      </div>
+      <div
+        class="flex gap-1 items-center"
+      >
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Lock Node"
+        >
+          <div
+            data-testid="icon-unlock"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-300 hover:text-slate-500"
+          title="Make Read-Only"
+        >
+          <div
+            data-testid="icon-shield"
+          />
+        </button>
+        <button
+          class="p-1 rounded text-slate-400 hover:text-blue-500 dark:hover:text-blue-400"
+          title="Toggle Slider"
+        >
+          <div
+            data-testid="icon-settings"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 p-1"
+          title="Duplicate (Ctrl+D)"
+        >
+          <div
+            data-testid="icon-copy"
+          />
+        </button>
+        <button
+          class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1"
+        >
+          <div
+            data-testid="icon-trash"
+          />
+        </button>
+      </div>
+    </div>
+  </div>
+  <div>
+    <div
+      class="flex items-center justify-between p-2 rounded-t-lg border-b select-none transition-colors
+                "
+      style="background-color: var(--bg-tertiary); border-color: var(--border-primary);"
+    >
+      <div
+        class="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0"
+      >
+        <span
+          class="p-1 rounded shadow-sm shrink-0 bg-white dark:bg-slate-700 text-blue-600"
+        >
+          <div
+            data-testid="node-icon"
+            style="width: 16px; height: 16px;"
+          />
+        </span>
+        <input
+          class="bg-transparent border-none p-0 text-slate-7...
+ ÔØ» Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ÔØ» node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ÔØ» src/components/flow/node/NodeHeader.test.jsx:131:23
+    129|         // if (data.typeWarning) ... <ShieldAlert />
+    130|         // Let's check for ShieldAlert
+    131|         expect(screen.getByTestId('icon-shield-alert')).toBeDefined();
+       |                       ^
+    132|     });
+    133| });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[9/9]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m2 passed[39m[22m[90m (3)[39m
+[2m      Tests [22m [1m[31m9 failed[39m[22m[2m | [22m[1m[32m36 passed[39m[22m[90m (45)[39m
+[2m   Start at [22m 09:47:07
+[2m   Duration [22m 1.21s[2m (transform 153ms, setup 0ms, import 527ms, tests 97ms, environment 1.51s)[22m
+

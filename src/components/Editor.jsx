@@ -14,20 +14,18 @@ import { CustomNodeModal } from './ui/CustomNodeModal';
 import { FlowSettingsPanel } from './flow/FlowSettingsPanel';
 import { generateId } from '../utils/ids';
 import { getHandlePosition, getBezierPath } from '../utils/geometry';
+import { HANDLE_POSITIONS } from '../utils/handlePositions';
 import { getNodeHeight } from '../utils/layout';
-import { evaluateGraph, ENGINE_SCRIPT } from '../engine/evaluator';
+import { evaluateGraph } from '../engine/evaluator';
 import { useDebounce } from '../hooks/useDebounce';
 import { useHistory } from '../hooks/useHistory';
 import { getCustomNodes, saveCustomNode, createCustomNodeFromGroup, instantiateCustomNode, deleteCustomNode, exportCustomNode, importCustomNode } from '../utils/customNodeStore';
+import { isTypeCompatible, getNodeOutputType, parseTypeDef } from '../utils/typeUtils';
+import { validateFlow } from '../utils/validation';
+import { copyToClipboard, prepareForPaste, hasClipboardContent, canCopyFromContext } from '../utils/clipboardStore';
 
-// Helper to match engine resolution logic
-const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
-  if (targetType === 'GET_KEY' || targetType === 'GET' || targetType === 'GROUP_INPUT_LIST') return rawVal;
-  if (sourceType === 'FORM' || sourceType === 'GROUP_INPUT' || sourceType === 'GROUP_INPUT_LIST') return rawVal;
-  if (typeof rawVal === 'object' && rawVal !== null && handle) return rawVal[handle] ?? 0;
-  if (typeof rawVal === 'object' && rawVal !== null && !Array.isArray(rawVal)) return Object.values(rawVal)[0] ?? 0;
-  return rawVal;
-};
+// Use centralized value resolution logic (single source of truth)
+import { resolveSourceValue } from '../engine/valueResolution';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -74,6 +72,7 @@ export default function Editor() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [spacePressed, setSpacePressed] = useState(false);
 
   // Load Cloud Flow on Mount
   useEffect(() => {
@@ -172,6 +171,53 @@ export default function Editor() {
   const debouncedNodes = useDebounce(nodes, 50);
   const debouncedEdges = useDebounce(edges, 50);
 
+  // Compute type warnings for edges connected to GROUP nodes with typed inputs
+  const typeWarnings = useMemo(() => {
+    const warnings = {};
+    edges.forEach(edge => {
+      const targetNode = nodes.find(n => n.id === edge.target);
+      if (!targetNode) return;
+
+      // For GROUP nodes, check if the input has a type defined
+      if (targetNode.type === 'GROUP' && targetNode.data.subGraph) {
+        const inputNode = targetNode.data.subGraph.nodes.find(n => n.id === edge.targetHandle);
+        if (inputNode && inputNode.data?.typeDef && inputNode.data.typeDef !== 'any') {
+          // Get source type
+          const sourceNode = nodes.find(n => n.id === edge.source);
+          let sourceType;
+
+          if (sourceNode?.type === 'GROUP') {
+            // For GROUP nodes, get the output node's type
+            const outputNode = sourceNode.data.subGraph?.nodes.find(n => n.id === edge.sourceHandle);
+            sourceType = outputNode?.data?.typeDef || 'any';
+          } else if (sourceNode?.data?.typeDef && sourceNode.data.typeDef !== 'any') {
+            // For nodes with explicit type definitions (FORM, PACK), use that
+            sourceType = sourceNode.data.typeDef;
+          } else {
+            // Fall back to built-in type map
+            sourceType = getNodeOutputType(sourceNode?.type);
+          }
+
+          // Parse both type definitions to get the actual types
+          const { inputType: sourceInputType } = parseTypeDef(sourceType);
+          const { inputType: targetInputType } = parseTypeDef(inputNode.data.typeDef);
+
+          // Use the parsed input types for comparison
+          const actualSourceType = sourceInputType || sourceType;
+          const actualTargetType = targetInputType || inputNode.data.typeDef;
+
+
+          // Check compatibility using parsed types
+          if (!isTypeCompatible(actualSourceType, actualTargetType)) {
+            const warningKey = `${edge.target}:${edge.targetHandle}`;
+            warnings[warningKey] = true;
+          }
+        }
+      }
+    });
+    return warnings;
+  }, [nodes, edges]);
+
   // Theme State
   const [theme, setTheme] = useState(() => getStoredTheme());
 
@@ -179,10 +225,38 @@ export default function Editor() {
     applyTheme(theme);
   }, [theme]);
 
-  // Load custom nodes on mount
   useEffect(() => {
     setCustomNodes(getCustomNodes());
   }, []);
+
+  // Keyboard shortcuts for Copy/Cut/Paste
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
+      }
+
+      // Check for Ctrl+C (Copy)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        handleCopy();
+      }
+      // Check for Ctrl+V (Paste)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        handlePaste();
+      }
+      // Check for Ctrl+X (Cut)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'x') {
+        e.preventDefault();
+        handleCut();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nodes, edges, selectedIds, path, isAdmin]);
 
   // Handle saving a GROUP as a custom node
   const handleSaveAsCustomNode = (groupNode) => {
@@ -255,6 +329,64 @@ export default function Editor() {
     return true;
   }, [isContextReadOnly, user]);
 
+  // --- Copy/Paste Handlers ---
+  const handleCopy = useCallback(() => {
+    if (selectedIds.size === 0) return;
+
+    // Check read-only permission
+    if (isContextReadOnly && !canCopyFromContext(isContextReadOnly, isAdmin)) {
+      alert('Cannot copy from this read-only context.');
+      return;
+    }
+
+    const selectedNodes = nodes.filter(n => selectedIds.has(n.id));
+    const sourceLevel = path.length > 0 ? path[path.length - 1].id : 'root';
+    copyToClipboard(selectedNodes, edges, sourceLevel);
+  }, [nodes, edges, selectedIds, path, isContextReadOnly, isAdmin]);
+
+  const handlePaste = useCallback(() => {
+    if (!hasClipboardContent()) return;
+
+    // Check if action is allowed in current context
+    if (isContextReadOnly && !isAdmin) {
+      alert('Cannot paste in this read-only context.');
+      return;
+    }
+
+    const { nodes: pastedNodes, edges: pastedEdges } = prepareForPaste({ x: 30, y: 30 });
+
+    if (pastedNodes.length === 0) return;
+
+    // Add pasted nodes and edges to graph
+    setGraph({
+      nodes: [...nodes, ...pastedNodes],
+      edges: [...edges, ...pastedEdges]
+    });
+
+    // Select the newly pasted nodes
+    setSelectedIds(new Set(pastedNodes.map(n => n.id)));
+  }, [nodes, edges, isContextReadOnly, isAdmin, setGraph]);
+
+  const handleCut = useCallback(() => {
+    if (selectedIds.size === 0) return;
+
+    // Check if action is allowed
+    if (isContextReadOnly && !isAdmin) {
+      alert('Cannot cut from this read-only context.');
+      return;
+    }
+
+    // Copy first
+    handleCopy();
+
+    // Then delete selected nodes and their edges
+    const newNodes = nodes.filter(n => !selectedIds.has(n.id));
+    const newEdges = edges.filter(e => !selectedIds.has(e.source) && !selectedIds.has(e.target));
+
+    setGraph({ nodes: newNodes, edges: newEdges });
+    setSelectedIds(new Set());
+  }, [nodes, edges, selectedIds, isContextReadOnly, isAdmin, handleCopy, setGraph]);
+
   // --- Engine Integration ---
   useEffect(() => {
     // Reuse evaluateGraph logic for consistent results
@@ -271,44 +403,93 @@ export default function Editor() {
         if (groupNode) {
           const subContext = {};
           const connectedEdges = frame.edges.filter(e => e.target === groupId);
-          connectedEdges.forEach(edge => {
-            const rawVal = frameResults[edge.source];
-            const sourceNode = frame.nodes.find(n => n.id === edge.source);
 
-            // Determine internal target type
-            let internalTargetType = undefined;
-            if (edge.targetHandle) {
-              const targetNode = groupNode.data.subGraph?.nodes.find(n => n.id === edge.targetHandle);
-              if (targetNode) internalTargetType = targetNode.type;
-            } else {
-              const firstInput = groupNode.data.subGraph?.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
-              if (firstInput) internalTargetType = firstInput.type;
-            }
+          // Handle GROUP nodes
+          if (groupNode.type === 'GROUP') {
+            connectedEdges.forEach(edge => {
+              const rawVal = frameResults[edge.source];
+              const sourceNode = frame.nodes.find(n => n.id === edge.source);
 
-            // Use shared helper
-            const val = resolveSourceValue(rawVal, edge.sourceHandle, sourceNode?.type, internalTargetType);
-
-            if (edge.targetHandle) {
-              const targetNode = groupNode.data.subGraph?.nodes.find(n => n.id === edge.targetHandle);
-              if (targetNode && targetNode.type === 'GROUP_INPUT_LIST') {
-                if (!subContext[edge.targetHandle]) subContext[edge.targetHandle] = [];
-                subContext[edge.targetHandle].push(val);
+              // Determine internal target type
+              let internalTargetType = undefined;
+              if (edge.targetHandle) {
+                const targetNode = groupNode.data.subGraph?.nodes.find(n => n.id === edge.targetHandle);
+                if (targetNode) internalTargetType = targetNode.type;
               } else {
-                subContext[edge.targetHandle] = val;
+                const firstInput = groupNode.data.subGraph?.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
+                if (firstInput) internalTargetType = firstInput.type;
               }
-            } else {
-              // Default handle logic for groups (rarely used but good for completeness)
-              const firstInput = groupNode.data.subGraph?.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
-              if (firstInput) {
-                if (firstInput.type === 'GROUP_INPUT_LIST') {
-                  if (!subContext[firstInput.id]) subContext[firstInput.id] = [];
-                  subContext[firstInput.id].push(val);
+
+              // Use shared helper
+              const val = resolveSourceValue(rawVal, edge.sourceHandle, sourceNode?.type, internalTargetType);
+
+              if (edge.targetHandle) {
+                const targetNode = groupNode.data.subGraph?.nodes.find(n => n.id === edge.targetHandle);
+                if (targetNode && targetNode.type === 'GROUP_INPUT_LIST') {
+                  if (!subContext[edge.targetHandle]) subContext[edge.targetHandle] = [];
+                  subContext[edge.targetHandle].push(val);
                 } else {
-                  subContext[firstInput.id] = val;
+                  subContext[edge.targetHandle] = val;
+                }
+              } else {
+                // Default handle logic for groups (rarely used but good for completeness)
+                const firstInput = groupNode.data.subGraph?.nodes.find(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST');
+                if (firstInput) {
+                  if (firstInput.type === 'GROUP_INPUT_LIST') {
+                    if (!subContext[firstInput.id]) subContext[firstInput.id] = [];
+                    subContext[firstInput.id].push(val);
+                  } else {
+                    subContext[firstInput.id] = val;
+                  }
                 }
               }
+            });
+          }
+          // Handle Iterator nodes (MAP, FILTER, REDUCE) - use first array item for preview
+          else if (groupNode.type === 'MAP' || groupNode.type === 'FILTER' || groupNode.type === 'REDUCE') {
+            // Get the input array from edges
+            let inputArray = [];
+            connectedEdges.forEach(edge => {
+              const rawVal = frameResults[edge.source];
+              if (Array.isArray(rawVal)) {
+                inputArray = rawVal;
+              } else if (rawVal && typeof rawVal === 'object') {
+                // Try to get from handle or first value
+                const sourceNode = frame.nodes.find(n => n.id === edge.source);
+                const val = resolveSourceValue(rawVal, edge.sourceHandle, sourceNode?.type, groupNode.type);
+                if (Array.isArray(val)) {
+                  inputArray = val;
+                }
+              }
+            });
+
+            // Use first item as preview
+            const previewItem = inputArray.length > 0 ? inputArray[0] : null;
+            const previewIndex = 0;
+
+            // Find context nodes in the CURRENT subgraph (debouncedNodes), not the stale path data
+            // This is critical because user may have added context nodes AFTER entering the iterator
+            const subNodes = debouncedNodes;
+            if (groupNode.type === 'MAP') {
+              const mapItemNode = subNodes.find(n => n.type === 'MAP_ITEM');
+              const mapIndexNode = subNodes.find(n => n.type === 'MAP_INDEX');
+              if (mapItemNode) subContext[mapItemNode.id] = previewItem;
+              if (mapIndexNode) subContext[mapIndexNode.id] = previewIndex;
+            } else if (groupNode.type === 'FILTER') {
+              const filterItemNode = subNodes.find(n => n.type === 'FILTER_ITEM');
+              const filterIndexNode = subNodes.find(n => n.type === 'FILTER_INDEX');
+              if (filterItemNode) subContext[filterItemNode.id] = previewItem;
+              if (filterIndexNode) subContext[filterIndexNode.id] = previewIndex;
+            } else if (groupNode.type === 'REDUCE') {
+              const reduceItemNode = subNodes.find(n => n.type === 'REDUCE_ITEM');
+              const reduceIndexNode = subNodes.find(n => n.type === 'REDUCE_INDEX');
+              const reduceAccNode = subNodes.find(n => n.type === 'REDUCE_ACCUMULATOR');
+              if (reduceItemNode) subContext[reduceItemNode.id] = previewItem;
+              if (reduceIndexNode) subContext[reduceIndexNode.id] = previewIndex;
+              if (reduceAccNode) subContext[reduceAccNode.id] = groupNode.data.initialValue ?? 0;
             }
-          });
+          }
+
           currentContext = subContext;
         }
       }
@@ -495,58 +676,54 @@ export default function Editor() {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
+        const fileSize = event.target.result.length;
         const config = JSON.parse(event.target.result);
-        if (Array.isArray(config.nodes) && Array.isArray(config.edges)) {
-          setGraph({ nodes: config.nodes, edges: config.edges }); // Commit to history
-          if (config.title) {
-            setProjectTitle(config.title);
-          }
-          if (config.viewport) {
-            setPan(config.viewport.pan || { x: 0, y: 0 });
-            setScale(config.viewport.scale || 1);
-          }
+
+        // Validate and sanitize the imported flow
+        const validation = validateFlow(config, fileSize);
+        if (!validation.valid) {
+          alert(`Import failed: ${validation.error}`);
+          return;
+        }
+
+        // Warn about code nodes
+        if (validation.warnings && validation.warnings.length > 0) {
+          const proceed = window.confirm(
+            `Warning:\n${validation.warnings.join('\n')}\n\nDo you want to continue?`
+          );
+          if (!proceed) return;
+        }
+
+        setGraph(validation.data); // Commit validated data to history
+        if (config.title) {
+          setProjectTitle(config.title);
+        }
+        if (config.viewport) {
+          setPan(config.viewport.pan || { x: 0, y: 0 });
+          setScale(config.viewport.scale || 1);
         }
       } catch (err) {
-        console.error("Failed to load config", err);
+        alert(`Failed to parse file: ${err.message}`);
       }
     };
     reader.readAsText(file);
     e.target.value = null;
   };
 
-  const handleExportJS = () => {
-    if (path.length > 0) {
-      alert("Please return to Root level to export the full application.");
-      return;
-    }
-    const graphData = { nodes, edges };
-    const fileContent = `
-${ENGINE_SCRIPT}
-const graphData = ${JSON.stringify(graphData, null, 2)};
-console.log("Starting Calculation...");
-const results = evaluateGraph(graphData.nodes, graphData.edges);
-console.log("Final Results:", results);
-if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData };
-`;
-    const blob = new Blob([fileContent], { type: 'text/javascript' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `flowcalc - runner.js`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+
 
   // --- Helpers ---
 
+  // Node types that have subGraphs (can be entered by double-click)
+  const SUBGRAPH_NODE_TYPES = ['GROUP', 'MAP', 'FILTER', 'REDUCE'];
+
   const enterGroup = (groupId) => {
     const groupNode = nodes.find(n => n.id === groupId);
-    if (!groupNode || groupNode.type !== 'GROUP') return;
+    if (!groupNode || !SUBGRAPH_NODE_TYPES.includes(groupNode.type)) return;
     const subGraph = groupNode.data.subGraph || { nodes: [], edges: [] };
 
     // Push current level to path
-    setPath(prev => [...prev, { id: groupId, label: groupNode.data.label || 'Group', nodes, edges, viewport: { pan, scale } }]);
+    setPath(prev => [...prev, { id: groupId, label: groupNode.data.label || groupNode.type, nodes, edges, viewport: { pan, scale } }]);
 
     // We set the graph state to the subgraph, but we need to handle history carefully.
     // For simplicity: History is cleared/reset when entering a group (new context).
@@ -644,6 +821,28 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo, canUndo, canRedo]);
 
+  // Track spacebar for pan mode
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space' && !e.repeat && !e.target.closest('input, textarea, [contenteditable="true"]')) {
+        e.preventDefault();
+        setSpacePressed(true);
+      }
+    };
+    const handleKeyUp = (e) => {
+      if (e.code === 'Space') {
+        setSpacePressed(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+
   const handleWheel = useCallback((e) => {
     e.preventDefault(); e.stopPropagation();
     const zoomSensitivity = 0.001;
@@ -668,15 +867,33 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
   }, [handleWheel]);
 
   const handleMouseDown = (e) => {
-    if (e.button === 0 && e.target === containerRef.current) {
-      if (!e.shiftKey) setSelectedIds(new Set());
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = (e.clientX - rect.left - pan.x) / scale;
-      const y = (e.clientY - rect.top - pan.y) / scale;
-      setSelectionBox({ start: { x, y }, current: { x, y } });
-      if (!e.shiftKey) {
-        setSelectionBox(null);
+    // Middle mouse button (button 1) always pans from anywhere
+    if (e.button === 1) {
+      e.preventDefault();
+      setDragState({ type: 'pan', startPan: { ...pan }, startMouse: { x: e.clientX, y: e.clientY } });
+      return;
+    }
+
+    // Left click (button 0)
+    if (e.button === 0) {
+      // Spacebar held + left click: pan from anywhere
+      if (e.target.closest && spacePressed) {
+        e.preventDefault();
         setDragState({ type: 'pan', startPan: { ...pan }, startMouse: { x: e.clientX, y: e.clientY } });
+        return;
+      }
+
+      // Normal left click on canvas container only
+      if (e.target === containerRef.current) {
+        if (!e.shiftKey) setSelectedIds(new Set());
+        const rect = containerRef.current.getBoundingClientRect();
+        const x = (e.clientX - rect.left - pan.x) / scale;
+        const y = (e.clientY - rect.top - pan.y) / scale;
+        setSelectionBox({ start: { x, y }, current: { x, y } });
+        if (!e.shiftKey) {
+          setSelectionBox(null);
+          setDragState({ type: 'pan', startPan: { ...pan }, startMouse: { x: e.clientX, y: e.clientY } });
+        }
       }
     }
   };
@@ -804,7 +1021,12 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         let targetHandle = null;
         // Determine Target Handle based on drop position
         if (targetNode.type === 'GROUP') {
-          const handles = targetNode.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT') || [];
+          const allInputs = targetNode.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST') || [];
+          // Sort by inputOrder if it exists, otherwise use original order
+          const inputOrder = targetNode.data.inputOrder;
+          const handles = inputOrder
+            ? inputOrder.map(id => allInputs.find(h => h.id === id)).filter(Boolean)
+            : allInputs;
           let minDist = 1000;
           handles.forEach((h, i) => {
             const hy = targetNode.position.y + 40 + (i * 24);
@@ -834,11 +1056,29 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         } else if (targetNode.type === 'FORM' && targetNode.data.showInputs) {
           const fields = targetNode.data.fields || [];
           let minDist = 1000;
-          fields.forEach((_, i) => {
-            const hy = targetNode.position.y + 48 + (i * 30);
+          const formPos = HANDLE_POSITIONS.FORM;
+          fields.forEach((f, i) => {
+            const hy = targetNode.position.y + formPos.base + (i * formPos.rowHeight);
             const dist = Math.abs(my - hy);
             if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = `field_${i}`; }
           });
+        } else if (targetNode.type === 'PACK') {
+          // PACK has dynamic inputs based on keys
+          const keys = targetNode.data.keys || [];
+          if (keys.length > 0) {
+            const packPos = HANDLE_POSITIONS.PACK;
+            let minDist = Infinity;
+            let closestKey = keys[0];
+            keys.forEach((key, i) => {
+              const hy = targetNode.position.y + packPos.base + (i * packPos.rowHeight);
+              const dist = Math.abs(my - hy);
+              if (dist < minDist) {
+                minDist = dist;
+                closestKey = key;
+              }
+            });
+            targetHandle = closestKey;
+          }
         }
 
         const exists = edges.some(edge =>
@@ -901,7 +1141,6 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         lastSaved={lastSaved}
         isGuest={!user}
         onLoad={handleLoad}
-        onExportJS={handleExportJS}
         fileInputRef={fileInputRef}
         pathLength={path.length}
         theme={theme}
@@ -915,13 +1154,23 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
         onExportCustomNode={exportCustomNode}
         onOpenSettings={() => setSettingsPanelOpen(true)}
         isRestricted={(flowSettings.preventDownload && user?.id !== flowOwnerId && !user?.app_metadata?.claims_admin) || nodes.some(n => n.data.locked && n.data.lockedBy !== user?.id && !user?.app_metadata?.claims_admin)}
+        currentIterator={path.length > 0 ? (() => {
+          // Determine which iterator type we're currently inside (if any)
+          const lastFrame = path[path.length - 1];
+          const groupNode = lastFrame.nodes.find(n => n.id === lastFrame.id);
+          if (groupNode && ['MAP', 'FILTER', 'REDUCE'].includes(groupNode.type)) {
+            return groupNode.type;
+          }
+          return null;
+        })() : null}
       />
 
       {/* Canvas */}
       <div
         ref={containerRef}
         style={{ backgroundColor: 'var(--bg-primary)' }}
-        className="flex-1 relative overflow-hidden cursor-grab active:cursor-grabbing transition-colors duration-200"
+        className={`flex-1 relative overflow-hidden transition-colors duration-200 ${spacePressed ? 'cursor-grab' : ''
+          } ${dragState?.type === 'pan' ? 'cursor-grabbing' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -1060,6 +1309,7 @@ if (typeof module !== 'undefined') module.exports = { evaluateGraph, graphData }
               readOnly={node.data.readOnly || !isActionAllowed()}
               onOpenEditor={(id, code, inputs) => setEditor({ isOpen: true, nodeId: id, code, inputs })}
               onSaveAsCustom={handleSaveAsCustomNode}
+              typeWarnings={typeWarnings}
             />
           ))}
           {selectionBox && <SelectionBox rect={selectionBox} />}

@@ -104,9 +104,48 @@ export const HelpModal = ({ isOpen, onClose }) => {
                             <div><strong>Object:</strong> Object manipulation</div>
                             <div><strong>Logic:</strong> Conditions, comparisons</div>
                             <div><strong>Math:</strong> Calculations</div>
+                            <div><strong>Iterator:</strong> MAP, FILTER, REDUCE</div>
                             <div><strong>Visuals:</strong> Charts, tables, output</div>
                             <div><strong>Advanced:</strong> Custom code, groups</div>
                         </div>
+                    </section>
+
+                    {/* Iterator Nodes */}
+                    <section>
+                        <h3 className="text-lg font-semibold mb-3" style={{ color: 'var(--accent-primary)' }}>Iterator Nodes (MAP, FILTER, REDUCE)</h3>
+                        <p className="mb-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            Process arrays item-by-item with custom logic. Similar to JavaScript's <code>.map()</code>, <code>.filter()</code>, and <code>.reduce()</code>.
+                        </p>
+                        <ul className="space-y-3 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                            <li>
+                                <strong style={{ color: 'var(--accent-primary)' }}>MAP:</strong> Transform each item in an array.
+                                <ol className="ml-4 mt-1 list-decimal space-y-1">
+                                    <li>Add a MAP node and connect an array to its input</li>
+                                    <li>Click the gear icon to enter the MAP</li>
+                                    <li>Add <strong>Current Item</strong> and <strong>Map Output</strong> nodes from Iterator Context</li>
+                                    <li>Build your transformation logic between them</li>
+                                    <li>Exit back - output is the transformed array</li>
+                                </ol>
+                            </li>
+                            <li>
+                                <strong style={{ color: 'var(--accent-primary)' }}>FILTER:</strong> Keep only items that match a condition.
+                                <ol className="ml-4 mt-1 list-decimal space-y-1">
+                                    <li>Add a FILTER node and enter it</li>
+                                    <li>Use <strong>Current Item</strong> and <strong>Include Item</strong> nodes</li>
+                                    <li>Connect a boolean (true/false) to Include Item</li>
+                                    <li>Only items where Include is true are kept</li>
+                                </ol>
+                            </li>
+                            <li>
+                                <strong style={{ color: 'var(--accent-primary)' }}>REDUCE:</strong> Accumulate items into a single value.
+                                <ol className="ml-4 mt-1 list-decimal space-y-1">
+                                    <li>Set the initial value in the REDUCE node's data</li>
+                                    <li>Enter and use <strong>Current Item</strong>, <strong>Accumulator</strong>, and <strong>New Accumulator</strong></li>
+                                    <li>Connect your reduction logic (e.g., SUM of Accumulator + Item)</li>
+                                    <li>Output is the final accumulated value</li>
+                                </ol>
+                            </li>
+                        </ul>
                     </section>
 
                     {/* Tips */}

@@ -68,18 +68,25 @@ export const exportCustomNode = (id) => {
  */
 export const importCustomNode = (jsonString) => {
     try {
-        const node = JSON.parse(jsonString);
+        const parsed = JSON.parse(jsonString);
 
-        // Validate required fields
-        if (!node.name || !node.subGraph) {
-            throw new Error('Invalid custom node format');
+        // Validate and sanitize the imported custom node
+        const { validateCustomNode } = require('./validation');
+        const validation = validateCustomNode(parsed);
+
+        if (!validation.valid) {
+            throw new Error(validation.error);
         }
+
+        const node = validation.data;
 
         // Ensure unique ID on import
         node.id = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         node.importedAt = new Date().toISOString();
 
-        return saveCustomNode(node);
+        // Return the save result plus any warnings
+        const savedNodes = saveCustomNode(node);
+        return { nodes: savedNodes, warnings: validation.warnings || [] };
     } catch (e) {
         console.error('Failed to import custom node:', e);
         throw e;

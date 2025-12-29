@@ -5,12 +5,13 @@ import {
     Play, Settings, Code, FileText, Database,
     Plus, Minus, X, Divide, Percent, Hash,
     Maximize, Minimize, ArrowDownUp,
-    Gauge, Activity, AlignLeft,
+    Gauge, Activity, AlignLeft, AlignCenter,
     HelpCircle, MoreHorizontal,
-    ListPlus, Radio,
+    ListPlus, ListMinus, Radio,
     GripVertical, LayoutTemplate, ArrowLeftRight, GitBranch,
     ListOrdered, Scissors, Filter, TrendingUp,
-    MessageSquare, Braces, PackageOpen, Package, Flag
+    MessageSquare, Braces, PackageOpen, Package, Flag,
+    Repeat, IterationCw, Target, CheckCircle, Sigma
 } from 'lucide-react';
 
 export const NODE_UI = {
@@ -56,13 +57,30 @@ export const NODE_UI = {
     GROUP_INPUT: { icon: ArrowRight, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
     GROUP_INPUT_LIST: { icon: ListPlus, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
     GROUP_OUTPUT: { icon: ArrowLeft, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
+    GROUP_OUTPUT_LIST: { icon: ListMinus, color: 'pink', colorClass: 'bg-pink-100 text-pink-600' },
     WARP_IN: { icon: Radio, color: 'purple', colorClass: 'bg-purple-100 text-purple-600' },
     WARP_OUT: { icon: Radio, color: 'purple', colorClass: 'bg-purple-100 text-purple-600' },
     COMMENT: { icon: MessageSquare, color: 'amber', colorClass: 'bg-amber-100 text-amber-600' },
+    TEXT_LABEL: { icon: AlignCenter, color: 'slate', colorClass: 'bg-slate-100 text-slate-600' },
     FUNCTION: { icon: Braces, color: 'emerald', colorClass: 'bg-emerald-100 text-emerald-600' },
     FRAME: { icon: Box, color: 'sky', colorClass: 'bg-sky-100 text-sky-600' },
     UNPACK: { icon: PackageOpen, color: 'violet', colorClass: 'bg-violet-100 text-violet-600' },
     PACK: { icon: Package, color: 'violet', colorClass: 'bg-violet-100 text-violet-600' },
+
+    // Iterator
+    MAP: { icon: Repeat, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    FILTER: { icon: Filter, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    REDUCE: { icon: Sigma, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    MAP_ITEM: { icon: Box, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    MAP_INDEX: { icon: Hash, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    MAP_OUTPUT: { icon: Target, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    FILTER_ITEM: { icon: Box, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    FILTER_INDEX: { icon: Hash, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    FILTER_INCLUDE: { icon: CheckCircle, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    REDUCE_ITEM: { icon: Box, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    REDUCE_INDEX: { icon: Hash, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    REDUCE_ACCUMULATOR: { icon: Sigma, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+    REDUCE_OUTPUT: { icon: Target, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
 };
 
 export const getUI = (type) => NODE_UI[type] || { icon: Activity, color: 'slate', colorClass: 'bg-slate-100 text-slate-600' };

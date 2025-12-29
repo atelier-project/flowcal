@@ -426,12 +426,23 @@ export const NODE_LOGIC = {
             const obj = inputs.object;
             const keys = data.keys || [];
             const results = {};
-            keys.forEach(key => {
-                if (typeof obj === 'object' && obj !== null && key in obj) {
-                    results[key] = obj[key];
-                } else {
-                    results[key] = null;
+
+            // Helper to traverse object path using dot notation
+            const getNestedValue = (object, path) => {
+                if (typeof object !== 'object' || object === null) return null;
+                const parts = path.split('.');
+                let current = object;
+                for (const part of parts) {
+                    if (current === null || current === undefined) return null;
+                    if (typeof current !== 'object') return null;
+                    current = current[part];
                 }
+                return current !== undefined ? current : null;
+            };
+
+            keys.forEach(key => {
+                // Support dot notation for nested paths
+                results[key] = getNestedValue(obj, key);
             });
             return results;
         },
@@ -441,18 +452,12 @@ export const NODE_LOGIC = {
         type: 'PACK',
         label: 'Pack Object',
         category: 'Object',
-        inputs: ['values'], // Single array input
+        dynamicInputs: true, // Inputs are dynamically generated based on keys
         outputs: ['object'],
         compute: (inputs, data) => {
-            const keys = data.keys || [];
-            const values = Array.isArray(inputs.values) ? inputs.values : [inputs.values];
-            const result = {};
-            keys.forEach((key, idx) => {
-                if (key && key.trim()) {
-                    result[key.trim()] = values[idx] !== undefined ? values[idx] : null;
-                }
-            });
-            return result;
+            // The evaluator already builds inputs as {key1: value1, key2: value2}
+            // We just return it directly
+            return inputs;
         },
         data: { keys: [] }
     },
@@ -651,7 +656,7 @@ export const NODE_LOGIC = {
         label: 'Group Input',
         category: 'Advanced',
         compute: (inputs, data) => data.value || 0,
-        data: { label: '', description: '' }
+        data: { label: '', description: '', typeDef: 'any' }
     },
     GROUP_INPUT_LIST: {
         type: 'GROUP_INPUT_LIST',
@@ -660,7 +665,7 @@ export const NODE_LOGIC = {
         inputs: [],
         outputs: ['value'],
         compute: (inputs, data) => Array.isArray(data.value) ? data.value : [],
-        data: { label: '', description: '', value: [] }
+        data: { label: '', description: '', typeDef: 'any', value: [] }
     },
     GROUP_OUTPUT: {
         type: 'GROUP_OUTPUT',
@@ -668,7 +673,16 @@ export const NODE_LOGIC = {
         category: 'Advanced',
         inputs: ['val'],
         compute: ({ val }) => val ?? 0,
-        data: { label: '', description: '' }
+        data: { label: '', description: '', typeDef: 'any' }
+    },
+    GROUP_OUTPUT_LIST: {
+        type: 'GROUP_OUTPUT_LIST',
+        label: 'Group List Output',
+        category: 'Advanced',
+        inputs: ['*'],
+        outputs: ['value'],
+        compute: (inputs) => Array.isArray(inputs) ? inputs : [],
+        data: { label: '', description: '', typeDef: 'any', value: [] }
     },
     WARP_IN: {
         type: 'WARP_IN',
@@ -697,6 +711,22 @@ export const NODE_LOGIC = {
         compute: () => null,
         data: { text: 'Add your notes here...', width: 256, height: 120, color: '#fef3c7' }
     },
+    TEXT_LABEL: {
+        type: 'TEXT_LABEL',
+        label: 'Text Label',
+        category: 'Advanced',
+        inputs: [],
+        outputs: [],
+        compute: () => null,
+        data: {
+            text: 'Label',
+            fontSize: 36,
+            fontFamily: 'Inter',
+            color: 'auto', // Special value that adapts to theme
+            fontWeight: 'normal',
+            textAlign: 'left'
+        }
+    },
     FRAME: {
         type: 'FRAME',
         label: 'Frame',
@@ -724,19 +754,164 @@ export const NODE_LOGIC = {
 
             try {
                 // Create function with named parameters
+                // Security: Shadow global objects to prevent access (same as CUSTOM node)
                 const paramNames = params.map(p => p.name || `p${params.indexOf(p)}`);
-                const fn = new Function(...paramNames, code);
+                const fn = new Function(
+                    ...paramNames,
+                    'window',
+                    'document',
+                    'fetch',
+                    'XMLHttpRequest',
+                    'localStorage',
+                    'sessionStorage',
+                    'globalThis',
+                    `"use strict"; ${code}`
+                );
+                // Call with undefined for all shadowed globals
                 const result = fn(...paramNames.map(name => paramValues[name]));
                 return result;
             } catch (e) {
-                console.error('Function node error:', e);
-                return NaN;
+                return `Error: ${e.message}`;
             }
         },
         data: {
             params: [], // Array of { name: 'x', default: 0 }
             code: 'return 0'
         }
+    },
+
+    // --- Iterator Nodes ---
+    MAP: {
+        type: 'MAP',
+        label: 'Map',
+        category: 'Iterator',
+        inputs: ['array'],
+        outputs: ['results'],
+        hasSubGraph: true,
+        compute: () => [], // Handled specially in evaluator
+        data: { subGraph: { nodes: [], edges: [] } }
+    },
+    FILTER: {
+        type: 'FILTER',
+        label: 'Filter',
+        category: 'Iterator',
+        inputs: ['array'],
+        outputs: ['results'],
+        hasSubGraph: true,
+        compute: () => [], // Handled specially in evaluator
+        data: { subGraph: { nodes: [], edges: [] } }
+    },
+    REDUCE: {
+        type: 'REDUCE',
+        label: 'Reduce',
+        category: 'Iterator',
+        inputs: ['array'],
+        outputs: ['result'],
+        hasSubGraph: true,
+        compute: () => 0, // Handled specially in evaluator
+        data: { subGraph: { nodes: [], edges: [] }, initialValue: 0 }
+    },
+
+    // --- Iterator Context Nodes (only valid inside iterator subGraphs) ---
+    MAP_ITEM: {
+        type: 'MAP_ITEM',
+        label: 'MAP: Current Item',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['item'],
+        compute: (inputs, data) => data.value ?? null,
+        data: { value: null },
+        iteratorContext: 'MAP'
+    },
+    MAP_INDEX: {
+        type: 'MAP_INDEX',
+        label: 'MAP: Current Index',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['index'],
+        compute: (inputs, data) => data.value ?? 0,
+        data: { value: 0 },
+        iteratorContext: 'MAP'
+    },
+    MAP_OUTPUT: {
+        type: 'MAP_OUTPUT',
+        label: 'MAP: Output',
+        category: 'Iterator Context',
+        inputs: ['value'],
+        outputs: [],
+        compute: (inputs) => inputs.value ?? inputs[0] ?? null,
+        data: {},
+        iteratorContext: 'MAP'
+    },
+    FILTER_ITEM: {
+        type: 'FILTER_ITEM',
+        label: 'FILTER: Current Item',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['item'],
+        compute: (inputs, data) => data.value ?? null,
+        data: { value: null },
+        iteratorContext: 'FILTER'
+    },
+    FILTER_INDEX: {
+        type: 'FILTER_INDEX',
+        label: 'FILTER: Current Index',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['index'],
+        compute: (inputs, data) => data.value ?? 0,
+        data: { value: 0 },
+        iteratorContext: 'FILTER'
+    },
+    FILTER_INCLUDE: {
+        type: 'FILTER_INCLUDE',
+        label: 'FILTER: Include?',
+        category: 'Iterator Context',
+        inputs: ['condition'],
+        outputs: [],
+        compute: (inputs) => Boolean(inputs.condition ?? inputs[0] ?? false),
+        data: {},
+        iteratorContext: 'FILTER'
+    },
+    REDUCE_ITEM: {
+        type: 'REDUCE_ITEM',
+        label: 'REDUCE: Current Item',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['item'],
+        compute: (inputs, data) => data.value ?? null,
+        data: { value: null },
+        iteratorContext: 'REDUCE'
+    },
+    REDUCE_INDEX: {
+        type: 'REDUCE_INDEX',
+        label: 'REDUCE: Current Index',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['index'],
+        compute: (inputs, data) => data.value ?? 0,
+        data: { value: 0 },
+        iteratorContext: 'REDUCE'
+    },
+    REDUCE_ACCUMULATOR: {
+        type: 'REDUCE_ACCUMULATOR',
+        label: 'REDUCE: Accumulator',
+        category: 'Iterator Context',
+        inputs: [],
+        outputs: ['value'],
+        compute: (inputs, data) => data.value ?? 0,
+        data: { value: 0 },
+        iteratorContext: 'REDUCE'
+    },
+    REDUCE_OUTPUT: {
+        type: 'REDUCE_OUTPUT',
+        label: 'REDUCE: New Accumulator',
+        category: 'Iterator Context',
+        inputs: ['value'],
+        outputs: [],
+        compute: (inputs) => inputs.value ?? inputs[0] ?? 0,
+        data: {},
+        iteratorContext: 'REDUCE'
     }
 };
 

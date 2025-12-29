@@ -1,5 +1,6 @@
 import { getNodeHeight } from './layout';
 import { getDefinition } from '../engine/nodeDefinitions';
+import { HANDLE_POSITIONS } from './handlePositions';
 
 /**
  * Utility: Calculate Bezier Curve Path for connections
@@ -13,153 +14,175 @@ export const getBezierPath = (start, end) => {
     return `M${sx},${sy} C${sx + controlOffset},${sy} ${ex - controlOffset},${ey} ${ex},${ey}`;
 };
 
+// Helper to sort handles consistent with Node.jsx
+const getSortedOrder = (items, order) => {
+    if (!order || !Array.isArray(order)) return items;
+    return [...items].sort((a, b) => {
+        const idxA = order.indexOf(a);
+        const idxB = order.indexOf(b);
+        if (idxA === -1 && idxB === -1) return 0;
+        if (idxA === -1) return 1;
+        if (idxB === -1) return -1;
+        return idxA - idxB;
+    });
+};
+
+// Parse index from handle ID like "field_0" or "input_1"
+const parseHandleIndex = (handleId) => parseInt(handleId?.split('_')[1] || '0', 10);
+
+/**
+ * Strategy functions for INPUT handle positioning by node type.
+ * Each function receives (node, handleId, def, pos) and returns Y offset.
+ */
+const inputStrategies = {
+    GROUP: (node, handleId, def, pos) => {
+        let handles = node.data.subGraph?.nodes
+            .filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST')
+            .map(n => n.id) || [];
+        handles = getSortedOrder(handles, node.data.inputOrder);
+        const idx = handles.indexOf(handleId);
+
+        if (node.data?.collapsed) return HANDLE_POSITIONS.COLLAPSED;
+        if (idx !== -1) return pos.base + (idx * pos.rowHeight);
+        return 50;
+    },
+
+    COLLECTOR: (node, handleId, def, pos) => {
+        const idx = parseHandleIndex(handleId);
+        return pos.base + (idx * pos.rowHeight);
+    },
+
+    FORM: (node, handleId, def, pos) => {
+        const idx = parseHandleIndex(handleId);
+        return pos.base + (idx * pos.rowHeight);
+    },
+
+    FUNCTION: (node, handleId, def, pos) => {
+        const idx = parseHandleIndex(handleId);
+        return pos.base + (idx * pos.rowHeight);
+    },
+
+    GAUGE: (node, handleId) => HANDLE_POSITIONS.GAUGE[handleId] || HANDLE_POSITIONS.GAUGE.val,
+
+    PROGRESS: (node, handleId) => HANDLE_POSITIONS.PROGRESS[handleId] || HANDLE_POSITIONS.PROGRESS.val,
+
+    CUSTOM: (node) => node.data?.collapsed ? HANDLE_POSITIONS.COLLAPSED : 100,
+
+    UNPACK: (node) => node.data?.collapsed ? HANDLE_POSITIONS.COLLAPSED : 110,
+
+    PACK: (node, handleId, def, pos) => {
+        if (node.data?.collapsed) return HANDLE_POSITIONS.COLLAPSED;
+        const keys = node.data?.keys || [];
+        const idx = keys.indexOf(handleId);
+        if (idx !== -1) return pos.base + (idx * pos.rowHeight);
+        return pos.base;
+    },
+
+    TEMPLATE: (node) => node.data?.collapsed ? HANDLE_POSITIONS.COLLAPSED : 60,
+
+    GROUP_OUTPUT: (node) => getNodeHeight(node) / 2,
+
+    INPUT: () => HANDLE_POSITIONS.COLLAPSED,
+
+    GROUP_INPUT: () => HANDLE_POSITIONS.COLLAPSED,
+};
+
+/**
+ * Strategy functions for OUTPUT handle positioning by node type.
+ * Each function receives (node, handleId, def, pos) and returns Y offset.
+ */
+const outputStrategies = {
+    GROUP: (node, handleId, def, pos) => {
+        let handles = node.data.subGraph?.nodes
+            .filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST')
+            .map(n => n.id) || [];
+        handles = getSortedOrder(handles, node.data.outputOrder);
+        const idx = handles.indexOf(handleId);
+
+        if (node.data?.collapsed) return HANDLE_POSITIONS.COLLAPSED;
+        if (idx !== -1) return pos.base + (idx * pos.rowHeight);
+        return 50;
+    },
+
+    FORM: (node) => getNodeHeight(node) / 2,
+
+    UNPACK: (node, handleId, def, pos) => {
+        if (node.data?.collapsed) return HANDLE_POSITIONS.COLLAPSED;
+        const keys = node.data?.keys || [];
+        const idx = keys.indexOf(handleId);
+        if (idx !== -1) return pos.base + (idx * pos.rowHeight);
+        return pos.base;
+    },
+
+    CUSTOM: (node) => node.data?.collapsed ? HANDLE_POSITIONS.COLLAPSED : 100,
+
+    TEMPLATE: (node) => node.data?.collapsed ? HANDLE_POSITIONS.COLLAPSED : 60,
+
+    GROUP_INPUT: (node) => getNodeHeight(node) / 2,
+};
+
+/**
+ * Default input positioning using registry definition
+ */
+const getDefaultInputPosition = (node, handleId, def) => {
+    if (def.inputs && !def.inputs.includes('*')) {
+        let handles = [...def.inputs];
+        handles = getSortedOrder(handles, node.data.inputOrder);
+        const idx = handles.indexOf(handleId);
+        const defPos = HANDLE_POSITIONS.DEFAULT;
+        if (idx !== -1) return defPos.base + (idx * defPos.rowHeight);
+        return defPos.base;
+    }
+    // Default: center of node
+    return getNodeHeight(node) / 2;
+};
+
+/**
+ * Default output positioning using registry definition
+ */
+const getDefaultOutputPosition = (node, handleId, def) => {
+    if (def.outputs) {
+        let handles = [...def.outputs];
+        handles = getSortedOrder(handles, node.data.outputOrder);
+        const idx = handles.indexOf(handleId);
+        const defPos = HANDLE_POSITIONS.DEFAULT;
+        if (idx !== -1) return defPos.base + (idx * defPos.rowHeight);
+        return defPos.base;
+    }
+    // Default: center of node
+    return getNodeHeight(node) / 2;
+};
+
+/**
+ * Main function to get handle position for connections
+ */
 export const getHandlePosition = (nodeId, nodes, type, handleId, NODE_WIDTH = 256) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return [0, 0];
 
-    let y = node.position.y;
     let x = node.position.x;
-
-    // Helpers to sort handles consistent with Node.jsx
-    const getSortedOrder = (items, order) => {
-        if (!order || !Array.isArray(order)) return items;
-        return [...items].sort((a, b) => {
-            const idxA = order.indexOf(a);
-            const idxB = order.indexOf(b);
-            if (idxA === -1 && idxB === -1) return 0;
-            if (idxA === -1) return 1;
-            if (idxB === -1) return -1;
-            return idxA - idxB;
-        });
-    };
+    let y = node.position.y;
+    const def = getDefinition(node.type);
+    const pos = HANDLE_POSITIONS[node.type] || HANDLE_POSITIONS.DEFAULT;
 
     if (type === 'input') {
-        const def = getDefinition(node.type);
-
-        if (node.type === 'GROUP' && handleId) {
-            let handles = node.data.subGraph?.nodes
-                .filter(n => n.type === 'GROUP_INPUT')
-                .map(n => n.id) || [];
-
-            // Apply Order
-            handles = getSortedOrder(handles, node.data.inputOrder);
-
-            const idx = handles.indexOf(handleId);
-            // If collapsed, all handles at single point
-            if (node.data?.collapsed) {
-                y += 20;
-            } else if (idx !== -1) {
-                y += 40 + (idx * 24);
-            } else {
-                y += 50;
-            }
-        } else if (node.type === 'COLLECTOR') {
-            const idx = parseInt(handleId?.split('_')[1] || '0', 10);
-            y += 40 + (idx * 24);
-        } else if (node.type === 'FORM') {
-            const idx = parseInt(handleId?.split('_')[1] || '0', 10);
-            // Matched with Node.jsx: 48 + (i * 30)
-            y += 48 + (idx * 30);
-        } else if (node.type === 'FUNCTION') {
-            const idx = parseInt(handleId?.split('_')[1] || '0', 10);
-            // Matched with Node.jsx: 80 + (i * 30)
-            y += 80 + (idx * 30);
-        } else if (node.type === 'GAUGE') {
-            // Hardcoded legacy
-            if (handleId === 'val') y += 40;
-            else if (handleId === 'min') y += 64;
-            else if (handleId === 'max') y += 88;
-            else y += 40;
-        } else if (node.type === 'PROGRESS') {
-            if (handleId === 'val') y += 40;
-            else if (handleId === 'max') y += 64;
-            else y += 40;
-        } else if (node.type === 'CUSTOM') {
-            // Custom JS node - collapsed at 20, otherwise at 100
-            y += node.data?.collapsed ? 20 : 100;
-        } else if (node.type === 'UNPACK') {
-            // UNPACK input - single 'object' input, positioned at 20 when collapsed, 110 otherwise
-            y += node.data?.collapsed ? 20 : 110;
-        } else if (node.type === 'PACK') {
-            // PACK has single values input
-            y += node.data?.collapsed ? 20 : 80;
-        } else if (node.type === 'TEMPLATE') {
-            // TEMPLATE input - fixed position, or collapsed at 20
-            y += node.data?.collapsed ? 20 : 60;
-        } else if (def.inputs && !def.inputs.includes('*')) {
-            // Registry Defined
-            let handles = [...def.inputs];
-            handles = getSortedOrder(handles, node.data.inputOrder);
-            const idx = handles.indexOf(handleId);
-            if (idx !== -1) y += 40 + (idx * 24);
-            else y += 40;
-        } else if (node.type === 'GROUP_OUTPUT') {
-            // GROUP_OUTPUT has single input - center it
-            const h = getNodeHeight(node);
-            y += h / 2;
-        } else if (node.type !== 'INPUT' && node.type !== 'GROUP_INPUT') {
-            // Default center
-            const h = getNodeHeight(node);
-            y += h / 2;
+        // Check for specific strategy, otherwise use default
+        const strategy = inputStrategies[node.type];
+        if (strategy) {
+            y += strategy(node, handleId, def, pos);
         } else {
-            // Input nodes main port
-            y += 20;
+            y += getDefaultInputPosition(node, handleId, def);
         }
-
     } else {
-        // Output
+        // Output - adjust x position first
         x += node.data?.width || NODE_WIDTH;
-        const def = getDefinition(node.type);
 
-        if (node.type === 'GROUP' && handleId) {
-            let handles = node.data.subGraph?.nodes
-                .filter(n => n.type === 'GROUP_OUTPUT')
-                .map(n => n.id) || [];
-
-            handles = getSortedOrder(handles, node.data.outputOrder);
-
-            const idx = handles.indexOf(handleId);
-            // If collapsed, all handles at single point
-            if (node.data?.collapsed) {
-                y += 20;
-            } else if (idx !== -1) {
-                y += 40 + (idx * 24);
-            } else {
-                y += 50;
-            }
-        } else if (node.type === 'FORM') {
-            // FORM output should be centered based on node height
-            const height = getNodeHeight(node);
-            y += height / 2;
-        } else if (node.type === 'UNPACK') {
-            // UNPACK outputs - match visual positions
-            if (node.data?.collapsed) {
-                y += 20;
-            } else {
-                const keys = node.data?.keys || [];
-                const idx = keys.indexOf(handleId);
-                if (idx !== -1) y += 80 + (idx * 28);
-                else y += 80;
-            }
-        } else if (node.type === 'CUSTOM') {
-            // CUSTOM output - at 100 or 20 when collapsed
-            y += node.data?.collapsed ? 20 : 100;
-        } else if (node.type === 'TEMPLATE') {
-            // TEMPLATE output - fixed position, or collapsed at 20
-            y += node.data?.collapsed ? 20 : 60;
-        } else if (node.type === 'GROUP_INPUT') {
-            // GROUP_INPUT has single output - center it
-            const height = getNodeHeight(node);
-            y += height / 2;
-        } else if (def.outputs) {
-            let handles = [...def.outputs];
-            handles = getSortedOrder(handles, node.data.outputOrder);
-            const idx = handles.indexOf(handleId);
-            if (idx !== -1) y += 40 + (idx * 24);
-            else y += 40; // Fallback
+        // Check for specific strategy, otherwise use default
+        const strategy = outputStrategies[node.type];
+        if (strategy) {
+            y += strategy(node, handleId, def, pos);
         } else {
-            const height = getNodeHeight(node);
-            y += height / 2;
+            y += getDefaultOutputPosition(node, handleId, def);
         }
     }
 
