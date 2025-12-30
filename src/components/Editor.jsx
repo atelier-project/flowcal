@@ -63,6 +63,10 @@ export default function Editor() {
   });
   const { nodes, edges } = graphState;
 
+  // Ref for stable access in callbacks without re-creating functions
+  const nodesRef = useRef(nodes);
+  useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+
   const [path, setPath] = useState([]);
   const [results, setResults] = useState({});
   const fileInputRef = useRef(null);
@@ -500,10 +504,54 @@ export default function Editor() {
     setResults(finalResults);
   }, [debouncedNodes, debouncedEdges, path]);
 
+  // --- Memoized Inputs & Handlers ---
+
+  const nodeInputs = useMemo(() => {
+    const inputs = {};
+    const nodeMap = new Map(debouncedNodes.map(n => [n.id, n]));
+
+    // Initialize
+    debouncedNodes.forEach(n => inputs[n.id] = []);
+
+    debouncedEdges.forEach(e => {
+      if (inputs[e.target]) {
+        const sourceNode = nodeMap.get(e.source);
+        const targetNode = nodeMap.get(e.target);
+        const val = resolveSourceValue(results[e.source], e.sourceHandle, sourceNode?.type, targetNode?.type);
+        inputs[e.target].push(val);
+      }
+    });
+
+    return inputs;
+  }, [debouncedNodes, debouncedEdges, results]);
+
+  const handleNodeDelete = useCallback((id) => {
+    if (!isActionAllowed()) return;
+    setGraph(graph => ({
+      nodes: graph.nodes.filter(n => n.id !== id),
+      edges: graph.edges.filter(e => e.source !== id && e.target !== id)
+    }));
+  }, [isActionAllowed, setGraph]);
+
+  const handleNodeUpdate = useCallback((id, data) => {
+    if (!isActionAllowed()) return;
+    setGraph(graph => ({
+      ...graph,
+      nodes: graph.nodes.map(n => n.id === id ? { ...n, data } : n)
+    }));
+  }, [isActionAllowed, setGraph]);
+
+  const handleOpenEditor = useCallback((id, code, inputs) => {
+    setEditor({ isOpen: true, nodeId: id, code, inputs });
+  }, []);
+
   // --- Duplicate Node ---
   const duplicateNode = useCallback((nodeId) => {
-    const node = nodes.find(n => n.id === nodeId);
+    if (!isActionAllowed()) return;
+
+    const node = nodesRef.current.find(n => n.id === nodeId);
     if (!node) return;
+
     const newId = generateId();
     const newNode = {
       ...node,
@@ -515,9 +563,10 @@ export default function Editor() {
     if (node.type === 'GROUP' && node.data.subGraph) {
       newNode.data.subGraph = JSON.parse(JSON.stringify(node.data.subGraph));
     }
-    setGraph({ nodes: [...nodes, newNode], edges });
+
+    setGraph(graph => ({ nodes: [...graph.nodes, newNode], edges: graph.edges }));
     setSelectedIds(new Set([newId]));
-  }, [nodes, edges, setGraph]);
+  }, [setGraph, isActionAllowed]);
 
   // Group selected nodes into a GROUP node
   const groupSelectedNodes = useCallback(() => {
@@ -1287,27 +1336,18 @@ export default function Editor() {
             <Node
               key={node.id}
               {...node}
-              inputs={edges.filter(e => e.target === node.id).map(e => {
-                const sourceNode = nodes.find(n => n.id === e.source);
-                return resolveSourceValue(results[e.source], e.sourceHandle, sourceNode?.type, node.type);
-              })}
+              inputs={nodeInputs[node.id] || []}
               result={results[node.id]}
               selected={selectedIds.has(node.id)}
               isHovered={hoverGroup === node.id}
               onDragStart={handleNodeDragStart}
-              onDelete={(id) => {
-                if (!isActionAllowed()) return;
-                setGraph({ nodes: nodes.filter(n => n.id !== id), edges: edges.filter(e => e.source !== id && e.target !== id) });
-              }}
-              onDuplicate={(id) => { if (isActionAllowed()) duplicateNode(id); }}
-              onUpdateData={(id, data) => {
-                if (!isActionAllowed()) return;
-                setGraph({ nodes: nodes.map(n => n.id === id ? { ...n, data } : n), edges });
-              }}
+              onDelete={handleNodeDelete}
+              onDuplicate={duplicateNode}
+              onUpdateData={handleNodeUpdate}
               onStartConnect={handleConnectionStart}
               onEnterGroup={enterGroup}
               readOnly={node.data.readOnly || !isActionAllowed()}
-              onOpenEditor={(id, code, inputs) => setEditor({ isOpen: true, nodeId: id, code, inputs })}
+              onOpenEditor={handleOpenEditor}
               onSaveAsCustom={handleSaveAsCustomNode}
               typeWarnings={typeWarnings}
             />

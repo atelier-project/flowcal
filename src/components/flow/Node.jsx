@@ -12,7 +12,7 @@ import { getTypeDisplayName, validateFormFields } from '../../utils/typeUtils';
 import { NodeHeader } from './node/NodeHeader';
 import { useNodeHandles, NodeHandles } from './node/NodeHandles';
 
-export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings }) => {
+export const Node = React.memo(({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings }) => {
     const nodeRef = useRef(null);
     const ui = getUI(type);
     const [showMenu, setShowMenu] = React.useState(false);
@@ -1314,4 +1314,4 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             }
         </div >
     );
-};
+});

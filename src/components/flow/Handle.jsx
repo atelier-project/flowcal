@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const Handle = ({ type, position, onMouseDown, isValid, id, description, typeWarning, typeDef }) => {
+export const Handle = React.memo(({ type, position, onMouseDown, isValid, id, description, typeWarning, typeDef }) => {
     // Build tooltip text
     let tooltipText = description || (id ? `Port: ${id}` : 'Connection Port');
     if (typeDef && typeDef !== 'any') {
@@ -42,4 +42,4 @@ export const Handle = ({ type, position, onMouseDown, isValid, id, description, 
             )}
         </div>
     );
-};
+});

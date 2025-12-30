@@ -11,12 +11,14 @@ export function useHistory(initialState) {
     const canRedo = history.future.length > 0;
 
     // Commit a new state to history
+    // Commit a new state to history
     const set = useCallback((newState) => {
         setHistory(curr => {
-            if (curr.present === newState) return curr;
+            const calculatedState = typeof newState === 'function' ? newState(curr.present) : newState;
+            if (curr.present === calculatedState) return curr;
             return {
                 past: [...curr.past, curr.present],
-                present: newState,
+                present: calculatedState,
                 future: []
             };
         });
@@ -24,10 +26,13 @@ export function useHistory(initialState) {
 
     // Update state WITHOUT committing to history (e.g., intermediate drag steps)
     const update = useCallback((newState) => {
-        setHistory(curr => ({
-            ...curr,
-            present: newState
-        }));
+        setHistory(curr => {
+            const calculatedState = typeof newState === 'function' ? newState(curr.present) : newState;
+            return {
+                ...curr,
+                present: calculatedState
+            };
+        });
     }, []);
 
     const undo = useCallback(() => {
