@@ -1324,4 +1324,4 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
             }
         </div >
     );
-});
+};
