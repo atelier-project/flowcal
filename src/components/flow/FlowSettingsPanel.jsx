@@ -126,6 +126,152 @@ export const FlowSettingsPanel = ({ isOpen, onClose, flowData, onUpdateSettings,
                         </div>
                     )}
                 </div>
+
+                {/* Global Variables */}
+                <div className="space-y-4 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                        Global Variables
+                        <button
+                            onClick={() => {
+                                const newVars = [...(flowData.globals || [])];
+                                newVars.push({ key: '', type: 'string', value: '' });
+                                onUpdateSettings({ ...flowData, globals: newVars });
+                            }}
+                            disabled={!canManageSecurity}
+                            className="text-white bg-purple-600 hover:bg-purple-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            + Add
+                        </button>
+                    </h3>
+
+                    <div className="space-y-3">
+                        {(flowData.globals || []).map((gv, i) => (
+                            <div key={i} className="p-3 bg-slate-50 dark:bg-slate-800/30 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-purple-300 dark:hover:border-purple-700 transition-colors group">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <input
+                                        type="text"
+                                        value={gv.key}
+                                        onChange={(e) => {
+                                            const newVars = [...(flowData.globals || [])];
+                                            newVars[i] = { ...gv, key: e.target.value };
+                                            onUpdateSettings({ ...flowData, globals: newVars });
+                                        }}
+                                        disabled={!canManageSecurity}
+                                        placeholder="KEY_NAME"
+                                        className="flex-1 min-w-0 bg-transparent text-sm font-bold text-slate-700 dark:text-slate-200 focus:outline-none border-b border-transparent focus:border-purple-500 placeholder-slate-400 uppercase"
+                                    />
+                                    <select
+                                        value={gv.type}
+                                        onChange={(e) => {
+                                            const newVars = [...(flowData.globals || [])];
+                                            const newType = e.target.value;
+                                            let newVal = gv.value;
+                                            if (newType === 'boolean') newVal = false;
+                                            if (newType === 'number') newVal = 0;
+                                            if (newType === 'json') newVal = '{}';
+                                            if (newType === 'string') newVal = '';
+                                            newVars[i] = { ...gv, type: newType, value: newVal };
+                                            onUpdateSettings({ ...flowData, globals: newVars });
+                                        }}
+                                        disabled={!canManageSecurity}
+                                        className="text-[10px] bg-slate-200 dark:bg-slate-700 rounded px-1 py-0.5 text-slate-600 dark:text-slate-300 border-none focus:ring-0 cursor-pointer"
+                                    >
+                                        <option value="string">Text</option>
+                                        <option value="number">Num</option>
+                                        <option value="boolean">Bool</option>
+                                        <option value="json">JSON</option>
+                                    </select>
+                                    <button
+                                        onClick={() => {
+                                            const newVars = (flowData.globals || []).filter((_, idx) => idx !== i);
+                                            onUpdateSettings({ ...flowData, globals: newVars });
+                                        }}
+                                        disabled={!canManageSecurity}
+                                        className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </div>
+
+                                {/* Value Input */}
+                                <div>
+                                    {gv.type === 'string' && (
+                                        <input
+                                            type="text"
+                                            value={gv.value}
+                                            onChange={(e) => {
+                                                const newVars = [...(flowData.globals || [])];
+                                                newVars[i] = { ...gv, value: e.target.value };
+                                                onUpdateSettings({ ...flowData, globals: newVars });
+                                            }}
+                                            disabled={!canManageSecurity}
+                                            placeholder="Value..."
+                                            className="w-full text-xs px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded focus:outline-none focus:border-purple-500 dark:text-slate-300"
+                                        />
+                                    )}
+                                    {gv.type === 'number' && (
+                                        <input
+                                            type="number"
+                                            value={gv.value}
+                                            onChange={(e) => {
+                                                const newVars = [...(flowData.globals || [])];
+                                                newVars[i] = { ...gv, value: parseFloat(e.target.value) };
+                                                onUpdateSettings({ ...flowData, globals: newVars });
+                                            }}
+                                            disabled={!canManageSecurity}
+                                            className="w-full text-xs px-2 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded focus:outline-none focus:border-purple-500 dark:text-slate-300 font-mono"
+                                        />
+                                    )}
+                                    {gv.type === 'boolean' && (
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => {
+                                                    const newVars = [...(flowData.globals || [])];
+                                                    newVars[i] = { ...gv, value: !gv.value };
+                                                    onUpdateSettings({ ...flowData, globals: newVars });
+                                                }}
+                                                disabled={!canManageSecurity}
+                                                className={`w-8 h-4 rounded-full transition-colors relative ${gv.value ? 'bg-purple-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+                                            >
+                                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full transition-transform ${gv.value ? 'translate-x-4' : 'translate-x-0'}`} />
+                                            </button>
+                                            <span className="text-xs text-slate-500 font-mono">{gv.value ? 'TRUE' : 'FALSE'}</span>
+                                        </div>
+                                    )}
+                                    {gv.type === 'json' && (
+                                        <div>
+                                            <div className="h-20 w-full relative">
+                                                <textarea
+                                                    value={typeof gv.value === 'object' ? JSON.stringify(gv.value, null, 2) : gv.value}
+                                                    onChange={(e) => {
+                                                        const newVars = [...(flowData.globals || [])];
+                                                        newVars[i] = { ...gv, value: e.target.value };
+                                                        onUpdateSettings({ ...flowData, globals: newVars });
+                                                    }}
+                                                    disabled={!canManageSecurity}
+                                                    className="w-full h-full text-[10px] p-2 bg-slate-900 text-green-400 font-mono rounded border border-slate-700 focus:outline-none resize-none"
+                                                />
+                                            </div>
+                                            {(() => {
+                                                try {
+                                                    if (typeof gv.value === 'string') JSON.parse(gv.value);
+                                                    return null;
+                                                } catch (e) {
+                                                    return <div className="text-[10px] text-red-500 mt-1">Invalid JSON</div>;
+                                                }
+                                            })()}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        {(!flowData.globals || flowData.globals.length === 0) && (
+                            <div className="text-center py-4 text-xs text-slate-400 italic">
+                                No global variables defined.
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Footer */}

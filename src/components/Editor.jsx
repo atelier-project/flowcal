@@ -396,7 +396,7 @@ export default function Editor() {
       // Note: We use the immediate path, not debounced, assuming path change is infrequent/instant
       for (let i = 0; i < path.length; i++) {
         const frame = path[i];
-        const frameResults = evaluateGraph(frame.nodes, frame.edges, currentContext);
+        const frameResults = evaluateGraph(frame.nodes, frame.edges, currentContext, flowSettings.globals || []);
         const groupId = frame.id;
         const groupNode = frame.nodes.find(n => n.id === groupId);
 
@@ -496,9 +496,9 @@ export default function Editor() {
     }
 
     // Use debounced values for the heavy calculation
-    const finalResults = evaluateGraph(debouncedNodes, debouncedEdges, currentContext);
+    const finalResults = evaluateGraph(debouncedNodes, debouncedEdges, currentContext, flowSettings.globals || []);
     setResults(finalResults);
-  }, [debouncedNodes, debouncedEdges, path]);
+  }, [debouncedNodes, debouncedEdges, path, flowSettings.globals]);
 
   // --- Duplicate Node ---
   const duplicateNode = useCallback((nodeId) => {
@@ -1310,6 +1310,7 @@ export default function Editor() {
               onOpenEditor={(id, code, inputs) => setEditor({ isOpen: true, nodeId: id, code, inputs })}
               onSaveAsCustom={handleSaveAsCustomNode}
               typeWarnings={typeWarnings}
+              availableGlobals={flowSettings.globals || []}
             />
           ))}
           {selectionBox && <SelectionBox rect={selectionBox} />}

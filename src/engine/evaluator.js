@@ -7,12 +7,22 @@ import { NODE_LOGIC } from './nodeDefinitions';
 import { resolveSourceValue } from './valueResolution';
 
 // Evaluates the graph and returns computed results for all nodes
-export function evaluateGraph(nodes, edges, contextInputs = {}) {
+export function evaluateGraph(nodes, edges, contextInputs = {}, globals = []) {
 
     const results = {};
 
     // Performance: Create node lookup Map for O(1) access instead of O(n) find() calls
     const nodeMap = new Map(nodes.map(n => [n.id, n]));
+
+    // Create Globals Map for fast lookup
+    const globalsMap = new Map((globals || []).map(g => {
+        let val = g.value;
+        if (g.type === 'number') val = Number(val);
+        if (g.type === 'json' && typeof val === 'string') {
+            try { val = JSON.parse(val); } catch (e) { console.warn('Invalid JSON global', g.key); val = null; }
+        }
+        return [g.key, val];
+    }));
 
     const getNodeValue = (nodeId, stack = []) => {
         if (stack.includes(nodeId)) return NaN;
@@ -23,6 +33,14 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
 
         // Registry Lookup
         const def = NODE_LOGIC[node.type] || {};
+
+        // GET_GLOBAL Logic
+        if (node.type === 'GET_GLOBAL') {
+            const key = node.data.key;
+            const val = globalsMap.get(key);
+            results[nodeId] = val !== undefined ? val : null;
+            return results[nodeId];
+        }
 
         // 1. Check if Value is provided via Context (e.g. Group Inputs)
         if (contextInputs[node.id] !== undefined) {
@@ -166,7 +184,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                     }
                 });
 
-                const subResults = evaluateGraph(subGraph.nodes, subGraph.edges, subContext);
+                const subResults = evaluateGraph(subGraph.nodes, subGraph.edges, subContext, globals);
 
                 const outputs = subGraph.nodes.filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST');
                 if (outputs.length > 0) {
@@ -193,7 +211,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                     if (mapItemNode) iterContext[mapItemNode.id] = item;
                     if (mapIndexNode) iterContext[mapIndexNode.id] = index;
 
-                    const iterResults = evaluateGraph(subGraph.nodes, subGraph.edges, iterContext);
+                    const iterResults = evaluateGraph(subGraph.nodes, subGraph.edges, iterContext, globals);
 
                     if (mapOutputNode) {
                         results.push(iterResults[mapOutputNode.id]);
@@ -216,7 +234,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                     if (filterItemNode) iterContext[filterItemNode.id] = item;
                     if (filterIndexNode) iterContext[filterIndexNode.id] = index;
 
-                    const iterResults = evaluateGraph(subGraph.nodes, subGraph.edges, iterContext);
+                    const iterResults = evaluateGraph(subGraph.nodes, subGraph.edges, iterContext, globals);
 
                     if (filterIncludeNode && iterResults[filterIncludeNode.id]) {
                         results.push(item);
@@ -241,7 +259,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}) {
                     if (reduceIndexNode) iterContext[reduceIndexNode.id] = index;
                     if (reduceAccNode) iterContext[reduceAccNode.id] = accumulator;
 
-                    const iterResults = evaluateGraph(subGraph.nodes, subGraph.edges, iterContext);
+                    const iterResults = evaluateGraph(subGraph.nodes, subGraph.edges, iterContext, globals);
 
                     if (reduceOutputNode) {
                         accumulator = iterResults[reduceOutputNode.id];
