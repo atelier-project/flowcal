@@ -509,17 +509,48 @@ export default function Editor() {
   const duplicateNode = useCallback((nodeId) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node) return;
+
     const newId = generateId();
+
+    // Deep clone data to avoid shared references (like inputOrder arrays)
+    const newData = JSON.parse(JSON.stringify(node.data));
+
+    // If it's a GROUP, we MUST regenerate internal IDs to ensure uniqueness
+    // and prevent signal crossover or ID collisions.
+    if (node.type === 'GROUP' && newData.subGraph) {
+      const idMap = new Map();
+
+      // 1. Assign new IDs to all internal nodes
+      newData.subGraph.nodes = newData.subGraph.nodes.map(n => {
+        const newInnerId = generateId();
+        idMap.set(n.id, newInnerId);
+        return { ...n, id: newInnerId };
+      });
+
+      // 2. Update edges to point to new node IDs
+      newData.subGraph.edges = newData.subGraph.edges.map(e => ({
+        ...e,
+        id: generateId(),
+        source: idMap.get(e.source) || e.source,
+        target: idMap.get(e.target) || e.target
+      }));
+
+      // 3. Update inputOrder/outputOrder to match new IDs
+      if (newData.inputOrder) {
+        newData.inputOrder = newData.inputOrder.map(id => idMap.get(id)).filter(Boolean);
+      }
+      if (newData.outputOrder) {
+        newData.outputOrder = newData.outputOrder.map(id => idMap.get(id)).filter(Boolean);
+      }
+    }
+
     const newNode = {
       ...node,
       id: newId,
       position: { x: node.position.x + 30, y: node.position.y + 30 },
-      data: { ...node.data }
+      data: newData
     };
-    // Deep clone subGraph for GROUP nodes
-    if (node.type === 'GROUP' && node.data.subGraph) {
-      newNode.data.subGraph = JSON.parse(JSON.stringify(node.data.subGraph));
-    }
+
     setGraph({ nodes: [...nodes, newNode], edges });
     setSelectedIds(new Set([newId]));
   }, [nodes, edges, setGraph]);
@@ -1027,13 +1058,23 @@ export default function Editor() {
         // Determine Target Handle based on drop position
         if (targetNode.type === 'GROUP') {
           const allInputs = targetNode.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST') || [];
-          // Sort by inputOrder if it exists, otherwise use original order
-          const inputOrder = targetNode.data.inputOrder;
-          const handles = inputOrder
-            ? inputOrder.map(id => allInputs.find(h => h.id === id)).filter(Boolean)
-            : allInputs;
+
+          // Use robust sorting that includes ALL inputs even if not in order array
+          let handles = [...allInputs];
+          if (targetNode.data.inputOrder && Array.isArray(targetNode.data.inputOrder)) {
+            handles.sort((a, b) => {
+              const idxA = targetNode.data.inputOrder.indexOf(a.id);
+              const idxB = targetNode.data.inputOrder.indexOf(b.id);
+              if (idxA === -1 && idxB === -1) return 0;
+              if (idxA === -1) return 1;
+              if (idxB === -1) return -1;
+              return idxA - idxB;
+            });
+          }
+
           let minDist = 1000;
           handles.forEach((h, i) => {
+            // Match calculation in NodeHandles/geometry: 40 + i*24
             const hy = targetNode.position.y + 40 + (i * 24);
             const dist = Math.abs(my - hy);
             if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = h.id; }
