@@ -20,6 +20,7 @@ export const NODE_UI = {
     RANGE: { icon: Activity, color: 'green', colorClass: 'bg-green-100 text-green-600' },
     COLLECTOR: { icon: ListPlus, color: 'green', colorClass: 'bg-green-100 text-green-600' },
     FORM: { icon: LayoutTemplate, color: 'purple', colorClass: 'bg-purple-100 text-purple-600' },
+    GET_GLOBAL: { icon: Database, color: 'purple', colorClass: 'bg-purple-100 text-purple-600' },
 
     // Logic
     COMPARE: { icon: ArrowLeftRight, color: 'orange', colorClass: 'bg-orange-100 text-orange-600' },

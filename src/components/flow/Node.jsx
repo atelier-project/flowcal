@@ -11,8 +11,9 @@ import { TypeDefinitionModal } from './TypeDefinitionModal';
 import { getTypeDisplayName, validateFormFields } from '../../utils/typeUtils';
 import { NodeHeader } from './node/NodeHeader';
 import { useNodeHandles, NodeHandles } from './node/NodeHandles';
+import { GetGlobalNodeBody } from './node/bodies/GetGlobalNodeBody';
 
-export const Node = React.memo(({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings }) => {
+export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings, availableGlobals }) => {
     const nodeRef = useRef(null);
     const ui = getUI(type);
     const [showMenu, setShowMenu] = React.useState(false);
@@ -637,6 +638,15 @@ export const Node = React.memo(({ id, type, data, position, selected, isHovered,
                             onMouseDown={e => e.stopPropagation()}
                         />
                     </div>
+                )}
+
+                {type === 'GET_GLOBAL' && (
+                    <GetGlobalNodeBody
+                        data={data}
+                        handleChange={handleChange}
+                        canEdit={canEdit}
+                        globals={availableGlobals}
+                    />
                 )}
 
                 {type === 'IF' && (

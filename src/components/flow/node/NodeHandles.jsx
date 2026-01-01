@@ -59,6 +59,9 @@ export const useNodeHandles = (type, data) => {
             handles = [{ id: 'object', label: 'Object', top: data.collapsed ? 20 : 110 }];
         } else if (type === 'CUSTOM') {
             handles = [{ id: null, top: data.collapsed ? 20 : 100 }];
+        } else if (type === 'GROUP_OUTPUT' || type === 'GROUP_OUTPUT_LIST') {
+            const height = getNodeHeight({ type, data });
+            handles = [{ id: null, top: height / 2 }];
         } else if (def && def.inputs && !def.inputs.includes('*')) {
             handles = def.inputs.map((name) => ({
                 id: name,
@@ -66,9 +69,6 @@ export const useNodeHandles = (type, data) => {
             }));
         } else if (type === 'TEMPLATE') {
             handles = [{ id: null, top: 60 }];
-        } else if (type === 'GROUP_OUTPUT' || type === 'GROUP_OUTPUT_LIST') {
-            const height = getNodeHeight({ type, data });
-            handles = [{ id: null, top: height / 2 }];
         } else if (type !== 'INPUT' && type !== 'GROUP_INPUT') {
             handles = [{ id: null, top: '50%' }];
         }

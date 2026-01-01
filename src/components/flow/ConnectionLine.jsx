@@ -1,7 +1,7 @@
 import React from 'react';
 import { getBezierPath } from '../../utils/geometry';
 
-export const ConnectionLine = ({ id, start, end, onDelete }) => {
+export const ConnectionLine = ({ id, start, end, onDelete, onMouseEnter, onMouseLeave, disableTitle }) => {
     const d = getBezierPath(start, end);
 
     return (
@@ -40,8 +40,11 @@ export const ConnectionLine = ({ id, start, end, onDelete }) => {
                 stroke="transparent"
                 className="cursor-pointer pointer-events-auto"
                 onDoubleClick={(e) => { e.stopPropagation(); onDelete(id); }}
+                onMouseEnter={(e) => onMouseEnter && onMouseEnter(e)}
+                onMouseLeave={onMouseLeave}
+                onMouseMove={(e) => onMouseEnter && onMouseEnter(e)}
             >
-                <title>Double-click to delete</title>
+                {!disableTitle && <title>Double-click to delete</title>}
             </path>
         </g>
     );

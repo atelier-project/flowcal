@@ -35,6 +35,8 @@ import { Loader2, Cloud, HardDrive } from 'lucide-react';
 // ... other imports ...
 
 import { reconstructFullGraph } from '../utils/graphReconstruct';
+import { DebugToolbar } from './debugger/DebugToolbar';
+import { NodeInspector } from './debugger/NodeInspector';
 
 export default function Editor() {
   const { user, isAdmin } = useAuth();
@@ -77,6 +79,9 @@ export default function Editor() {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [spacePressed, setSpacePressed] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   // Load Cloud Flow on Mount
   useEffect(() => {
@@ -400,7 +405,7 @@ export default function Editor() {
       // Note: We use the immediate path, not debounced, assuming path change is infrequent/instant
       for (let i = 0; i < path.length; i++) {
         const frame = path[i];
-        const frameResults = evaluateGraph(frame.nodes, frame.edges, currentContext);
+        const frameResults = evaluateGraph(frame.nodes, frame.edges, currentContext, flowSettings.globals || []);
         const groupId = frame.id;
         const groupNode = frame.nodes.find(n => n.id === groupId);
 
@@ -500,9 +505,9 @@ export default function Editor() {
     }
 
     // Use debounced values for the heavy calculation
-    const finalResults = evaluateGraph(debouncedNodes, debouncedEdges, currentContext);
+    const finalResults = evaluateGraph(debouncedNodes, debouncedEdges, currentContext, flowSettings.globals || []);
     setResults(finalResults);
-  }, [debouncedNodes, debouncedEdges, path]);
+  }, [debouncedNodes, debouncedEdges, path, flowSettings.globals]);
 
   // --- Memoized Inputs & Handlers ---
 
@@ -553,18 +558,47 @@ export default function Editor() {
     if (!node) return;
 
     const newId = generateId();
+
+    // Deep clone data to avoid shared references (like inputOrder arrays)
+    const newData = JSON.parse(JSON.stringify(node.data));
+
+    // If it's a GROUP, we MUST regenerate internal IDs to ensure uniqueness
+    // and prevent signal crossover or ID collisions.
+    if (node.type === 'GROUP' && newData.subGraph) {
+      const idMap = new Map();
+
+      // 1. Assign new IDs to all internal nodes
+      newData.subGraph.nodes = newData.subGraph.nodes.map(n => {
+        const newInnerId = generateId();
+        idMap.set(n.id, newInnerId);
+        return { ...n, id: newInnerId };
+      });
+
+      // 2. Update edges to point to new node IDs
+      newData.subGraph.edges = newData.subGraph.edges.map(e => ({
+        ...e,
+        id: generateId(),
+        source: idMap.get(e.source) || e.source,
+        target: idMap.get(e.target) || e.target
+      }));
+
+      // 3. Update inputOrder/outputOrder to match new IDs
+      if (newData.inputOrder) {
+        newData.inputOrder = newData.inputOrder.map(id => idMap.get(id)).filter(Boolean);
+      }
+      if (newData.outputOrder) {
+        newData.outputOrder = newData.outputOrder.map(id => idMap.get(id)).filter(Boolean);
+      }
+    }
+
     const newNode = {
       ...node,
       id: newId,
       position: { x: node.position.x + 30, y: node.position.y + 30 },
-      data: { ...node.data }
+      data: newData
     };
-    // Deep clone subGraph for GROUP nodes
-    if (node.type === 'GROUP' && node.data.subGraph) {
-      newNode.data.subGraph = JSON.parse(JSON.stringify(node.data.subGraph));
-    }
 
-    setGraph(graph => ({ nodes: [...graph.nodes, newNode], edges: graph.edges }));
+    setGraph({ nodes: [...nodes, newNode], edges });
     setSelectedIds(new Set([newId]));
   }, [setGraph, isActionAllowed]);
 
@@ -1071,13 +1105,23 @@ export default function Editor() {
         // Determine Target Handle based on drop position
         if (targetNode.type === 'GROUP') {
           const allInputs = targetNode.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST') || [];
-          // Sort by inputOrder if it exists, otherwise use original order
-          const inputOrder = targetNode.data.inputOrder;
-          const handles = inputOrder
-            ? inputOrder.map(id => allInputs.find(h => h.id === id)).filter(Boolean)
-            : allInputs;
+
+          // Use robust sorting that includes ALL inputs even if not in order array
+          let handles = [...allInputs];
+          if (targetNode.data.inputOrder && Array.isArray(targetNode.data.inputOrder)) {
+            handles.sort((a, b) => {
+              const idxA = targetNode.data.inputOrder.indexOf(a.id);
+              const idxB = targetNode.data.inputOrder.indexOf(b.id);
+              if (idxA === -1 && idxB === -1) return 0;
+              if (idxA === -1) return 1;
+              if (idxB === -1) return -1;
+              return idxA - idxB;
+            });
+          }
+
           let minDist = 1000;
           handles.forEach((h, i) => {
+            // Match calculation in NodeHandles/geometry: 40 + i*24
             const hy = targetNode.position.y + 40 + (i * 24);
             const dist = Math.abs(my - hy);
             if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = h.id; }
@@ -1323,10 +1367,20 @@ export default function Editor() {
             {edges.map(edge => {
               const start = getHandlePosition(edge.source, nodes, 'output', edge.sourceHandle);
               const end = getHandlePosition(edge.target, nodes, 'input', edge.targetHandle);
-              return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end} onDelete={(id) => {
-                if (!isActionAllowed()) return;
-                setGraph({ nodes, edges: edges.filter(e => e.id !== id) });
-              }} />;
+              return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end}
+                onDelete={(id) => {
+                  if (!isActionAllowed()) return;
+                  setGraph({ nodes, edges: edges.filter(e => e.id !== id) });
+                }}
+                onMouseEnter={(e) => {
+                  if (debugMode) {
+                    setHoveredEdgeId(edge.id);
+                    setCursorPos({ x: e.clientX, y: e.clientY });
+                  }
+                }}
+                onMouseLeave={() => setHoveredEdgeId(null)}
+                disableTitle={debugMode}
+              />;
             })}
             {connectionState && (
               <path d={getBezierPath(getHandlePosition(connectionState.sourceId, nodes, 'output', connectionState.sourceHandle), [connectionState.mousePos.x, connectionState.mousePos.y])} stroke="#3b82f6" strokeWidth="2" fill="none" strokeDasharray="5,5" className="opacity-60" />
@@ -1350,6 +1404,7 @@ export default function Editor() {
               onOpenEditor={handleOpenEditor}
               onSaveAsCustom={handleSaveAsCustomNode}
               typeWarnings={typeWarnings}
+              availableGlobals={flowSettings.globals || []}
             />
           ))}
           {selectionBox && <SelectionBox rect={selectionBox} />}
@@ -1359,6 +1414,51 @@ export default function Editor() {
           <button onClick={() => setScale(1)} className="p-2 bg-white dark:bg-slate-800 rounded shadow text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-bold w-12 border border-slate-200 dark:border-slate-700 transition-colors">{Math.round(scale * 100)}%</button>
           <button onClick={() => setScale(s => Math.max(s - 0.1, 0.5))} className="p-2 bg-white dark:bg-slate-800 rounded shadow text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors">-</button>
         </div>
+
+        {/* Debug Logic */}
+        <div className="absolute bottom-4 right-48 flex gap-2">
+          <DebugToolbar isEnabled={debugMode} onToggle={() => setDebugMode(!debugMode)} />
+        </div>
+
+        {/* Node Inspector */}
+        {debugMode && selectedIds.size === 1 && (
+          <NodeInspector
+            node={nodes.find(n => n.id === [...selectedIds][0])}
+            result={results[[...selectedIds][0]]}
+            onClose={() => setDebugMode(false)}
+          />
+        )}
+
+        {/* Edge Hover Tooltip */}
+        {debugMode && hoveredEdgeId && (
+          (() => {
+            const edge = edges.find(e => e.id === hoveredEdgeId);
+            if (!edge) return null;
+            const sourceNode = nodes.find(n => n.id === edge.source);
+            const targetNode = nodes.find(n => n.id === edge.target);
+            const val = resolveSourceValue(results[edge.source], edge.sourceHandle, sourceNode?.type, targetNode?.type);
+
+            // Position based on cursor
+            const left = cursorPos.x;
+            const top = cursorPos.y;
+
+            return (
+              <div
+                className="fixed z-[9999] pointer-events-none mb-2 bg-slate-900 border border-slate-600 text-white text-xs p-2 rounded shadow-xl font-mono whitespace-nowrap"
+                style={{ left: left + 16, top: top - 16 }}
+              >
+                <div className="text-slate-400 text-[10px] mb-1">Value on wire</div>
+                {typeof val === 'object' ? (
+                  <pre className="text-[10px] leading-tight max-h-64 max-w-xs overflow-hidden text-left bg-black/30 p-1 rounded whitespace-pre-wrap break-all">
+                    {JSON.stringify(val, null, 2)}
+                  </pre>
+                ) : (
+                  String(val)
+                )}
+              </div>
+            );
+          })()
+        )}
         {/* Selection Action Bar */}
         {selectedIds.size >= 2 && (
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-slate-900/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-slate-700">

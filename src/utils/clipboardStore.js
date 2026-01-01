@@ -79,6 +79,8 @@ export const prepareForPaste = (offset = { x: 20, y: 20 }) => {
 
     // Create ID mapping: old ID -> new ID
     const idMap = new Map();
+    // Also track all handle remappings (recursively from groups)
+    const globalHandleMap = new Map();
 
     // Generate new IDs for all nodes
     const newNodes = clipboard.nodes.map(node => {
@@ -96,20 +98,35 @@ export const prepareForPaste = (offset = { x: 20, y: 20 }) => {
 
         // If GROUP node, regenerate subGraph IDs
         if (node.type === 'GROUP' && newNode.data?.subGraph) {
-            newNode.data.subGraph = regenerateSubGraphIds(newNode.data.subGraph);
+            const result = regenerateSubGraphIds(newNode.data.subGraph);
+            newNode.data.subGraph = { nodes: result.nodes, edges: result.edges };
+
+            // Collect all internal ID remappings for edge handle resolution
+            result.idMap.forEach((v, k) => globalHandleMap.set(k, v));
+
+            // Remap orders for top-level group
+            if (newNode.data.inputOrder) {
+                newNode.data.inputOrder = newNode.data.inputOrder.map(id => result.idMap.get(id)).filter(Boolean);
+            }
+            if (newNode.data.outputOrder) {
+                newNode.data.outputOrder = newNode.data.outputOrder.map(id => result.idMap.get(id)).filter(Boolean);
+            }
         }
 
         return newNode;
     });
 
-    // Remap edge source/target to new IDs
+    // Remap edge source/target AND handles to new IDs
     const newEdges = clipboard.edges
         .filter(edge => idMap.has(edge.source) && idMap.has(edge.target))
         .map(edge => ({
             ...edge,
             id: generateId(),
             source: idMap.get(edge.source),
-            target: idMap.get(edge.target)
+            target: idMap.get(edge.target),
+            // IMPORTANT: Remap handles using the global map from recursive generation
+            sourceHandle: globalHandleMap.get(edge.sourceHandle) || edge.sourceHandle,
+            targetHandle: globalHandleMap.get(edge.targetHandle) || edge.targetHandle
         }));
 
     return { nodes: newNodes, edges: newEdges };
@@ -133,7 +150,20 @@ const regenerateSubGraphIds = (subGraph) => {
 
         // Recursively handle nested GROUPs
         if (node.type === 'GROUP' && newNode.data?.subGraph) {
-            newNode.data.subGraph = regenerateSubGraphIds(newNode.data.subGraph);
+            const result = regenerateSubGraphIds(newNode.data.subGraph);
+            newNode.data.subGraph = { nodes: result.nodes, edges: result.edges };
+
+            // Merge nested ID map into current map so edges at this level 
+            // can find handles belonging to nodes deeper in the hierarchy
+            result.idMap.forEach((v, k) => idMap.set(k, v));
+
+            // Remap orders for nested group
+            if (newNode.data.inputOrder) {
+                newNode.data.inputOrder = newNode.data.inputOrder.map(id => result.idMap.get(id)).filter(Boolean);
+            }
+            if (newNode.data.outputOrder) {
+                newNode.data.outputOrder = newNode.data.outputOrder.map(id => result.idMap.get(id)).filter(Boolean);
+            }
         }
 
         return newNode;
@@ -150,18 +180,13 @@ const regenerateSubGraphIds = (subGraph) => {
         targetHandle: idMap.get(edge.targetHandle) || edge.targetHandle
     }));
 
-    return { nodes: newNodes, edges: newEdges };
+    return { nodes: newNodes, edges: newEdges, idMap };
 };
 
 /**
  * Check if copy is allowed based on read-only status and user permissions
- * @param {boolean} isReadOnly - Is the current context read-only
- * @param {boolean} isAdmin - Is the user an admin
- * @param {boolean} isSameTeam - Is user in the same team (future feature)
- * @returns {boolean}
  */
 export const canCopyFromContext = (isReadOnly, isAdmin, isSameTeam = true) => {
     if (!isReadOnly) return true;
-    // In read-only context, only allow if admin or same team
     return isAdmin || isSameTeam;
 };

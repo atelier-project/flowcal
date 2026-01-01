@@ -251,6 +251,17 @@ export const NODE_LOGIC = {
         data: { unit: 'days' }
     },
 
+    // Data Sources - Globals
+    GET_GLOBAL: {
+        type: 'GET_GLOBAL',
+        label: 'Get Global',
+        category: 'Data',
+        inputs: [],
+        outputs: ['value'],
+        compute: () => null, // Value is resolved by evaluator's GET_GLOBAL special case
+        data: { key: '' }
+    },
+
     // Array
     GET: {
         type: 'GET',
