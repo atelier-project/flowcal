@@ -35,6 +35,8 @@ import { Loader2, Cloud, HardDrive } from 'lucide-react';
 // ... other imports ...
 
 import { reconstructFullGraph } from '../utils/graphReconstruct';
+import { DebugToolbar } from './debugger/DebugToolbar';
+import { NodeInspector } from './debugger/NodeInspector';
 
 export default function Editor() {
   const { user, isAdmin } = useAuth();
@@ -73,6 +75,9 @@ export default function Editor() {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [spacePressed, setSpacePressed] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   // Load Cloud Flow on Mount
   useEffect(() => {
@@ -1274,10 +1279,20 @@ export default function Editor() {
             {edges.map(edge => {
               const start = getHandlePosition(edge.source, nodes, 'output', edge.sourceHandle);
               const end = getHandlePosition(edge.target, nodes, 'input', edge.targetHandle);
-              return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end} onDelete={(id) => {
-                if (!isActionAllowed()) return;
-                setGraph({ nodes, edges: edges.filter(e => e.id !== id) });
-              }} />;
+              return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end}
+                onDelete={(id) => {
+                  if (!isActionAllowed()) return;
+                  setGraph({ nodes, edges: edges.filter(e => e.id !== id) });
+                }}
+                onMouseEnter={(e) => {
+                  if (debugMode) {
+                    setHoveredEdgeId(edge.id);
+                    setCursorPos({ x: e.clientX, y: e.clientY });
+                  }
+                }}
+                onMouseLeave={() => setHoveredEdgeId(null)}
+                disableTitle={debugMode}
+              />;
             })}
             {connectionState && (
               <path d={getBezierPath(getHandlePosition(connectionState.sourceId, nodes, 'output', connectionState.sourceHandle), [connectionState.mousePos.x, connectionState.mousePos.y])} stroke="#3b82f6" strokeWidth="2" fill="none" strokeDasharray="5,5" className="opacity-60" />
@@ -1320,6 +1335,51 @@ export default function Editor() {
           <button onClick={() => setScale(1)} className="p-2 bg-white dark:bg-slate-800 rounded shadow text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-bold w-12 border border-slate-200 dark:border-slate-700 transition-colors">{Math.round(scale * 100)}%</button>
           <button onClick={() => setScale(s => Math.max(s - 0.1, 0.5))} className="p-2 bg-white dark:bg-slate-800 rounded shadow text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 border border-slate-200 dark:border-slate-700 transition-colors">-</button>
         </div>
+
+        {/* Debug Logic */}
+        <div className="absolute bottom-4 right-48 flex gap-2">
+          <DebugToolbar isEnabled={debugMode} onToggle={() => setDebugMode(!debugMode)} />
+        </div>
+
+        {/* Node Inspector */}
+        {debugMode && selectedIds.size === 1 && (
+          <NodeInspector
+            node={nodes.find(n => n.id === [...selectedIds][0])}
+            result={results[[...selectedIds][0]]}
+            onClose={() => setDebugMode(false)}
+          />
+        )}
+
+        {/* Edge Hover Tooltip */}
+        {debugMode && hoveredEdgeId && (
+          (() => {
+            const edge = edges.find(e => e.id === hoveredEdgeId);
+            if (!edge) return null;
+            const sourceNode = nodes.find(n => n.id === edge.source);
+            const targetNode = nodes.find(n => n.id === edge.target);
+            const val = resolveSourceValue(results[edge.source], edge.sourceHandle, sourceNode?.type, targetNode?.type);
+
+            // Position based on cursor
+            const left = cursorPos.x;
+            const top = cursorPos.y;
+
+            return (
+              <div
+                className="fixed z-[9999] pointer-events-none mb-2 bg-slate-900 border border-slate-600 text-white text-xs p-2 rounded shadow-xl font-mono whitespace-nowrap"
+                style={{ left: left + 16, top: top - 16 }}
+              >
+                <div className="text-slate-400 text-[10px] mb-1">Value on wire</div>
+                {typeof val === 'object' ? (
+                  <pre className="text-[10px] leading-tight max-h-64 max-w-xs overflow-hidden text-left bg-black/30 p-1 rounded whitespace-pre-wrap break-all">
+                    {JSON.stringify(val, null, 2)}
+                  </pre>
+                ) : (
+                  String(val)
+                )}
+              </div>
+            );
+          })()
+        )}
         {/* Selection Action Bar */}
         {selectedIds.size >= 2 && (
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-slate-900/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-slate-700">
