@@ -82,6 +82,11 @@ export const NODE_UI = {
     REDUCE_INDEX: { icon: Hash, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
     REDUCE_ACCUMULATOR: { icon: Sigma, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
     REDUCE_OUTPUT: { icon: Target, color: 'cyan', colorClass: 'bg-cyan-100 text-cyan-600' },
+
+    // Atelier topology nodes
+    ATELIER_INGRESS: { icon: ArrowLeftRight, color: 'violet', colorClass: 'bg-violet-100 text-violet-600' },
+    ATELIER_SERVICE: { icon: Database, color: 'violet', colorClass: 'bg-violet-100 text-violet-600' },
+    ATELIER_DEPLOYMENT: { icon: Box, color: 'violet', colorClass: 'bg-violet-100 text-violet-600' },
 };
 
 export const getUI = (type) => NODE_UI[type] || { icon: Activity, color: 'slate', colorClass: 'bg-slate-100 text-slate-600' };
