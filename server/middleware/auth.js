@@ -47,6 +47,31 @@ export function requireAuth(req, _res, next) {
         .catch(next);
 }
 
+/**
+ * Resolve the user if a valid session is present, but don't reject when absent.
+ * Sets req.user to the user or null. Used by routes that also serve anonymous
+ * callers (e.g. viewing a public flow).
+ */
+export function optionalAuth(req, _res, next) {
+    resolveUser(req)
+        .then((user) => {
+            req.user = user || null;
+            next();
+        })
+        .catch(next);
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Router `param` guard: reject a non-UUID `:id` with a clean 404 instead of
+ * letting Postgres raise "invalid input syntax for type uuid" (a 500).
+ */
+export function uuidParamGuard(req, _res, next, value) {
+    if (!UUID_RE.test(value || '')) return next(new ApiError(404, 'Not found'));
+    next();
+}
+
 /** Require an admin/superuser session. Mirrors is_app_admin(). */
 export function requireAdmin(req, _res, next) {
     if (!req.user) return next(new ApiError(401, 'Not authenticated'));

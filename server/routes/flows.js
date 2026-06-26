@@ -1,17 +1,19 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { asyncHandler, ApiError } from '../middleware/errors.js';
-import { requireAuth, isAdmin } from '../middleware/auth.js';
+import { requireAuth, optionalAuth, isAdmin, uuidParamGuard } from '../middleware/auth.js';
 import { CAN_VIEW, CAN_UPDATE, CAN_DELETE } from './flowAccess.js';
 
 export const flowsRouter = Router();
-flowsRouter.use(requireAuth);
+
+// Reject a non-UUID :id with a clean 404 before it reaches Postgres.
+flowsRouter.param('id', uuidParamGuard);
 
 // Columns a client is allowed to set on a flow. Anything else is ignored.
 const UPDATABLE = new Set(['name', 'data', 'is_public', 'is_template', 'team_id']);
 
 // GET /api/flows — every flow visible to the current user.
-flowsRouter.get('/', asyncHandler(async (req, res) => {
+flowsRouter.get('/', requireAuth, asyncHandler(async (req, res) => {
     const { rows } = await query(
         `select f.id, f.name, f.updated_at, f.is_public, f.owner_id,
                 json_build_object('full_name', p.full_name, 'email', p.email) as profiles
@@ -25,7 +27,7 @@ flowsRouter.get('/', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/flows — create an empty flow owned by the current user.
-flowsRouter.post('/', asyncHandler(async (req, res) => {
+flowsRouter.post('/', requireAuth, asyncHandler(async (req, res) => {
     const name = req.body?.name ?? 'Untitled Flow';
     const teamId = req.body?.teamId ?? null;
     const { rows } = await query(
@@ -37,20 +39,23 @@ flowsRouter.post('/', asyncHandler(async (req, res) => {
     res.status(201).json(rows[0]);
 }));
 
-// GET /api/flows/:id
-flowsRouter.get('/:id', asyncHandler(async (req, res) => {
+// GET /api/flows/:id — viewable by the owner, team members, admins, OR anyone
+// (including anonymous callers) when the flow is public. optionalAuth resolves
+// the session if present but doesn't require it, so a null user only matches
+// the is_public branch of CAN_VIEW. Mirrors the RLS "Flows: View" anon grant.
+flowsRouter.get('/:id', optionalAuth, asyncHandler(async (req, res) => {
     const { rows } = await query(
         `select f.* from flows f
          join profiles p on p.id = f.owner_id
          where f.id = $3 and ${CAN_VIEW}`,
-        [req.user.id, isAdmin(req.user), req.params.id]
+        [req.user?.id ?? null, isAdmin(req.user), req.params.id]
     );
     if (!rows[0]) throw new ApiError(404, 'Flow not found');
     res.json(rows[0]);
 }));
 
 // PATCH /api/flows/:id — owner or team owner/admin.
-flowsRouter.patch('/:id', asyncHandler(async (req, res) => {
+flowsRouter.patch('/:id', requireAuth, asyncHandler(async (req, res) => {
     const updates = req.body || {};
     const cols = Object.keys(updates).filter((k) => UPDATABLE.has(k));
     if (cols.length === 0) throw new ApiError(400, 'No updatable fields provided');
@@ -73,7 +78,7 @@ flowsRouter.patch('/:id', asyncHandler(async (req, res) => {
 }));
 
 // DELETE /api/flows/:id — owner or team owner.
-flowsRouter.delete('/:id', asyncHandler(async (req, res) => {
+flowsRouter.delete('/:id', requireAuth, asyncHandler(async (req, res) => {
     const { rows } = await query(
         `delete from flows f
          where f.id = $2 and ${CAN_DELETE}
@@ -85,7 +90,7 @@ flowsRouter.delete('/:id', asyncHandler(async (req, res) => {
 }));
 
 // POST /api/flows/:id/duplicate — copy a viewable flow, owned by the copier.
-flowsRouter.post('/:id/duplicate', asyncHandler(async (req, res) => {
+flowsRouter.post('/:id/duplicate', requireAuth, asyncHandler(async (req, res) => {
     const original = await query(
         `select f.name, f.data from flows f
          join profiles p on p.id = f.owner_id

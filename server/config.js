@@ -22,7 +22,22 @@ export const config = {
 
 export const isProd = config.nodeEnv === 'production';
 
-// Fail fast on an insecure secret in production rather than silently shipping it.
-if (isProd && config.jwtSecret === DEFAULT_JWT_SECRET) {
-    throw new Error('JWT_SECRET must be set to a strong value in production.');
+// Known weak/example secrets that must never sign real sessions. Checking a set
+// (plus a length floor) rather than one literal means an example value copied
+// from docker-compose.yml / .env.example can't slip through the prod guard.
+const WEAK_JWT_SECRETS = new Set([
+    DEFAULT_JWT_SECRET,
+    'please-change-this-secret-in-production',
+    'change-me-to-a-long-random-string',
+]);
+
+// Fail fast on a missing or weak secret in production rather than silently
+// shipping one anyone could use to forge sessions.
+if (isProd) {
+    if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET must be set in production (e.g. openssl rand -hex 32).');
+    }
+    if (WEAK_JWT_SECRETS.has(config.jwtSecret) || config.jwtSecret.length < 16) {
+        throw new Error('JWT_SECRET is too weak for production — use a long random value (e.g. openssl rand -hex 32).');
+    }
 }

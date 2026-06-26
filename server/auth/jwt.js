@@ -10,14 +10,15 @@ export function issueToken(user) {
     return jwt.sign(
         { sub: user.id, email: user.email },
         config.jwtSecret,
-        { expiresIn: config.jwtExpiresIn }
+        { expiresIn: config.jwtExpiresIn, algorithm: 'HS256' }
     );
 }
 
 /** Verify a token, returning its payload, or null if invalid/expired. */
 export function verifyToken(token) {
     try {
-        return jwt.verify(token, config.jwtSecret);
+        // Pin the algorithm so a token can't dictate verification (defense in depth).
+        return jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] });
     } catch {
         return null;
     }

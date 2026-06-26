@@ -11,7 +11,8 @@ import { hashPassword } from '../auth/password.js';
  * to get their first admin, since there is no Supabase dashboard.
  */
 async function main() {
-    const [email, password] = process.argv.slice(2);
+    const [rawEmail, password] = process.argv.slice(2);
+    const email = (rawEmail || '').trim().toLowerCase();
     if (!email) {
         console.error('Usage: npm run create-admin -- <email> <password>');
         process.exit(1);

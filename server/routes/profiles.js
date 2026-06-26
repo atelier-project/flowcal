@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { asyncHandler, ApiError } from '../middleware/errors.js';
-import { requireAuth, isAdmin } from '../middleware/auth.js';
+import { requireAuth, isAdmin, uuidParamGuard } from '../middleware/auth.js';
 
 export const profilesRouter = Router();
+profilesRouter.param('id', uuidParamGuard);
 profilesRouter.use(requireAuth);
 
 // Self-updatable profile fields. Privileged columns (role, tier, is_banned)

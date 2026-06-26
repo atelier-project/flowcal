@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { asyncHandler, ApiError } from '../middleware/errors.js';
-import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { requireAuth, requireAdmin, uuidParamGuard } from '../middleware/auth.js';
 
 export const adminRouter = Router();
+adminRouter.param('id', uuidParamGuard);
 adminRouter.use(requireAuth, requireAdmin);
 
 // GET /api/admin/users — all profiles, newest first.
@@ -28,10 +29,15 @@ adminRouter.get('/flows', asyncHandler(async (_req, res) => {
 adminRouter.patch('/users/:id/ban', asyncHandler(async (req, res) => {
     const { banned } = req.body || {};
     if (typeof banned !== 'boolean') throw new ApiError(400, '`banned` must be a boolean');
+    if (req.params.id === req.user.id) throw new ApiError(400, 'You cannot change your own ban status');
+
+    const target = await query('select role from profiles where id = $1', [req.params.id]);
+    if (!target.rows[0]) throw new ApiError(404, 'User not found');
+    if (target.rows[0].role === 'superuser') throw new ApiError(403, 'Superuser accounts cannot be banned');
+
     const { rows } = await query(
         'update profiles set is_banned = $2 where id = $1 returning id, is_banned',
         [req.params.id, banned]
     );
-    if (!rows[0]) throw new ApiError(404, 'User not found');
     res.json(rows[0]);
 }));

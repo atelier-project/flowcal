@@ -29,8 +29,8 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://flowcal:${POSTGRES_PASSWORD:-flowcal}@db:5432/flowcal
-      # Override in production: JWT_SECRET=$(openssl rand -hex 32)
-      JWT_SECRET: ${JWT_SECRET:-please-change-this-secret-in-production}
+      # Required — compose refuses to start without it. Generate with: openssl rand -hex 32
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set, e.g. JWT_SECRET=$(openssl rand -hex 32)}
       NODE_ENV: production
       PORT: 3001
       STATIC_DIR: /app/public

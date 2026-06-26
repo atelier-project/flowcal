@@ -57,11 +57,12 @@ async function bootstrapAdmin() {
     const email = process.env.ADMIN_EMAIL;
     if (!email) return;
 
+    const normalized = email.trim().toLowerCase();
     const { rowCount } = await pool.query(
-        "update profiles set role = 'admin' where email = $1 and role <> 'admin'",
-        [email]
+        "update profiles set role = 'admin' where lower(email) = $1 and role <> 'admin'",
+        [normalized]
     );
-    const { rows } = await pool.query('select role from profiles where email = $1', [email]);
+    const { rows } = await pool.query('select role from profiles where lower(email) = $1', [normalized]);
     if (rows[0]) {
         console.log(`Admin bootstrap: ${email} is role=${rows[0].role}${rowCount ? ' (promoted)' : ''}.`);
     } else {

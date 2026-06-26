@@ -92,8 +92,13 @@ async function signIn(credentials) {
 }
 
 async function signOut() {
-    await api('/auth/signout', { method: 'POST' });
-    notify(null);
+    // Clear local auth state even if the network call fails, so a blip can't
+    // strand the UI in a signed-in state.
+    try {
+        await api('/auth/signout', { method: 'POST' });
+    } finally {
+        notify(null);
+    }
 }
 
 async function getProfile(userId) {
