@@ -1,4 +1,5 @@
 import { supabaseProvider } from './supabaseProvider';
+import { apiProvider } from './apiProvider';
 
 /**
  * Active backend provider, chosen by the VITE_BACKEND env var.
@@ -11,7 +12,7 @@ import { supabaseProvider } from './supabaseProvider';
  */
 const providers = {
     supabase: supabaseProvider,
-    // api: apiProvider,  // added in Phase 3
+    api: apiProvider,
 };
 
 const selected = import.meta.env.VITE_BACKEND || 'supabase';
