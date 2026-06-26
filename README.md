@@ -36,6 +36,33 @@ Data persists in the `flowcal-db` Docker volume. Configurable via env vars
 (`JWT_SECRET`, `POSTGRES_PASSWORD`, `PORT`, `COOKIE_SECURE` — set `true` behind
 HTTPS). See `docker-compose.yml`.
 
+## Deploy to Atelier
+
+[Atelier](https://tryatelier.dev/) can build and host FlowCal straight from this
+repo — it clones the repo, builds the root `Dockerfile`, and runs it. Use the
+**Clone a Git Repo** flow
+([guide](https://tryatelier.dev/guides/user-guide/#clone-a-git-repo)):
+
+1. **Deploy Postgres** as its own app first (Apps → **Create** → *Deploy an
+   Image*): image `postgres:16`, port `5432`. Set its secrets
+   `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`, plus `PGDATA=/data/pgdata`
+   so the database persists on the app's `/data` volume.
+2. **Clone this repo** (Apps → **Create** → *Clone a Git Repo*): enter the repo's
+   HTTPS URL and branch `main`. The root `Dockerfile` builds the SPA + API into a
+   single image. (Public repo, or supply a read-only token in the *Private
+   repository* section.)
+3. **Set the app's secrets** so it can reach the database and sign sessions:
+   - `DATABASE_URL=postgres://<user>:<pass>@<db-app>.atelier-apps.svc.cluster.local:80/<db>`
+     (read the DB app's in-cluster URL from its app page; the in-cluster Service
+     forwards port 80 to Postgres)
+   - `JWT_SECRET` — a long random value (`openssl rand -hex 32`)
+   - `ADMIN_EMAIL=you@example.com` *(optional)* — promotes that account to admin
+     on startup once you've signed up
+   - `COOKIE_SECURE=false` unless you serve it over HTTPS
+
+The app applies migrations and waits for the database on startup, so it tolerates
+Postgres still initializing on first deploy.
+
 ## Local development
 
 ### Frontend
