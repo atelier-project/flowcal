@@ -1,0 +1,54 @@
+/**
+ * Backend provider interface.
+ *
+ * FlowCal talks to its backend exclusively through an object that implements
+ * this shape. Two implementations exist (selected at runtime by VITE_BACKEND):
+ *
+ *   - `supabaseProvider` — talks directly to Supabase from the browser (default).
+ *   - `apiProvider`      — talks to a self-hosted Express + Postgres API. (Phase 3)
+ *
+ * Keeping every backend call behind this seam means the rest of the app never
+ * imports `supabase` directly, so swapping backends is a one-line env change.
+ *
+ * @typedef {Object} Session
+ * @property {{ id: string, email: string }} [user]
+ *
+ * @typedef {Object} AuthResult   Mirrors Supabase's `{ data, error }` contract.
+ * @property {any}   [data]
+ * @property {Error} [error]
+ *
+ * @typedef {Object} BackendProvider
+ *
+ * // ── Auth ─────────────────────────────────────────────────────────────
+ * @property {() => Promise<Session|null>} getSession
+ *           Resolve the current session (or null if signed out).
+ * @property {(callback: (session: Session|null) => void) => (() => void)} onAuthStateChange
+ *           Subscribe to auth changes. Returns an unsubscribe function.
+ * @property {(credentials: { email: string, password: string }) => Promise<AuthResult>} signUp
+ * @property {(credentials: { email: string, password: string }) => Promise<AuthResult>} signIn
+ * @property {() => Promise<any>} signOut
+ * @property {(userId: string) => Promise<Object|null>} getProfile
+ *           Full profile row for a user, or null if missing/unreadable.
+ *
+ * // ── Flows ────────────────────────────────────────────────────────────
+ * @property {() => Promise<Array>} listFlows
+ * @property {(name?: string, teamId?: string|null) => Promise<Object>} createFlow
+ * @property {(id: string) => Promise<Object>} getFlow
+ * @property {(id: string, updates: Object) => Promise<Object>} updateFlow
+ * @property {(id: string) => Promise<boolean>} deleteFlow
+ * @property {(id: string) => Promise<Object>} duplicateFlow
+ *
+ * // ── Profile settings (current user) ──────────────────────────────────
+ * @property {(userId: string) => Promise<Object|null>} getProfileSettings
+ *           `{ full_name, avatar_url, support_access_granted }` for the editable form.
+ * @property {(userId: string, updates: { full_name?: string, avatar_url?: string }) => Promise<void>} updateProfile
+ * @property {(userId: string, granted: boolean) => Promise<void>} setSupportAccess
+ * @property {() => Promise<void>} scheduleAccountDeletion
+ *
+ * // ── Admin ────────────────────────────────────────────────────────────
+ * @property {() => Promise<Array>} listAllUsers
+ * @property {() => Promise<Array>} listAllFlows
+ * @property {(userId: string, banned: boolean) => Promise<void>} setUserBanned
+ */
+
+export {};
