@@ -1,0 +1,12 @@
+node_modules
+server/node_modules
+dist
+.git
+*.log
+.env
+.env.*
+**/.env
+**/.DS_Store
+backup
+test_debug.txt
+test_output.txt
