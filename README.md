@@ -1,16 +1,84 @@
-# React + Vite
+# FlowCal
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A visual node-graph editor and calculator built with React. Create computational
+flows by wiring nodes together, with 100+ node types, custom node composition,
+real-time evaluation, and cloud storage.
 
-Currently, two official plugins are available:
+## Backends
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+FlowCal runs against either of two interchangeable backends, selected with the
+`VITE_BACKEND` environment variable:
 
-## React Compiler
+| `VITE_BACKEND` | Backend | Use when |
+|----------------|---------|----------|
+| `api` (recommended for self-hosting) | Self-hosted Express + Postgres (`server/`) | You want to own your data with `docker compose up` |
+| `supabase` (default) | Supabase | You already use Supabase |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The frontend talks to whichever backend is active through a single provider
+interface (`src/services/backend/`), so neither backend leaks into the rest of
+the app.
 
-## Expanding the ESLint configuration
+## Quick start — self-hosted (Docker)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Brings up the app (API + SPA in one container) and Postgres:
+
+```bash
+JWT_SECRET=$(openssl rand -hex 32) docker compose up --build
+```
+
+Then open **http://localhost:3001**, sign up, and create the first admin:
+
+```bash
+docker compose exec app npm run create-admin -- you@example.com yourpassword
+```
+
+Data persists in the `flowcal-db` Docker volume. Configurable via env vars
+(`JWT_SECRET`, `POSTGRES_PASSWORD`, `PORT`, `COOKIE_SECURE` — set `true` behind
+HTTPS). See `docker-compose.yml`.
+
+## Local development
+
+### Frontend
+
+```bash
+npm install
+cp .env.example .env     # set VITE_BACKEND and the matching backend vars
+npm run dev              # http://localhost:5173
+```
+
+### Self-hosted backend (when `VITE_BACKEND=api`)
+
+Run the API separately during development (see `server/README.md` for details):
+
+```bash
+cd server
+cp .env.example .env     # set DATABASE_URL, JWT_SECRET
+npm install
+npm run migrate
+npm run dev              # http://localhost:3001
+```
+
+Point the frontend at it with `VITE_API_URL=http://localhost:3001` in the root
+`.env`.
+
+## Commands
+
+```bash
+npm run dev          # Vite dev server (HMR)
+npm run build        # Production SPA build
+npm run lint         # ESLint
+npm run test:run     # Vitest (single run)
+```
+
+## Architecture
+
+- **Graph engine** (`src/engine/`) — `evaluateGraph()` performs DFS with cycle
+  detection; `nodeDefinitions.js` holds the node-type registry.
+- **Editor** (`src/components/Editor.jsx`) — canvas state, node CRUD, selection,
+  undo/redo, keyboard shortcuts.
+- **Backend abstraction** (`src/services/backend/`) — the `BackendProvider`
+  interface plus the `supabase` and `api` implementations.
+- **Server** (`server/`) — the self-hosted Express + Postgres API. See
+  `server/README.md`.
+
+No TypeScript — JSX only. Styling via Tailwind (six themes in `src/themes.js`).
