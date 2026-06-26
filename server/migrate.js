@@ -43,6 +43,30 @@ async function run() {
     }
 
     console.log(count ? `Applied ${count} migration(s).` : 'No pending migrations.');
+
+    await bootstrapAdmin();
+}
+
+/**
+ * Promote the account named by ADMIN_EMAIL (if set) to admin on every boot.
+ * Idempotent, and a no-op if the var is unset or the account hasn't signed up
+ * yet. Lets a self-host/Atelier deploy designate an admin without container
+ * exec — set the ADMIN_EMAIL env/secret and restart.
+ */
+async function bootstrapAdmin() {
+    const email = process.env.ADMIN_EMAIL;
+    if (!email) return;
+
+    const { rowCount } = await pool.query(
+        "update profiles set role = 'admin' where email = $1 and role <> 'admin'",
+        [email]
+    );
+    const { rows } = await pool.query('select role from profiles where email = $1', [email]);
+    if (rows[0]) {
+        console.log(`Admin bootstrap: ${email} is role=${rows[0].role}${rowCount ? ' (promoted)' : ''}.`);
+    } else {
+        console.log(`Admin bootstrap: no account for ${email} yet — sign up, then restart/redeploy to promote.`);
+    }
 }
 
 run()
