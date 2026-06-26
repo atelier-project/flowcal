@@ -10,6 +10,24 @@ export const pool = new pg.Pool({ connectionString: config.databaseUrl });
 export const query = (text, params) => pool.query(text, params);
 
 /**
+ * Wait for the database to accept connections, retrying with a fixed delay.
+ * Used at startup so a fresh deploy (where Postgres may still be initializing)
+ * doesn't crash-loop before the DB is ready.
+ */
+export async function waitForDb({ retries = 30, delayMs = 2000 } = {}) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            await pool.query('select 1');
+            return;
+        } catch (err) {
+            if (attempt === retries) throw err;
+            console.log(`Waiting for database (${attempt}/${retries}): ${err.code || err.message}`);
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+    }
+}
+
+/**
  * Run `fn` inside a transaction, passing it a dedicated client. Commits on
  * success, rolls back on any thrown error.
  */

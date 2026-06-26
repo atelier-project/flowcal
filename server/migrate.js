@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { pool, withTransaction } from './db.js';
+import { pool, withTransaction, waitForDb } from './db.js';
 
 /**
  * Minimal forward-only migration runner. Applies every *.sql file in
@@ -15,6 +15,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const migrationsDir = join(__dirname, 'migrations');
 
 async function run() {
+    await waitForDb();
     await pool.query(`
         create table if not exists _migrations (
             name text primary key,
