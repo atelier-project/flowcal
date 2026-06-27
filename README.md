@@ -109,3 +109,10 @@ npm run test:run     # Vitest (single run)
   `server/README.md`.
 
 No TypeScript — JSX only. Styling via Tailwind (six themes in `src/themes.js`).
+
+## Generating flows from a calculation
+
+[`skills/calc-to-flowcal/`](skills/calc-to-flowcal/) documents the flow JSON format
+and node catalog so an LLM can turn a calculation (e.g. `(base + tax) * qty`) into an
+importable FlowCal flow. It includes the schema, the evaluation model, the full node
+reference, and verified examples.
