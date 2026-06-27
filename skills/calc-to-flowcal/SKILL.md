@@ -76,7 +76,9 @@ Full list in `node-catalog.json`. The nodes you need for most calculations:
 |------|--------|------|---------|
 | `INPUT` | `value` | `{ "value": <number>, "label": "" }` | A number. Set `data.value`. |
 | `TEXT_INPUT` | `text` | `{ "text": "" }` | A string. |
-| `RANGE` | — | — | Generates `[start..end]` (inputs `start,end,step`). |
+
+(For array-producing sources like `RANGE`, and string/array/object/date nodes, see
+`node-catalog.json`.)
 
 ### Math
 | type | inputs | meaning |
@@ -92,6 +94,9 @@ Full list in `node-catalog.json`. The nodes you need for most calculations:
 
 There is **no exponent/power node** — express `x²` as `MUL(x, x)`, or use a `FUNCTION`
 node (avoid unless necessary; it warns on import).
+
+**Edge cases** (so generated flows don't surprise you): `DIV` by zero returns `0` (not
+`NaN`/`Infinity`); an empty/unconnected `SUM` returns `0`; an empty `MUL` returns `1`.
 
 ### Logic
 | type | inputs | data | meaning |
@@ -125,7 +130,9 @@ For strings, arrays, objects, dates, and visuals (`GAUGE`, `BAR_CHART`, …), se
    - Named-input nodes (`DIV`, `ROUND`, `COMPARE`, `IF`, …): set `targetHandle` to the
      correct input name, and order doesn't matter.
    - `*` nodes (`SUM`, `MUL`, `SUB`, `MIN`, `MAX`): omit `targetHandle`; for `SUB`, list
-     the edges in left-to-right operand order.
+     the edges in left-to-right operand order. (Edge array order **is** preserved through
+     import/evaluation. If you'd rather not depend on it, rewrite `a - b` as
+     `SUM(a, MUL(b, -1))` — `SUM` is commutative, so order no longer matters.)
    - Set `sourceHandle` to the source's output (`"value"` for `INPUT`).
 5. **Terminate.** The root operation node holds the answer. Optionally add a `FINAL` node
    and one edge (`targetHandle: "val"`) into it for a labeled result display.
@@ -144,6 +151,11 @@ See [`examples/arithmetic.json`](./examples/arithmetic.json). Shape:
 See [`examples/conditional.json`](./examples/conditional.json). Shows **named handles**:
 `DIV` (`a`=total, `b`=count), `COMPARE` (`a`=div, `b`=threshold, `operator: ">="`),
 `IF` (`condition`=compare, `trueVal`=INPUT(1), `falseVal`=INPUT(0)).
+
+### 3. Reused variable / fan-out: `x*x + x` with x=5 → **30**
+See [`examples/reuse.json`](./examples/reuse.json). One `INPUT(x)` feeds **multiple**
+targets — both inputs of `MUL` (giving `x*x`) **and** the `SUM` (`x*x + x`). Use a single
+`INPUT` per distinct variable and add an edge from it for each place it appears.
 
 ## Validate your output
 
