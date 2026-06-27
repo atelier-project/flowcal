@@ -63,6 +63,21 @@ repo — it clones the repo, builds the root `Dockerfile`, and runs it. Use the
 The app applies migrations and waits for the database on startup, so it tolerates
 Postgres still initializing on first deploy.
 
+**Accessing the UI — add the DNS entry.** FlowCal's SPA uses root-absolute paths, so
+the portal proxy (`<atelier-domain>/apps/flowcal`) won't render it correctly. Open the
+app at its **dedicated host** instead — `http://flowcal.<atelier-domain>/` (e.g.
+`http://flowcal.atelier.home.arpa/`), which serves the app at `/`. That subdomain must
+resolve on your machine, so add it to your hosts file (or DNS), pointing at the Atelier
+node's IP:
+
+```
+# /etc/hosts  (use your node's IP)
+192.168.0.22  flowcal.atelier.home.arpa
+```
+
+To expose it on the public internet instead, enable the platform's **Public Access**
+(Cloudflare Tunnel) for the app.
+
 ## Local development
 
 ### Frontend
