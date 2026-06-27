@@ -10,9 +10,11 @@ FlowCal is a visual node-graph calculator. A "flow" is a JSON document of **node
 into that JSON so it can be imported into FlowCal (Editor → **Load**) and will
 compute the right answer.
 
-The instructions below are self-contained — any LLM can follow them. The complete,
-machine-readable list of node types is in [`node-catalog.json`](./node-catalog.json);
-two verified, importable examples are in [`examples/`](./examples).
+**This file is fully self-contained** — the schema, the complete node list, and two
+verified example flows are all inlined below, so you need nothing else to use it.
+(The same data is also available as separate files for convenience:
+[`node-catalog.json`](./node-catalog.json) has every node's default `data` values, and
+[`examples/`](./examples) holds the example flows as standalone `.json`.)
 
 ## The flow file format
 
@@ -109,8 +111,86 @@ node (avoid unless necessary; it warns on import).
 > not `FINAL` itself. Ending at the last operation node is also fine — every node shows
 > its own value.
 
-For strings, arrays, objects, dates, and visuals (`GAUGE`, `BAR_CHART`, …), see
-`node-catalog.json`.
+## Complete node list
+
+Every node type, with its input handles (`*` = variadic array; `—` = none) and output
+handles. Named inputs require a matching `targetHandle` on the edge. (Default `data`
+values per node are in `node-catalog.json`.)
+
+**Data**
+- `INPUT` (in: —; out: value) · data: value, min, max, step, useSlider
+- `TEXT_INPUT` (in: —; out: text) · data: text
+- `DATE_INPUT` (in: —; out: timestamp) · data: date
+- `RANGE` (in: start, end, step; out: —)
+- `COLLECTOR` (in: —; out: —)
+- `FORM` (in: —; out: —) · data: fields, showInputs
+- `GET_GLOBAL` (in: —; out: value) · data: key
+
+**Math**
+- `SUM` (in: *) · sum of all inputs
+- `SUB` (in: *) · `a - b - c …` (edge order matters)
+- `MUL` (in: *) · product of all inputs
+- `DIV` (in: a, b) · `a / b`
+- `MIN` (in: *) · `MAX` (in: *)
+- `ROUND` (in: val, decimals) · `FLOOR` (in: val) · `CEIL` (in: val)
+- `RANDOM` (in: min, max)
+
+**Logic**
+- `COMPARE` (in: a, b) · data: operator ∈ `> < >= <= == !=` → returns `1`/`0`
+- `IF` (in: condition, trueVal, falseVal)
+
+**String**
+- `STRING_CONCAT` (in: *)
+- `STRING_SPLIT` (in: text, delimiter) · data: delimiter
+- `STRING_REPLACE` (in: text, find, replace) · data: find, replace
+- `STRING_UPPER` (in: text) · `STRING_LOWER` (in: text) · `STRING_TRIM` (in: text)
+- `STRING_LENGTH` (in: text)
+- `STRING_SUBSTRING` (in: text, start, end)
+
+**Array**
+- `GET` (in: array, index) · data: index
+- `LENGTH` (in: array)
+- `SLICE` (in: array, start, end)
+- `SORT` (in: array) · data: order
+- `ARRAY_FLATTEN` (in: *)
+
+**Object**
+- `GET_KEY` (in: object) · data: key
+- `OBJECT_COMBINE` (in: *)
+- `OBJECT_FLATTEN` (in: object)
+- `OBJECT_KEYS` (in: object) · `OBJECT_VALUES` (in: object)
+- `UNPACK` (in: object) · data: keys
+- `PACK` (in: variadic, named by data.keys; out: object) · data: keys
+
+**Date**
+- `DATE_NOW` (in: —)
+- `DATE_FORMAT` (in: timestamp) · data: format
+- `DATE_PARSE` (in: text)
+- `DATE_DIFF` (in: date1, date2) · data: unit
+
+**Iterator** (each runs a `subGraph` over an input array — advanced)
+- `MAP` (in: array; out: results) · data: subGraph
+- `FILTER` (in: array; out: results) · data: subGraph
+- `REDUCE` (in: array; out: result) · data: subGraph, initialValue
+- Iterator-context nodes (used only *inside* a subGraph): `MAP_ITEM`, `MAP_INDEX`,
+  `MAP_OUTPUT`, `FILTER_ITEM`, `FILTER_INDEX`, `FILTER_INCLUDE`, `REDUCE_ITEM`,
+  `REDUCE_INDEX`, `REDUCE_ACCUMULATOR`, `REDUCE_OUTPUT`
+
+**Visuals** (display the incoming value; not used as a value source)
+- `GAUGE` (in: val, min, max) · `PROGRESS` (in: val, max)
+- `LINE_CHART` / `BAR_CHART` / `TABLE` (in: data)
+- `TEMPLATE` (in: *; out: text) · data: template
+- `FINAL` (in: val) · "Final Result" badge
+
+**Advanced** (grouping / non-linear / code — usually not needed for plain calculations)
+- `GROUP`, `GROUP_INPUT`, `GROUP_INPUT_LIST`, `GROUP_OUTPUT`, `GROUP_OUTPUT_LIST` — subgraph composition
+- `WARP_IN` (in: val) / `WARP_OUT` (out: value) · data: tag — non-linear skip links by tag
+- `CUSTOM` / `FUNCTION` — run JS (⚠️ trigger a code-review warning on import; avoid)
+- `COMMENT`, `TEXT_LABEL`, `FRAME` — annotations (no computation)
+
+**Atelier** (topology display nodes — not for calculations)
+- `ATELIER_INGRESS` (out: service), `ATELIER_SERVICE` (in: from_ingress; out: pods),
+  `ATELIER_DEPLOYMENT` (in: from_service)
 
 ## Algorithm: expression → flow
 
@@ -136,14 +216,60 @@ For strings, arrays, objects, dates, and visuals (`GAUGE`, `BAR_CHART`, …), se
 ## Worked examples (verified — they import and compute)
 
 ### 1. Arithmetic: `(base + tax) * quantity` with base=100, tax=20, qty=2 → **240**
-See [`examples/arithmetic.json`](./examples/arithmetic.json). Shape:
 `INPUT(100) + INPUT(20)` → `SUM` → `MUL` ← `INPUT(2)` → `FINAL`. The `MUL` node computes
 240; `FINAL` displays it.
 
+```json
+{
+  "title": "(base + tax) * quantity",
+  "nodes": [
+    {"id":"base","type":"INPUT","position":{"x":50,"y":50},"data":{"value":100,"label":"Base"}},
+    {"id":"tax","type":"INPUT","position":{"x":50,"y":200},"data":{"value":20,"label":"Tax"}},
+    {"id":"sum","type":"SUM","position":{"x":350,"y":120},"data":{"label":"Subtotal"}},
+    {"id":"qty","type":"INPUT","position":{"x":350,"y":320},"data":{"value":2,"label":"Quantity"}},
+    {"id":"mul","type":"MUL","position":{"x":650,"y":200},"data":{"label":"Total"}},
+    {"id":"result","type":"FINAL","position":{"x":950,"y":200},"data":{"label":"Result"}}
+  ],
+  "edges": [
+    {"id":"e1","source":"base","target":"sum","sourceHandle":"value"},
+    {"id":"e2","source":"tax","target":"sum","sourceHandle":"value"},
+    {"id":"e3","source":"sum","target":"mul"},
+    {"id":"e4","source":"qty","target":"mul","sourceHandle":"value"},
+    {"id":"e5","source":"mul","target":"result","targetHandle":"val"}
+  ]
+}
+```
+
 ### 2. Conditional: `(total / count >= 50) ? 1 : 0` with total=240, count=4 → **1**
-See [`examples/conditional.json`](./examples/conditional.json). Shows **named handles**:
-`DIV` (`a`=total, `b`=count), `COMPARE` (`a`=div, `b`=threshold, `operator: ">="`),
-`IF` (`condition`=compare, `trueVal`=INPUT(1), `falseVal`=INPUT(0)).
+Shows **named handles**: `DIV` (`a`=total, `b`=count), `COMPARE` (`a`=div, `b`=threshold,
+`operator: ">="`), `IF` (`condition`=compare, `trueVal`=INPUT(1), `falseVal`=INPUT(0)).
+
+```json
+{
+  "title": "pass = (total/count >= 50) ? 1 : 0",
+  "nodes": [
+    {"id":"total","type":"INPUT","position":{"x":50,"y":50},"data":{"value":240}},
+    {"id":"count","type":"INPUT","position":{"x":50,"y":200},"data":{"value":4}},
+    {"id":"div","type":"DIV","position":{"x":350,"y":120},"data":{}},
+    {"id":"thresh","type":"INPUT","position":{"x":350,"y":320},"data":{"value":50}},
+    {"id":"cmp","type":"COMPARE","position":{"x":650,"y":200},"data":{"operator":">="}},
+    {"id":"yes","type":"INPUT","position":{"x":650,"y":380},"data":{"value":1}},
+    {"id":"no","type":"INPUT","position":{"x":650,"y":500},"data":{"value":0}},
+    {"id":"iff","type":"IF","position":{"x":950,"y":300},"data":{}},
+    {"id":"result","type":"FINAL","position":{"x":1250,"y":300},"data":{}}
+  ],
+  "edges": [
+    {"id":"e1","source":"total","target":"div","targetHandle":"a","sourceHandle":"value"},
+    {"id":"e2","source":"count","target":"div","targetHandle":"b","sourceHandle":"value"},
+    {"id":"e3","source":"div","target":"cmp","targetHandle":"a"},
+    {"id":"e4","source":"thresh","target":"cmp","targetHandle":"b","sourceHandle":"value"},
+    {"id":"e5","source":"cmp","target":"iff","targetHandle":"condition"},
+    {"id":"e6","source":"yes","target":"iff","targetHandle":"trueVal","sourceHandle":"value"},
+    {"id":"e7","source":"no","target":"iff","targetHandle":"falseVal","sourceHandle":"value"},
+    {"id":"e8","source":"iff","target":"result","targetHandle":"val"}
+  ]
+}
+```
 
 ## Validate your output
 
