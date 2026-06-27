@@ -116,3 +116,7 @@ No TypeScript — JSX only. Styling via Tailwind (six themes in `src/themes.js`)
 and node catalog so an LLM can turn a calculation (e.g. `(base + tax) * qty`) into an
 importable FlowCal flow. It includes the schema, the evaluation model, the full node
 reference, and verified examples.
+
+## License
+
+[MIT](LICENSE) © Edward Howard

@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "license": "MIT",
   "description": "Self-hosted Express + Postgres backend for FlowCal",
   "main": "index.js",
   "scripts": {
