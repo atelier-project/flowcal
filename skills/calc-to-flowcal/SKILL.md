@@ -157,6 +157,38 @@ See [`examples/reuse.json`](./examples/reuse.json). One `INPUT(x)` feeds **multi
 targets — both inputs of `MUL` (giving `x*x`) **and** the `SUM` (`x*x + x`). Use a single
 `INPUT` per distinct variable and add an edge from it for each place it appears.
 
+## Grouping: bundle a sub-calculation into a reusable block
+
+A key FlowCal feature is the **GROUP** node — it wraps a chunk of a calculation into a
+single tidy "function" block with its own inputs and outputs. Reach for it when a
+calculation has a logically distinct part, a repeated sub-formula, or just gets big enough
+that collapsing a section keeps the canvas readable.
+
+A `GROUP` node holds a nested flow in `data.subGraph` (`{ nodes, edges }`). Inside the
+subgraph, the boundary is marked by special nodes:
+
+- **`GROUP_INPUT`** — one per input the block accepts. External edges feed these.
+- **`GROUP_OUTPUT`** (`inputs: ["val"]`) — one per value the block returns.
+- (`GROUP_INPUT_LIST` / `GROUP_OUTPUT_LIST` are the array-valued variants.)
+
+**Wiring rules** (the boundary nodes are addressed by their `id`, which is the gotcha):
+
+- **Edge into the group:** `targetHandle` = the **id of the `GROUP_INPUT` node** it
+  feeds. Inside the subgraph, that `GROUP_INPUT` then connects to the inner node(s).
+- **Edge out of the group:** the group's value is an object keyed by output-node id
+  (`{ "<GROUP_OUTPUT id>": value, … }`), so set the downstream edge's `sourceHandle` =
+  the **id of the `GROUP_OUTPUT` node** whose value you want.
+- **Inside the subgraph:** wire `GROUP_INPUT.id` → inner node inputs, and inner node
+  output → the `GROUP_OUTPUT` node (its single `val` input). The subgraph uses the exact
+  same node/edge schema as a top-level flow.
+
+### 4. Group example: `doubleSum(a, b) = (a + b) * 2`, with a=10, b=5 → **30**
+See [`examples/group.json`](./examples/group.json). A `GROUP` named `doubleSum` takes two
+inputs (`gi_a`, `gi_b`), computes `(a+b)*2` internally, and exposes one output (`go`).
+Outer edges connect `INPUT(a) → group[targetHandle:"gi_a"]`, `INPUT(b) →
+group[targetHandle:"gi_b"]`, and `group[sourceHandle:"go"] → FINAL`. The group evaluates
+to `{ "go": 30 }`; the `"go"` handle extracts `30`.
+
 ## Validate your output
 
 - Every node: unique string `id`, valid `type`, numeric `position`.
