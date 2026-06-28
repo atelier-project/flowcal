@@ -1,11 +1,12 @@
 import React from 'react';
-import { getBezierPath } from '../../utils/geometry';
+import { getEdgePath } from '../../utils/geometry';
 
 export const ConnectionLine = ({
     id,
     start,
     end,
     label,
+    routing,
     isEditing,
     canEdit = true,
     onDelete,
@@ -15,7 +16,7 @@ export const ConnectionLine = ({
     onMouseLeave,
     disableTitle
 }) => {
-    const d = getBezierPath(start, end);
+    const d = getEdgePath(start, end, routing);
     const [mx, my] = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
 
     // The input is uncontrolled (defaultValue + autoFocus) so no effect is
