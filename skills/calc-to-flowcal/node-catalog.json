@@ -1,0 +1,852 @@
+{
+  "INPUT": {
+    "label": "Number Input",
+    "category": "Data",
+    "inputs": [],
+    "outputs": [
+      "value"
+    ],
+    "data": {
+      "value": 0,
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "useSlider": false
+    },
+    "dynamicInputs": false
+  },
+  "TEXT_INPUT": {
+    "label": "Text Input",
+    "category": "Data",
+    "inputs": [],
+    "outputs": [
+      "text"
+    ],
+    "data": {
+      "text": ""
+    },
+    "dynamicInputs": false
+  },
+  "DATE_INPUT": {
+    "label": "Date Input",
+    "category": "Data",
+    "inputs": [],
+    "outputs": [
+      "timestamp"
+    ],
+    "data": {
+      "date": ""
+    },
+    "dynamicInputs": false
+  },
+  "RANGE": {
+    "label": "Range Generator",
+    "category": "Data",
+    "inputs": [
+      "start",
+      "end",
+      "step"
+    ],
+    "dynamicInputs": false
+  },
+  "COLLECTOR": {
+    "label": "Array Collector",
+    "category": "Data",
+    "dynamicInputs": true
+  },
+  "FORM": {
+    "label": "Form / Object",
+    "category": "Data",
+    "data": {
+      "fields": [],
+      "showInputs": false
+    },
+    "dynamicInputs": true
+  },
+  "COMPARE": {
+    "label": "Compare",
+    "category": "Logic",
+    "inputs": [
+      "a",
+      "b"
+    ],
+    "data": {
+      "operator": ">"
+    },
+    "dynamicInputs": false
+  },
+  "IF": {
+    "label": "If / Else",
+    "category": "Logic",
+    "inputs": [
+      "condition",
+      "trueVal",
+      "falseVal"
+    ],
+    "dynamicInputs": false
+  },
+  "STRING_CONCAT": {
+    "label": "Concat Strings",
+    "category": "String",
+    "inputs": [
+      "*"
+    ],
+    "dynamicInputs": false
+  },
+  "STRING_SPLIT": {
+    "label": "Split String",
+    "category": "String",
+    "inputs": [
+      "text",
+      "delimiter"
+    ],
+    "data": {
+      "delimiter": ","
+    },
+    "dynamicInputs": false
+  },
+  "STRING_REPLACE": {
+    "label": "Replace",
+    "category": "String",
+    "inputs": [
+      "text",
+      "find",
+      "replace"
+    ],
+    "data": {
+      "find": "",
+      "replace": ""
+    },
+    "dynamicInputs": false
+  },
+  "STRING_UPPER": {
+    "label": "Uppercase",
+    "category": "String",
+    "inputs": [
+      "text"
+    ],
+    "dynamicInputs": false
+  },
+  "STRING_LOWER": {
+    "label": "Lowercase",
+    "category": "String",
+    "inputs": [
+      "text"
+    ],
+    "dynamicInputs": false
+  },
+  "STRING_LENGTH": {
+    "label": "String Length",
+    "category": "String",
+    "inputs": [
+      "text"
+    ],
+    "dynamicInputs": false
+  },
+  "STRING_TRIM": {
+    "label": "Trim",
+    "category": "String",
+    "inputs": [
+      "text"
+    ],
+    "dynamicInputs": false
+  },
+  "STRING_SUBSTRING": {
+    "label": "Substring",
+    "category": "String",
+    "inputs": [
+      "text",
+      "start",
+      "end"
+    ],
+    "dynamicInputs": false
+  },
+  "DATE_NOW": {
+    "label": "Now",
+    "category": "Date",
+    "inputs": [],
+    "dynamicInputs": false
+  },
+  "DATE_FORMAT": {
+    "label": "Format Date",
+    "category": "Date",
+    "inputs": [
+      "timestamp"
+    ],
+    "data": {
+      "format": "iso"
+    },
+    "dynamicInputs": false
+  },
+  "DATE_PARSE": {
+    "label": "Parse Date",
+    "category": "Date",
+    "inputs": [
+      "text"
+    ],
+    "dynamicInputs": false
+  },
+  "DATE_DIFF": {
+    "label": "Date Diff",
+    "category": "Date",
+    "inputs": [
+      "date1",
+      "date2"
+    ],
+    "data": {
+      "unit": "days"
+    },
+    "dynamicInputs": false
+  },
+  "GET_GLOBAL": {
+    "label": "Get Global",
+    "category": "Data",
+    "inputs": [],
+    "outputs": [
+      "value"
+    ],
+    "data": {
+      "key": ""
+    },
+    "dynamicInputs": false
+  },
+  "GET": {
+    "label": "Get Item",
+    "category": "Array",
+    "inputs": [
+      "array",
+      "index"
+    ],
+    "data": {
+      "index": 0
+    },
+    "dynamicInputs": false
+  },
+  "GET_KEY": {
+    "label": "Get Value",
+    "category": "Object",
+    "inputs": [
+      "object"
+    ],
+    "data": {
+      "key": ""
+    },
+    "dynamicInputs": false
+  },
+  "LENGTH": {
+    "label": "Length",
+    "category": "Array",
+    "inputs": [
+      "array"
+    ],
+    "dynamicInputs": false
+  },
+  "SLICE": {
+    "label": "Slice",
+    "category": "Array",
+    "inputs": [
+      "array",
+      "start",
+      "end"
+    ],
+    "dynamicInputs": false
+  },
+  "SORT": {
+    "label": "Sort",
+    "category": "Array",
+    "inputs": [
+      "array"
+    ],
+    "data": {
+      "order": "asc"
+    },
+    "dynamicInputs": false
+  },
+  "FILTER": {
+    "label": "Filter",
+    "category": "Iterator",
+    "inputs": [
+      "array"
+    ],
+    "outputs": [
+      "results"
+    ],
+    "data": {
+      "subGraph": {
+        "nodes": [],
+        "edges": []
+      }
+    },
+    "dynamicInputs": false
+  },
+  "ARRAY_FLATTEN": {
+    "label": "Flatten Arrays",
+    "category": "Array",
+    "inputs": [
+      "*"
+    ],
+    "dynamicInputs": false
+  },
+  "OBJECT_COMBINE": {
+    "label": "Combine Objects",
+    "category": "Object",
+    "inputs": [
+      "*"
+    ],
+    "dynamicInputs": false
+  },
+  "OBJECT_FLATTEN": {
+    "label": "Flatten Object",
+    "category": "Object",
+    "inputs": [
+      "object"
+    ],
+    "dynamicInputs": false
+  },
+  "OBJECT_KEYS": {
+    "label": "Get Keys",
+    "category": "Object",
+    "inputs": [
+      "object"
+    ],
+    "dynamicInputs": false
+  },
+  "OBJECT_VALUES": {
+    "label": "Get Values",
+    "category": "Object",
+    "inputs": [
+      "object"
+    ],
+    "dynamicInputs": false
+  },
+  "UNPACK": {
+    "label": "Unpack Object",
+    "category": "Object",
+    "inputs": [
+      "object"
+    ],
+    "data": {
+      "keys": []
+    },
+    "dynamicInputs": false
+  },
+  "PACK": {
+    "label": "Pack Object",
+    "category": "Object",
+    "outputs": [
+      "object"
+    ],
+    "data": {
+      "keys": []
+    },
+    "dynamicInputs": true
+  },
+  "SUM": {
+    "label": "Sum",
+    "category": "Math",
+    "inputs": [
+      "*"
+    ],
+    "dynamicInputs": false
+  },
+  "SUB": {
+    "label": "Subtract",
+    "category": "Math",
+    "inputs": [
+      "*"
+    ],
+    "dynamicInputs": false
+  },
+  "MUL": {
+    "label": "Multiply",
+    "category": "Math",
+    "inputs": [
+      "*"
+    ],
+    "dynamicInputs": false
+  },
+  "DIV": {
+    "label": "Divide",
+    "category": "Math",
+    "inputs": [
+      "a",
+      "b"
+    ],
+    "dynamicInputs": false
+  },
+  "MIN": {
+    "label": "Min",
+    "category": "Math",
+    "inputs": [
+      "*"
+    ],
+    "dynamicInputs": false
+  },
+  "MAX": {
+    "label": "Max",
+    "category": "Math",
+    "inputs": [
+      "*"
+    ],
+    "dynamicInputs": false
+  },
+  "ROUND": {
+    "label": "Round",
+    "category": "Math",
+    "inputs": [
+      "val",
+      "decimals"
+    ],
+    "dynamicInputs": false
+  },
+  "FLOOR": {
+    "label": "Floor",
+    "category": "Math",
+    "inputs": [
+      "val"
+    ],
+    "dynamicInputs": false
+  },
+  "CEIL": {
+    "label": "Ceil",
+    "category": "Math",
+    "inputs": [
+      "val"
+    ],
+    "dynamicInputs": false
+  },
+  "RANDOM": {
+    "label": "Random",
+    "category": "Math",
+    "inputs": [
+      "min",
+      "max"
+    ],
+    "dynamicInputs": false
+  },
+  "CUSTOM": {
+    "label": "Custom JS",
+    "category": "Advanced",
+    "inputs": [
+      "*"
+    ],
+    "data": {
+      "func": "return inputs.reduce((a,b) => a+b, 0);"
+    },
+    "dynamicInputs": false
+  },
+  "GAUGE": {
+    "label": "Gauge",
+    "category": "Visuals",
+    "inputs": [
+      "val",
+      "min",
+      "max"
+    ],
+    "dynamicInputs": false
+  },
+  "PROGRESS": {
+    "label": "Progress Bar",
+    "category": "Visuals",
+    "inputs": [
+      "val",
+      "max"
+    ],
+    "dynamicInputs": false
+  },
+  "LINE_CHART": {
+    "label": "Line Chart",
+    "category": "Visuals",
+    "inputs": [
+      "data"
+    ],
+    "dynamicInputs": false
+  },
+  "BAR_CHART": {
+    "label": "Bar Chart",
+    "category": "Visuals",
+    "inputs": [
+      "data"
+    ],
+    "dynamicInputs": false
+  },
+  "TABLE": {
+    "label": "Data Table",
+    "category": "Visuals",
+    "inputs": [
+      "data"
+    ],
+    "dynamicInputs": false
+  },
+  "TEMPLATE": {
+    "label": "Text Template",
+    "category": "Visuals",
+    "inputs": [
+      "*"
+    ],
+    "outputs": [
+      "text"
+    ],
+    "data": {
+      "template": "Total: {0}"
+    },
+    "dynamicInputs": false
+  },
+  "FINAL": {
+    "label": "Final Result",
+    "category": "Visuals",
+    "inputs": [
+      "val"
+    ],
+    "data": {
+      "width": 200
+    },
+    "dynamicInputs": false
+  },
+  "GROUP": {
+    "label": "Group Logic",
+    "category": "Advanced",
+    "dynamicInputs": false
+  },
+  "GROUP_INPUT": {
+    "label": "Group Input",
+    "category": "Advanced",
+    "data": {
+      "label": "",
+      "description": "",
+      "typeDef": "any"
+    },
+    "dynamicInputs": false
+  },
+  "GROUP_INPUT_LIST": {
+    "label": "Group List Input",
+    "category": "Advanced",
+    "inputs": [],
+    "outputs": [
+      "value"
+    ],
+    "data": {
+      "label": "",
+      "description": "",
+      "typeDef": "any",
+      "value": []
+    },
+    "dynamicInputs": false
+  },
+  "GROUP_OUTPUT": {
+    "label": "Group Output",
+    "category": "Advanced",
+    "inputs": [
+      "val"
+    ],
+    "data": {
+      "label": "",
+      "description": "",
+      "typeDef": "any"
+    },
+    "dynamicInputs": false
+  },
+  "GROUP_OUTPUT_LIST": {
+    "label": "Group List Output",
+    "category": "Advanced",
+    "inputs": [
+      "*"
+    ],
+    "outputs": [
+      "value"
+    ],
+    "data": {
+      "label": "",
+      "description": "",
+      "typeDef": "any",
+      "value": []
+    },
+    "dynamicInputs": false
+  },
+  "WARP_IN": {
+    "label": "Warp In",
+    "category": "Advanced",
+    "inputs": [
+      "val"
+    ],
+    "outputs": [],
+    "data": {
+      "tag": "A"
+    },
+    "dynamicInputs": false
+  },
+  "WARP_OUT": {
+    "label": "Warp Out",
+    "category": "Advanced",
+    "inputs": [],
+    "outputs": [
+      "value"
+    ],
+    "data": {
+      "tag": "A"
+    },
+    "dynamicInputs": false
+  },
+  "COMMENT": {
+    "label": "Comment",
+    "category": "Advanced",
+    "inputs": [],
+    "outputs": [],
+    "data": {
+      "text": "Add your notes here...",
+      "width": 256,
+      "height": 120,
+      "color": "#fef3c7"
+    },
+    "dynamicInputs": false
+  },
+  "TEXT_LABEL": {
+    "label": "Text Label",
+    "category": "Advanced",
+    "inputs": [],
+    "outputs": [],
+    "data": {
+      "text": "Label",
+      "fontSize": 36,
+      "fontFamily": "Inter",
+      "color": "auto",
+      "fontWeight": "normal",
+      "textAlign": "left"
+    },
+    "dynamicInputs": false
+  },
+  "FRAME": {
+    "label": "Frame",
+    "category": "Advanced",
+    "inputs": [],
+    "outputs": [],
+    "data": {
+      "title": "",
+      "width": 300,
+      "height": 200,
+      "color": "#3b82f6",
+      "lineStyle": "solid"
+    },
+    "dynamicInputs": false
+  },
+  "FUNCTION": {
+    "label": "Function",
+    "category": "Advanced",
+    "outputs": [
+      "result"
+    ],
+    "data": {
+      "params": [],
+      "code": "return 0"
+    },
+    "dynamicInputs": true
+  },
+  "MAP": {
+    "label": "Map",
+    "category": "Iterator",
+    "inputs": [
+      "array"
+    ],
+    "outputs": [
+      "results"
+    ],
+    "data": {
+      "subGraph": {
+        "nodes": [],
+        "edges": []
+      }
+    },
+    "dynamicInputs": false
+  },
+  "REDUCE": {
+    "label": "Reduce",
+    "category": "Iterator",
+    "inputs": [
+      "array"
+    ],
+    "outputs": [
+      "result"
+    ],
+    "data": {
+      "subGraph": {
+        "nodes": [],
+        "edges": []
+      },
+      "initialValue": 0
+    },
+    "dynamicInputs": false
+  },
+  "MAP_ITEM": {
+    "label": "MAP: Current Item",
+    "category": "Iterator Context",
+    "inputs": [],
+    "outputs": [
+      "item"
+    ],
+    "data": {
+      "value": null
+    },
+    "dynamicInputs": false,
+    "iteratorContext": "MAP"
+  },
+  "MAP_INDEX": {
+    "label": "MAP: Current Index",
+    "category": "Iterator Context",
+    "inputs": [],
+    "outputs": [
+      "index"
+    ],
+    "data": {
+      "value": 0
+    },
+    "dynamicInputs": false,
+    "iteratorContext": "MAP"
+  },
+  "MAP_OUTPUT": {
+    "label": "MAP: Output",
+    "category": "Iterator Context",
+    "inputs": [
+      "value"
+    ],
+    "outputs": [],
+    "data": {},
+    "dynamicInputs": false,
+    "iteratorContext": "MAP"
+  },
+  "FILTER_ITEM": {
+    "label": "FILTER: Current Item",
+    "category": "Iterator Context",
+    "inputs": [],
+    "outputs": [
+      "item"
+    ],
+    "data": {
+      "value": null
+    },
+    "dynamicInputs": false,
+    "iteratorContext": "FILTER"
+  },
+  "FILTER_INDEX": {
+    "label": "FILTER: Current Index",
+    "category": "Iterator Context",
+    "inputs": [],
+    "outputs": [
+      "index"
+    ],
+    "data": {
+      "value": 0
+    },
+    "dynamicInputs": false,
+    "iteratorContext": "FILTER"
+  },
+  "FILTER_INCLUDE": {
+    "label": "FILTER: Include?",
+    "category": "Iterator Context",
+    "inputs": [
+      "condition"
+    ],
+    "outputs": [],
+    "data": {},
+    "dynamicInputs": false,
+    "iteratorContext": "FILTER"
+  },
+  "REDUCE_ITEM": {
+    "label": "REDUCE: Current Item",
+    "category": "Iterator Context",
+    "inputs": [],
+    "outputs": [
+      "item"
+    ],
+    "data": {
+      "value": null
+    },
+    "dynamicInputs": false,
+    "iteratorContext": "REDUCE"
+  },
+  "REDUCE_INDEX": {
+    "label": "REDUCE: Current Index",
+    "category": "Iterator Context",
+    "inputs": [],
+    "outputs": [
+      "index"
+    ],
+    "data": {
+      "value": 0
+    },
+    "dynamicInputs": false,
+    "iteratorContext": "REDUCE"
+  },
+  "REDUCE_ACCUMULATOR": {
+    "label": "REDUCE: Accumulator",
+    "category": "Iterator Context",
+    "inputs": [],
+    "outputs": [
+      "value"
+    ],
+    "data": {
+      "value": 0
+    },
+    "dynamicInputs": false,
+    "iteratorContext": "REDUCE"
+  },
+  "REDUCE_OUTPUT": {
+    "label": "REDUCE: New Accumulator",
+    "category": "Iterator Context",
+    "inputs": [
+      "value"
+    ],
+    "outputs": [],
+    "data": {},
+    "dynamicInputs": false,
+    "iteratorContext": "REDUCE"
+  },
+  "ATELIER_INGRESS": {
+    "label": "Ingress",
+    "category": "Atelier",
+    "inputs": [],
+    "outputs": [
+      "service"
+    ],
+    "data": {
+      "name": "",
+      "host": "",
+      "path": "/",
+      "app": "",
+      "status": ""
+    },
+    "dynamicInputs": false
+  },
+  "ATELIER_SERVICE": {
+    "label": "Service",
+    "category": "Atelier",
+    "inputs": [
+      "from_ingress"
+    ],
+    "outputs": [
+      "pods"
+    ],
+    "data": {
+      "name": "",
+      "port": 80,
+      "app": "",
+      "status": ""
+    },
+    "dynamicInputs": false
+  },
+  "ATELIER_DEPLOYMENT": {
+    "label": "Deployment",
+    "category": "Atelier",
+    "inputs": [
+      "from_service"
+    ],
+    "outputs": [],
+    "data": {
+      "name": "",
+      "ready": "0/0",
+      "image": "",
+      "app": "",
+      "status": ""
+    },
+    "dynamicInputs": false
+  }
+}

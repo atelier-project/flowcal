@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { backend } from '../services/backend';
 
 const AuthContext = createContext({});
 
@@ -16,20 +16,15 @@ export const AuthProvider = ({ children }) => {
             setProfile(null);
             return;
         }
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
-
-        if (!error) {
+        const data = await backend.getProfile(userId);
+        if (data) {
             setProfile(data);
         }
     };
 
     useEffect(() => {
         // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        backend.getSession().then((session) => {
             setSession(session);
             const currentUser = session?.user ?? null;
             setUser(currentUser);
@@ -38,7 +33,7 @@ export const AuthProvider = ({ children }) => {
         });
 
         // Listen for changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        const unsubscribe = backend.onAuthStateChange((session) => {
             setSession(session);
             const currentUser = session?.user ?? null;
             setUser(currentUser);
@@ -47,13 +42,13 @@ export const AuthProvider = ({ children }) => {
             setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => unsubscribe();
     }, []);
 
     const value = {
-        signUp: (data) => supabase.auth.signUp(data),
-        signIn: (data) => supabase.auth.signInWithPassword(data),
-        signOut: () => supabase.auth.signOut(),
+        signUp: (data) => backend.signUp(data),
+        signIn: (data) => backend.signIn(data),
+        signOut: () => backend.signOut(),
         user,
         profile,
         isAdmin: profile?.role === 'admin' || profile?.role === 'superuser',

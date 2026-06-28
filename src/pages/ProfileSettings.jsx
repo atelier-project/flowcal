@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { backend } from '../services/backend';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
@@ -29,11 +29,7 @@ export default function ProfileSettings() {
 
     const loadProfile = async () => {
         try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('full_name, avatar_url, support_access_granted')
-                .eq('id', user.id)
-                .single();
+            const data = await backend.getProfileSettings(user.id);
 
             if (data) {
                 setFullName(data.full_name || '');
@@ -50,16 +46,11 @@ export default function ProfileSettings() {
     const handleSave = async () => {
         setLoading(true);
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({
-                    full_name: fullName,
-                    avatar_url: avatarUrl,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', user.id);
+            await backend.updateProfile(user.id, {
+                full_name: fullName,
+                avatar_url: avatarUrl,
+            });
 
-            if (error) throw error;
             addToast('Profile updated successfully!', 'success');
             // Ideally refresh AuthContext profile here if needed
         } catch (err) {
@@ -72,16 +63,9 @@ export default function ProfileSettings() {
     const handleSupportToggle = async (newValue) => {
         setSupportAccess(newValue); // Optimistic update
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ support_access_granted: newValue })
-                .eq('id', user.id);
-
-            if (error) {
-                setSupportAccess(!newValue); // Revert
-                throw error;
-            }
+            await backend.setSupportAccess(user.id, newValue);
         } catch (err) {
+            setSupportAccess(!newValue); // Revert
             addToast('Failed to toggle support access', 'error');
         }
     };
@@ -95,8 +79,7 @@ export default function ProfileSettings() {
 
         setDeleteLoading(true);
         try {
-            const { error } = await supabase.rpc('schedule_account_deletion');
-            if (error) throw error;
+            await backend.scheduleAccountDeletion();
 
             await signOut();
             navigate('/login');

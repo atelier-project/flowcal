@@ -598,7 +598,7 @@ export default function Editor() {
       data: newData
     };
 
-    setGraph({ nodes: [...nodes, newNode], edges });
+    setGraph(graph => ({ nodes: [...graph.nodes, newNode], edges: graph.edges }));
     setSelectedIds(new Set([newId]));
   }, [setGraph, isActionAllowed]);
 

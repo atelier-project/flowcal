@@ -1,0 +1,24 @@
+{
+  "title": "pass = (total/count >= 50) ? 1 : 0",
+  "nodes": [
+    {"id":"total","type":"INPUT","position":{"x":50,"y":50},"data":{"value":240}},
+    {"id":"count","type":"INPUT","position":{"x":50,"y":200},"data":{"value":4}},
+    {"id":"div","type":"DIV","position":{"x":350,"y":120},"data":{}},
+    {"id":"thresh","type":"INPUT","position":{"x":350,"y":320},"data":{"value":50}},
+    {"id":"cmp","type":"COMPARE","position":{"x":650,"y":200},"data":{"operator":">="}},
+    {"id":"yes","type":"INPUT","position":{"x":650,"y":380},"data":{"value":1}},
+    {"id":"no","type":"INPUT","position":{"x":650,"y":500},"data":{"value":0}},
+    {"id":"iff","type":"IF","position":{"x":950,"y":300},"data":{}},
+    {"id":"result","type":"FINAL","position":{"x":1250,"y":300},"data":{}}
+  ],
+  "edges": [
+    {"id":"e1","source":"total","target":"div","targetHandle":"a","sourceHandle":"value"},
+    {"id":"e2","source":"count","target":"div","targetHandle":"b","sourceHandle":"value"},
+    {"id":"e3","source":"div","target":"cmp","targetHandle":"a"},
+    {"id":"e4","source":"thresh","target":"cmp","targetHandle":"b","sourceHandle":"value"},
+    {"id":"e5","source":"cmp","target":"iff","targetHandle":"condition"},
+    {"id":"e6","source":"yes","target":"iff","targetHandle":"trueVal","sourceHandle":"value"},
+    {"id":"e7","source":"no","target":"iff","targetHandle":"falseVal","sourceHandle":"value"},
+    {"id":"e8","source":"iff","target":"result","targetHandle":"val"}
+  ]
+}

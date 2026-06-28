@@ -1,0 +1,33 @@
+{
+  "title": "GROUP: doubleSum(a,b) = (a+b)*2",
+  "nodes": [
+    {"id":"a","type":"INPUT","position":{"x":50,"y":80},"data":{"value":10,"label":"a"}},
+    {"id":"b","type":"INPUT","position":{"x":50,"y":220},"data":{"value":5,"label":"b"}},
+    {"id":"grp","type":"GROUP","position":{"x":350,"y":150},"data":{
+      "label":"doubleSum",
+      "subGraph":{
+        "nodes":[
+          {"id":"gi_a","type":"GROUP_INPUT","position":{"x":50,"y":50},"data":{"label":"a"}},
+          {"id":"gi_b","type":"GROUP_INPUT","position":{"x":50,"y":180},"data":{"label":"b"}},
+          {"id":"isum","type":"SUM","position":{"x":300,"y":110},"data":{"label":"a+b"}},
+          {"id":"two","type":"INPUT","position":{"x":300,"y":260},"data":{"value":2}},
+          {"id":"imul","type":"MUL","position":{"x":550,"y":150},"data":{"label":"*2"}},
+          {"id":"go","type":"GROUP_OUTPUT","position":{"x":800,"y":150},"data":{"label":"result"}}
+        ],
+        "edges":[
+          {"id":"ie1","source":"gi_a","target":"isum"},
+          {"id":"ie2","source":"gi_b","target":"isum"},
+          {"id":"ie3","source":"isum","target":"imul"},
+          {"id":"ie4","source":"two","target":"imul","sourceHandle":"value"},
+          {"id":"ie5","source":"imul","target":"go"}
+        ]
+      }
+    }},
+    {"id":"out","type":"FINAL","position":{"x":650,"y":150},"data":{"label":"Result"}}
+  ],
+  "edges":[
+    {"id":"e1","source":"a","target":"grp","sourceHandle":"value","targetHandle":"gi_a"},
+    {"id":"e2","source":"b","target":"grp","sourceHandle":"value","targetHandle":"gi_b"},
+    {"id":"e3","source":"grp","target":"out","sourceHandle":"go","targetHandle":"val"}
+  ]
+}
