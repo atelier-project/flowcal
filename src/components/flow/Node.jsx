@@ -442,6 +442,23 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 position={position}
             />
 
+            {/* Collapsed GROUP summary: one row per output (label : value), aligned
+                to its port so the flow's state is readable without expanding, and
+                each outgoing wire leaves from a distinct, labelled row. */}
+            {type === 'GROUP' && data.collapsed && outputHandles.map((h) => (
+                <div
+                    key={h.id || 'out'}
+                    className="absolute right-4 flex items-center gap-1.5 max-w-[85%] pointer-events-none"
+                    style={{ top: typeof h.top === 'number' ? h.top : 40, transform: 'translateY(-50%)' }}
+                    title={h.label}
+                >
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono truncate">{h.label}</span>
+                    <span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 truncate">
+                        {result && result[h.id] !== undefined ? formatResult(result[h.id]) : '–'}
+                    </span>
+                </div>
+            ))}
+
             {/* Body - conditionally render based on collapsed state */}
             {!data.collapsed && <div className="p-3 space-y-3 flex-1 flex flex-col overflow-y-auto">
                 {type === 'INPUT' && (
@@ -1289,7 +1306,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         )}
                     </div>
                 ))}
-                {outputHandles.map((h, i) => h.label && type !== 'UNPACK' && !(type === 'GROUP' && data.showResults) && (
+                {outputHandles.map((h, i) => h.label && type !== 'UNPACK' && !(type === 'GROUP' && (data.showResults || data.collapsed)) && (
                     <div key={h.id || i} className="absolute right-3 flex flex-row-reverse items-center gap-1 group/handle cursor-help"
                         style={{ top: typeof h.top === 'number' ? h.top : h.top, transform: 'translateY(-50%)' }}
                         title={h.description || undefined}>

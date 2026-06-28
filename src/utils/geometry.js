@@ -1,4 +1,4 @@
-import { getNodeHeight } from './layout';
+import { getNodeHeight, collapsedGroupHandleTop } from './layout';
 import { getDefinition } from '../engine/nodeDefinitions';
 import { HANDLE_POSITIONS } from './handlePositions';
 
@@ -42,7 +42,9 @@ const inputStrategies = {
         handles = getSortedOrder(handles, node.data.inputOrder);
         const idx = handles.indexOf(handleId);
 
-        if (node.data?.collapsed) return HANDLE_POSITIONS.COLLAPSED;
+        // Collapsed groups spread boundary ports into rows (see layout.js) so a
+        // multi-input/output group doesn't stack every wire on one point.
+        if (node.data?.collapsed) return collapsedGroupHandleTop(idx === -1 ? 0 : idx);
         if (idx !== -1) return pos.base + (idx * pos.rowHeight);
         return 50;
     },
@@ -99,7 +101,8 @@ const outputStrategies = {
         handles = getSortedOrder(handles, node.data.outputOrder);
         const idx = handles.indexOf(handleId);
 
-        if (node.data?.collapsed) return HANDLE_POSITIONS.COLLAPSED;
+        // Collapsed groups spread boundary ports into rows (see layout.js).
+        if (node.data?.collapsed) return collapsedGroupHandleTop(idx === -1 ? 0 : idx);
         if (idx !== -1) return pos.base + (idx * pos.rowHeight);
         return 50;
     },

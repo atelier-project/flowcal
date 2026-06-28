@@ -1,11 +1,38 @@
 /**
+ * Collapsed-GROUP summary layout. A collapsed group lists its outputs (one row
+ * each) so the flow's state is readable from the top-level canvas and each
+ * outgoing wire leaves from a distinct, labelled port. The handle positions
+ * (geometry.js / NodeHandles.jsx) and the rendered rows (Node.jsx) all derive
+ * from these constants so they stay pixel-aligned.
+ */
+export const COLLAPSED_GROUP_HEADER = 40;
+export const COLLAPSED_GROUP_ROW = 22;
+export const collapsedGroupHandleTop = (index) =>
+    COLLAPSED_GROUP_HEADER + COLLAPSED_GROUP_ROW / 2 + index * COLLAPSED_GROUP_ROW;
+
+const groupBoundaryCounts = (node) => {
+    const nodes = node.data?.subGraph?.nodes || [];
+    const inputs = nodes.filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST').length;
+    const outputs = nodes.filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST').length;
+    return { inputs, outputs };
+};
+
+/**
  * Utility: Estimate Node Height for Hit Testing & Handle Alignment
  */
 export const getNodeHeight = (node) => {
     if (!node) return 160;
 
-    // If node is collapsed, return just header height
-    if (node.data?.collapsed) return 40;
+    // If node is collapsed, return just the header — except a GROUP, which grows
+    // to fit one summary row per boundary port (see constants above).
+    if (node.data?.collapsed) {
+        if (node.type === 'GROUP') {
+            const { inputs, outputs } = groupBoundaryCounts(node);
+            const rows = Math.max(inputs, outputs);
+            if (rows > 0) return COLLAPSED_GROUP_HEADER + rows * COLLAPSED_GROUP_ROW + 8;
+        }
+        return 40;
+    }
 
     if (node.type === 'GROUP') {
         const inputs = node.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT') || [];

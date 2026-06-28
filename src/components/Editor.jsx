@@ -81,6 +81,7 @@ export default function Editor() {
   const [spacePressed, setSpacePressed] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
+  const [editingEdgeId, setEditingEdgeId] = useState(null);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   // Load Cloud Flow on Mount
@@ -1368,9 +1369,23 @@ export default function Editor() {
               const start = getHandlePosition(edge.source, nodes, 'output', edge.sourceHandle);
               const end = getHandlePosition(edge.target, nodes, 'input', edge.targetHandle);
               return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end}
+                label={edge.label}
+                isEditing={editingEdgeId === edge.id}
+                canEdit={isActionAllowed()}
                 onDelete={(id) => {
                   if (!isActionAllowed()) return;
                   setGraph({ nodes, edges: edges.filter(e => e.id !== id) });
+                }}
+                onStartEditLabel={(id) => { if (isActionAllowed()) setEditingEdgeId(id); }}
+                onCommitLabel={(id, value, cancelled) => {
+                  setEditingEdgeId(null);
+                  if (cancelled || !isActionAllowed()) return;
+                  setGraph({
+                    nodes,
+                    edges: edges.map(e => e.id === id
+                      ? (value ? { ...e, label: value } : (() => { const { label: _omit, ...rest } = e; return rest; })())
+                      : e)
+                  });
                 }}
                 onMouseEnter={(e) => {
                   if (debugMode) {

@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Handle } from '../Handle';
 import { getDefinition } from '../../../engine/nodeDefinitions';
-import { getNodeHeight } from '../../../utils/layout';
+import { getNodeHeight, collapsedGroupHandleTop } from '../../../utils/layout';
 
 /**
  * useNodeHandles - Hook to calculate input and output handle positions
@@ -87,6 +87,11 @@ export const useNodeHandles = (type, data) => {
 
         // Assign positions
         if (data.collapsed) {
+            // Collapsed groups spread their ports into rows; everything else
+            // stacks at the header.
+            if (type === 'GROUP') {
+                return handles.map((h, i) => ({ ...h, top: collapsedGroupHandleTop(i) }));
+            }
             return handles.map((h) => ({ ...h, top: 20 }));
         }
         if (handles.length === 1 && handles[0].top) return handles;
@@ -147,6 +152,9 @@ export const useNodeHandles = (type, data) => {
         }
 
         if (data.collapsed && type !== 'UNPACK') {
+            if (type === 'GROUP') {
+                return handles.map((h, i) => ({ ...h, top: collapsedGroupHandleTop(i) }));
+            }
             return handles.map((h) => ({ ...h, top: 20 }));
         }
 
@@ -212,6 +220,7 @@ export const NodeHandles = ({
                         position={{ y: typeof h.top === 'number' ? `${h.top}px` : h.top }}
                         onMouseDown={(e) => onStartConnect(e, id, h.id)}
                         isValid={true}
+                        description={h.label}
                         typeDef={handleTypeDef}
                     />
                 );
