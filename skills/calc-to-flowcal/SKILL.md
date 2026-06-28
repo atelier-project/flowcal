@@ -43,6 +43,9 @@ Import/export is a single JSON object:
 - `sourceHandle` — the **output** name on the source node (e.g. `"value"`).
 - `targetHandle` — the **input** name on the target node (e.g. `"a"`). Required when
   the target has named inputs (see below); omit for single-input or `*` nodes.
+- `label` — **optional** short string (≤80 chars) rendered at the wire's midpoint.
+  Use sparingly to annotate what a wire carries (e.g. `"net total"`) when a node has
+  several converging inputs; purely cosmetic, ignored by evaluation.
 
 Limits: ≤10000 nodes, ≤50000 edges, ≤10MB. Avoid `CUSTOM`/`FUNCTION` nodes (they
 trigger a code-review warning on import).
@@ -156,7 +159,9 @@ For strings, arrays, objects, dates, and visuals (`GAUGE`, `BAR_CHART`, …), se
    and one edge (`targetHandle: "val"`) into it for a labeled result display.
 6. **Lay out & id.** Give every node a unique string `id`, a sensible `position` (spread
    left→right by depth, e.g. x = depth·300, y staggered to avoid overlap), and every edge
-   a unique `id`.
+   a unique `id`. Positions only need to be *valid and non-overlapping*, not pretty — the
+   editor has a **Tidy layout** button (wand icon, top bar) that re-arranges nodes
+   left→right by dependency, so don't over-invest in exact coordinates.
 
 ## Worked examples (verified — they import and compute)
 
