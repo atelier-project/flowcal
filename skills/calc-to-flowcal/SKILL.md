@@ -103,11 +103,29 @@ node (avoid unless necessary; it warns on import).
 |------|--------|------|---------|
 | `COMPARE` | `a, b` | `{ "operator": ">" }` | returns `1`/`0`. operator ∈ `> < >= <= == !=` |
 | `IF` | `condition, trueVal, falseVal` | — | `condition` truthy (≠0) → `trueVal`, else `falseVal` |
+| `LOOKUP` | `key` | `{ "cases": [{"key","value"}], "default": "", "mode": "exact" }` | maps `key` to the matching case's `value`; falls back to `default`. See below. |
+
+**`LOOKUP` (a.k.a. switch / decode table)** turns a number into one of N values — handy for
+making a `FINAL` self-explanatory (e.g. decode `8` → `"e2-standard-8"` instead of relying on
+a comment). `mode`:
+- `"exact"` — `value` of the case whose `key` equals the input. Numeric-looking keys/values
+  coerce to numbers (`"8"` matches `8`); non-numeric `value`s stay strings.
+- `"up"` — round **up**: the case with the smallest `key` ≥ input (size-up to the next tier).
+- `"down"` — round **down**: the case with the largest `key` ≤ input.
+
+`value`s can be strings or numbers. Example `data`:
+`{ "mode": "up", "cases": [{"key":"2","value":"e2-standard-2"},{"key":"8","value":"e2-standard-8"}], "default": "unknown" }`
 
 ### Result / display
 | type | inputs | meaning |
 |------|--------|---------|
 | `FINAL` | `val` | "Final Result" badge — **displays** its incoming value. Optional, for emphasis. |
+
+`FINAL` can format its display via `data`: `"unit"` (a suffix string, e.g. `"TB"`, rendered
+after the value) and `"decimals"` (a number → fixed decimal places; omit/`null` for the raw
+value). These are display-only and don't change what the node passes on. Example:
+`{ "unit": "TB", "decimals": 2 }` renders `13.87 TB`. `INPUT` has the analogous display-only
+fields `displayFormat` (`"number"`|`"percent"`), `precision`, and `displayUnit`.
 
 > Note on `FINAL`: it shows the value flowing into it, but (being terminal) its own
 > *computed* output is 0. So the canonical answer is the **operation node feeding it**,
@@ -157,6 +175,12 @@ See [`examples/reuse.json`](./examples/reuse.json). One `INPUT(x)` feeds **multi
 targets — both inputs of `MUL` (giving `x*x`) **and** the `SUM` (`x*x + x`). Use a single
 `INPUT` per distinct variable and add an edge from it for each place it appears.
 
+### 4. Lookup / decode: round vCPU **up** to a machine tier, 5 → **`"e2-standard-8"`**
+See [`examples/lookup.json`](./examples/lookup.json). `INPUT(5)` → `LOOKUP` (`mode:"up"`,
+cases `2/4/8/16` → `e2-standard-*`) → `FINAL`. With `mode:"up"`, the input `5` rounds up to
+the `8` tier, so the result is the **string** `"e2-standard-8"` — self-explanatory, no decode
+comment needed.
+
 ## Grouping: bundle a sub-calculation into a reusable block
 
 A key FlowCal feature is the **GROUP** node — it wraps a chunk of a calculation into a
@@ -176,13 +200,16 @@ subgraph, the boundary is marked by special nodes:
 - **Edge into the group:** `targetHandle` = the **id of the `GROUP_INPUT` node** it
   feeds. Inside the subgraph, that `GROUP_INPUT` then connects to the inner node(s).
 - **Edge out of the group:** the group's value is an object keyed by output-node id
-  (`{ "<GROUP_OUTPUT id>": value, … }`), so set the downstream edge's `sourceHandle` =
-  the **id of the `GROUP_OUTPUT` node** whose value you want.
+  **and** by output-node label (`{ "<GROUP_OUTPUT id>": value, "<label>": value, … }`), so
+  set the downstream edge's `sourceHandle` = the **id of the `GROUP_OUTPUT` node** whose
+  value you want, or its `data.label` if you set one. Using the id is the safe default;
+  the label fallback exists so hand-wired flows don't silently break. (Id wins on
+  collision; if two outputs share a label, the first defined output wins.)
 - **Inside the subgraph:** wire `GROUP_INPUT.id` → inner node inputs, and inner node
   output → the `GROUP_OUTPUT` node (its single `val` input). The subgraph uses the exact
   same node/edge schema as a top-level flow.
 
-### 4. Group example: `doubleSum(a, b) = (a + b) * 2`, with a=10, b=5 → **30**
+### 5. Group example: `doubleSum(a, b) = (a + b) * 2`, with a=10, b=5 → **30**
 See [`examples/group.json`](./examples/group.json). A `GROUP` named `doubleSum` takes two
 inputs (`gi_a`, `gi_b`), computes `(a+b)*2` internally, and exposes one output (`go`).
 Outer edges connect `INPUT(a) → group[targetHandle:"gi_a"]`, `INPUT(b) →

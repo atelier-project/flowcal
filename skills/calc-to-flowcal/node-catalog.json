@@ -11,7 +11,10 @@
       "min": 0,
       "max": 100,
       "step": 1,
-      "useSlider": false
+      "useSlider": false,
+      "displayFormat": "number",
+      "precision": null,
+      "displayUnit": ""
     },
     "dynamicInputs": false
   },
@@ -83,6 +86,22 @@
       "trueVal",
       "falseVal"
     ],
+    "dynamicInputs": false
+  },
+  "LOOKUP": {
+    "label": "Lookup / Switch",
+    "category": "Logic",
+    "inputs": [
+      "key"
+    ],
+    "outputs": [
+      "value"
+    ],
+    "data": {
+      "cases": [],
+      "default": "",
+      "mode": "exact"
+    },
     "dynamicInputs": false
   },
   "STRING_CONCAT": {
@@ -499,7 +518,9 @@
       "val"
     ],
     "data": {
-      "width": 200
+      "width": 200,
+      "unit": "",
+      "decimals": null
     },
     "dynamicInputs": false
   },
