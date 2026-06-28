@@ -16,6 +16,7 @@ import { FlowSettingsPanel } from './flow/FlowSettingsPanel';
 import { generateId } from '../utils/ids';
 import { getHandlePosition, getEdgePath } from '../utils/geometry';
 import { computeAutoLayout } from '../utils/autoLayout';
+import { computeAlignment } from '../utils/alignment';
 import { HANDLE_POSITIONS } from '../utils/handlePositions';
 import { getNodeHeight } from '../utils/layout';
 import { evaluateGraph } from '../engine/evaluator';
@@ -173,7 +174,7 @@ export default function Editor() {
   const [helpOpen, setHelpOpen] = useState(false);
   // const [projectTitle, setProjectTitle] = useState('Untitled Flow'); // Removed duplicate
   const [gridSettings, setGridSettings] = useState(() => {
-    const defaults = { enabled: true, style: 'technical', opacity: 0.3, snap: false };
+    const defaults = { enabled: true, style: 'technical', opacity: 0.3, snap: false, alignNodes: false };
     try { return { ...defaults, ...JSON.parse(localStorage.getItem('flowcal-grid-settings') || '{}') }; }
     catch { return defaults; }
   });
@@ -181,6 +182,7 @@ export default function Editor() {
     localStorage.setItem('flowcal-grid-settings', JSON.stringify(gridSettings));
   }, [gridSettings]);
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
+  const [alignmentGuides, setAlignmentGuides] = useState([]);
   const [customNodes, setCustomNodes] = useState([]);
   const [customNodeModal, setCustomNodeModal] = useState({ isOpen: false, groupNode: null });
 
@@ -1065,14 +1067,34 @@ export default function Editor() {
         const totalDx = (e.clientX - dragState.startMouse.x) / scale;
         const totalDy = (e.clientY - dragState.startMouse.y) / scale;
 
-        // When snapping, align the anchor (first dragged node) to the grid and
-        // move the whole selection rigidly by that same offset.
+        // Compute the offset for the anchor (first dragged node); the whole
+        // selection then moves rigidly by it. Per axis: alignment to a
+        // neighbouring node wins, else grid snap (if on), else free.
+        const anchorOrigin = dragState.origins[dragState.ids[0]];
         let offsetX = totalDx, offsetY = totalDy;
-        if (gridSettings.snap) {
-          const anchor = dragState.origins[dragState.ids[0]];
-          offsetX = snapToGrid(anchor.x + totalDx) - anchor.x;
-          offsetY = snapToGrid(anchor.y + totalDy) - anchor.y;
+        let alignedX = false, alignedY = false;
+        let guides = [];
+
+        if (gridSettings.alignNodes) {
+          const anchorNode = nodes.find(n => n.id === dragState.ids[0]);
+          const tentative = {
+            x: anchorOrigin.x + totalDx, y: anchorOrigin.y + totalDy,
+            w: anchorNode?.data?.width || NODE_WIDTH, h: getNodeHeight(anchorNode),
+          };
+          const others = nodes
+            .filter(n => !dragState.ids.includes(n.id))
+            .map(n => ({ x: n.position.x, y: n.position.y, w: n.data?.width || NODE_WIDTH, h: getNodeHeight(n) }));
+          const align = computeAlignment(tentative, others);
+          alignedX = align.hasX; alignedY = align.hasY;
+          if (align.hasX) offsetX = totalDx + align.dx;
+          if (align.hasY) offsetY = totalDy + align.dy;
+          guides = align.guides;
         }
+        if (gridSettings.snap) {
+          if (!alignedX) offsetX = snapToGrid(anchorOrigin.x + totalDx) - anchorOrigin.x;
+          if (!alignedY) offsetY = snapToGrid(anchorOrigin.y + totalDy) - anchorOrigin.y;
+        }
+        if (gridSettings.alignNodes) setAlignmentGuides(guides);
 
         // Use updateGraph (no commit) for smooth dragging
         const newNodes = nodes.map(n => {
@@ -1100,7 +1122,7 @@ export default function Editor() {
       }
     }
     if (connectionState) setConnectionState(prev => ({ ...prev, mousePos: { x, y } }));
-  }, [dragState, connectionState, pan, scale, nodes, edges, selectionBox, updateGraph, gridSettings.snap]);
+  }, [dragState, connectionState, pan, scale, nodes, edges, selectionBox, updateGraph, gridSettings.snap, gridSettings.alignNodes]);
 
   const handleMouseUp = (e) => {
     // If we were dragging, we should now COMMIT the final state to history
@@ -1228,6 +1250,7 @@ export default function Editor() {
     setConnectionState(null);
     setSelectionBox(null);
     setHoverGroup(null);
+    setAlignmentGuides([]);
   };
 
   const addNode = (type) => {
@@ -1395,6 +1418,15 @@ export default function Editor() {
                     <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${gridSettings.snap ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </button>
                 </div>
+                <div className="flex items-center justify-between mb-3">
+                  <span style={{ color: 'var(--text-primary)' }} className="text-sm font-medium" title="Show guides and snap when a node lines up with another">Align to nodes</span>
+                  <button
+                    onClick={() => setGridSettings(s => ({ ...s, alignNodes: !s.alignNodes }))}
+                    className={`w-10 h-5 rounded-full transition-colors ${gridSettings.alignNodes ? 'bg-blue-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${gridSettings.alignNodes ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
                 <div className="mb-3">
                   <label style={{ color: 'var(--text-muted)' }} className="text-xs block mb-1">Style</label>
                   <select
@@ -1499,6 +1531,10 @@ export default function Editor() {
             {connectionState && (
               <path d={getEdgePath(getHandlePosition(connectionState.sourceId, nodes, 'output', connectionState.sourceHandle), [connectionState.mousePos.x, connectionState.mousePos.y], flowSettings.routingMode)} stroke="#3b82f6" strokeWidth="2" fill="none" strokeDasharray="5,5" className="opacity-60" />
             )}
+            {/* Alignment guides while dragging */}
+            {alignmentGuides.map((g, i) => (
+              <line key={i} x1={g.x1} y1={g.y1} x2={g.x2} y2={g.y2} stroke="#ec4899" strokeWidth="1" strokeDasharray="4 3" className="pointer-events-none" />
+            ))}
           </svg>
           {nodes.map(node => (
             <Node
