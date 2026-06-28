@@ -1,0 +1,12 @@
+{
+  "title": "appliance size: round vCPU up to the next machine tier",
+  "nodes": [
+    {"id":"vcpu","type":"INPUT","position":{"x":50,"y":120},"data":{"value":5,"label":"required vCPU"}},
+    {"id":"size","type":"LOOKUP","position":{"x":350,"y":120},"data":{"mode":"up","default":"too-large","cases":[{"key":"2","value":"e2-standard-2"},{"key":"4","value":"e2-standard-4"},{"key":"8","value":"e2-standard-8"},{"key":"16","value":"e2-standard-16"}]}},
+    {"id":"result","type":"FINAL","position":{"x":650,"y":120},"data":{}}
+  ],
+  "edges": [
+    {"id":"e1","source":"vcpu","target":"size","targetHandle":"key","sourceHandle":"value"},
+    {"id":"e2","source":"size","target":"result","targetHandle":"val","sourceHandle":"value"}
+  ]
+}

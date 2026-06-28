@@ -12,7 +12,7 @@ export const NODE_LOGIC = {
         inputs: [],
         outputs: ['value'],
         compute: (inputs, data) => data.value,
-        data: { value: 0, min: 0, max: 100, step: 1, useSlider: false }
+        data: { value: 0, min: 0, max: 100, step: 1, useSlider: false, displayFormat: 'number', precision: null, displayUnit: '' }
     },
     TEXT_INPUT: {
         type: 'TEXT_INPUT',
@@ -114,6 +114,56 @@ export const NODE_LOGIC = {
         compute: ({ condition, trueVal, falseVal }) => {
             return (condition && condition !== 0) ? (trueVal ?? 0) : (falseVal ?? 0);
         }
+    },
+    LOOKUP: {
+        type: 'LOOKUP',
+        label: 'Lookup / Switch',
+        category: 'Logic',
+        inputs: ['key'],
+        outputs: ['value'],
+        compute: ({ key }, data) => {
+            const cases = Array.isArray(data.cases) ? data.cases : [];
+            const mode = data.mode || 'exact';
+
+            // Coerce numeric-looking strings to numbers so "8" and 8 match,
+            // while preserving label strings like "e2-standard-8".
+            const coerce = (v) => {
+                if (typeof v !== 'string') return v;
+                const trimmed = v.trim();
+                if (trimmed === '') return v;
+                const n = Number(trimmed);
+                return Number.isNaN(n) ? v : n;
+            };
+
+            const hasDefault = data.default !== undefined && data.default !== '';
+            const fallback = hasDefault ? coerce(data.default) : 0;
+            if (cases.length === 0) return fallback;
+
+            if (mode === 'exact') {
+                const hit = cases.find(c => String(c.key) === String(key) || coerce(c.key) === coerce(key));
+                return hit ? coerce(hit.value) : fallback;
+            }
+
+            // Threshold modes operate on numeric keys.
+            const num = Number(key);
+            if (Number.isNaN(num)) return fallback;
+            const sorted = cases
+                .map(c => ({ k: Number(c.key), value: c.value }))
+                .filter(c => !Number.isNaN(c.k))
+                .sort((a, b) => a.k - b.k);
+            if (sorted.length === 0) return fallback;
+
+            if (mode === 'up') {
+                // Smallest threshold >= key (round up, e.g. size-up to next tier).
+                const hit = sorted.find(c => c.k >= num);
+                return coerce(hit ? hit.value : sorted[sorted.length - 1].value);
+            }
+            // mode === 'down': largest threshold <= key (round down).
+            let chosen = sorted[0];
+            for (const c of sorted) { if (c.k <= num) chosen = c; }
+            return coerce(chosen.value);
+        },
+        data: { cases: [], default: '', mode: 'exact' }
     },
 
     // String
@@ -652,7 +702,7 @@ export const NODE_LOGIC = {
         category: 'Visuals',
         inputs: ['val'],
         compute: (inputs) => inputs.length > 0 ? inputs[0] : 0,
-        data: { width: 200 }
+        data: { width: 200, unit: '', decimals: null }
     },
 
     // Advanced & Grouping

@@ -184,6 +184,112 @@ describe('evaluateGraph - GROUP Nodes', () => {
         // 42 * 42 = 1764 (GROUP should unwrap properly)
         expect(results['multiply']).toBe(1764);
     });
+
+    test('GROUP output is resolvable by its label as well as its node id', () => {
+        const outId = 'go_internal_id';
+        const nodes = [
+            createNode('input1', 'INPUT', { value: 7 }),
+            createNode('group1', 'GROUP', {
+                subGraph: {
+                    nodes: [
+                        createNode('g_in', 'GROUP_INPUT', {}),
+                        createNode(outId, 'GROUP_OUTPUT', { label: 'efficiency' })
+                    ],
+                    edges: [createEdge('g_in', outId)]
+                }
+            }),
+            createNode('final', 'SUM', { inputCount: 1 })
+        ];
+        // External edge references the GROUP_OUTPUT by its LABEL, not its node id.
+        const edges = [
+            createEdge('input1', 'group1', null, 'g_in'),
+            createEdge('group1', 'final', 'efficiency', 'in_0')
+        ];
+
+        const results = evaluateGraph(nodes, edges);
+
+        expect(results['final']).toBe(7);
+    });
+});
+
+describe('evaluateGraph - LOOKUP Node', () => {
+    const lookupNode = (id, data) => createNode(id, 'LOOKUP', data);
+
+    test('exact match returns the mapped value (string label)', () => {
+        const nodes = [
+            createNode('in', 'INPUT', { value: 8 }),
+            lookupNode('lk', {
+                mode: 'exact',
+                cases: [
+                    { key: '2', value: 'e2-standard-2' },
+                    { key: '8', value: 'e2-standard-8' },
+                    { key: '16', value: 'e2-standard-16' }
+                ],
+                default: 'unknown'
+            })
+        ];
+        const edges = [createEdge('in', 'lk', null, 'key')];
+
+        const results = evaluateGraph(nodes, edges);
+
+        expect(results['lk']).toBe('e2-standard-8');
+    });
+
+    test('exact match falls back to default when no case matches', () => {
+        const nodes = [
+            createNode('in', 'INPUT', { value: 5 }),
+            lookupNode('lk', {
+                mode: 'exact',
+                cases: [{ key: '2', value: 'a' }, { key: '8', value: 'b' }],
+                default: 'none'
+            })
+        ];
+        const edges = [createEdge('in', 'lk', null, 'key')];
+
+        expect(evaluateGraph(nodes, edges)['lk']).toBe('none');
+    });
+
+    test('round-up mode selects the smallest threshold >= input', () => {
+        const nodes = [
+            createNode('in', 'INPUT', { value: 5 }),
+            lookupNode('lk', {
+                mode: 'up',
+                cases: [
+                    { key: '2', value: 'e2-standard-2' },
+                    { key: '4', value: 'e2-standard-4' },
+                    { key: '8', value: 'e2-standard-8' }
+                ]
+            })
+        ];
+        const edges = [createEdge('in', 'lk', null, 'key')];
+
+        // 5 rounds up to the 8 tier
+        expect(evaluateGraph(nodes, edges)['lk']).toBe('e2-standard-8');
+    });
+
+    test('round-down mode selects the largest threshold <= input', () => {
+        const nodes = [
+            createNode('in', 'INPUT', { value: 5 }),
+            lookupNode('lk', {
+                mode: 'down',
+                cases: [{ key: '2', value: 'a' }, { key: '4', value: 'b' }, { key: '8', value: 'c' }]
+            })
+        ];
+        const edges = [createEdge('in', 'lk', null, 'key')];
+
+        // 5 rounds down to the 4 tier
+        expect(evaluateGraph(nodes, edges)['lk']).toBe('b');
+    });
+
+    test('numeric-looking values are coerced to numbers', () => {
+        const nodes = [
+            createNode('in', 'INPUT', { value: 2 }),
+            lookupNode('lk', { mode: 'exact', cases: [{ key: '2', value: '42' }] })
+        ];
+        const edges = [createEdge('in', 'lk', null, 'key')];
+
+        expect(evaluateGraph(nodes, edges)['lk']).toBe(42);
+    });
 });
 
 describe('evaluateGraph - MAP Iterator', () => {
