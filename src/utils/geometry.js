@@ -14,6 +14,35 @@ export const getBezierPath = (start, end) => {
     return `M${sx},${sy} C${sx + controlOffset},${sy} ${ex - controlOffset},${ey} ${ex},${ey}`;
 };
 
+/**
+ * Orthogonal (right-angle) routing: leave the source horizontally, turn at the
+ * mid-x, run vertically to the target's row, then into the target. Corners are
+ * lightly rounded with quadratic arcs so dense flows stay easy to trace.
+ */
+export const getOrthogonalPath = (start, end) => {
+    const [sx, sy] = start;
+    const [ex, ey] = end;
+    if (Math.abs(sy - ey) < 1) return `M${sx},${sy} L${ex},${ey}`; // straight when level
+
+    const midX = (sx + ex) / 2;
+    const r = Math.min(10, Math.abs(ex - sx) / 2, Math.abs(ey - sy) / 2);
+    const dirY = ey > sy ? 1 : -1;
+    const dirInX = ex > midX ? 1 : -1;
+
+    return [
+        `M${sx},${sy}`,
+        `L${midX - r},${sy}`,
+        `Q${midX},${sy} ${midX},${sy + r * dirY}`,
+        `L${midX},${ey - r * dirY}`,
+        `Q${midX},${ey} ${midX + r * dirInX},${ey}`,
+        `L${ex},${ey}`,
+    ].join(' ');
+};
+
+// Pick a path generator by routing mode ('orthogonal' | 'bezier').
+export const getEdgePath = (start, end, routing) =>
+    routing === 'orthogonal' ? getOrthogonalPath(start, end) : getBezierPath(start, end);
+
 // Helper to sort handles consistent with Node.jsx
 const getSortedOrder = (items, order) => {
     if (!order || !Array.isArray(order)) return items;

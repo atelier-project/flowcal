@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ChevronRight, Undo, Redo, Palette, Grid } from 'lucide-react';
+import { ChevronRight, Undo, Redo, Palette, Grid, Wand2, Spline, Waypoints } from 'lucide-react';
 import { THEMES, applyTheme, getStoredTheme } from '../themes';
 
 import { Node } from './flow/Node';
@@ -13,7 +13,8 @@ import { Snowfall } from './ui/Snowfall';
 import { CustomNodeModal } from './ui/CustomNodeModal';
 import { FlowSettingsPanel } from './flow/FlowSettingsPanel';
 import { generateId } from '../utils/ids';
-import { getHandlePosition, getBezierPath } from '../utils/geometry';
+import { getHandlePosition, getEdgePath } from '../utils/geometry';
+import { computeAutoLayout } from '../utils/autoLayout';
 import { HANDLE_POSITIONS } from '../utils/handlePositions';
 import { getNodeHeight } from '../utils/layout';
 import { evaluateGraph } from '../engine/evaluator';
@@ -1208,6 +1209,23 @@ export default function Editor() {
     });
   };
 
+  const applyAutoLayout = useCallback(() => {
+    if (!isActionAllowed()) return;
+    const positions = computeAutoLayout(nodes, edges);
+    if (Object.keys(positions).length === 0) return;
+    setGraph({
+      nodes: nodes.map(n => positions[n.id] ? { ...n, position: positions[n.id] } : n),
+      edges
+    });
+  }, [nodes, edges, isActionAllowed, setGraph]);
+
+  const toggleRouting = useCallback(() => {
+    setFlowSettings(prev => ({
+      ...prev,
+      routingMode: prev.routingMode === 'orthogonal' ? 'bezier' : 'orthogonal'
+    }));
+  }, []);
+
   const handleSaveEditor = (newCode) => {
     setGraph({
       nodes: nodes.map(n => n.id === editor.nodeId ? { ...n, data: { ...n.data, func: newCode } } : n),
@@ -1352,6 +1370,25 @@ export default function Editor() {
             )}
           </div>
 
+          {/* Tidy layout + wire routing */}
+          <button
+            onClick={applyAutoLayout}
+            disabled={!isActionAllowed()}
+            style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-muted)' }}
+            className="flex items-center gap-2 backdrop-blur px-2 py-1 rounded-lg shadow-sm border text-sm hover:opacity-80 disabled:opacity-40"
+            title="Tidy layout (auto-arrange nodes left → right by dependency)"
+          >
+            <Wand2 size={16} />
+          </button>
+          <button
+            onClick={toggleRouting}
+            style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-muted)' }}
+            className="flex items-center gap-2 backdrop-blur px-2 py-1 rounded-lg shadow-sm border text-sm hover:opacity-80"
+            title={flowSettings.routingMode === 'orthogonal' ? 'Wire routing: orthogonal (click for curved)' : 'Wire routing: curved (click for orthogonal)'}
+          >
+            {flowSettings.routingMode === 'orthogonal' ? <Waypoints size={16} /> : <Spline size={16} />}
+          </button>
+
           <div style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }} className="flex items-center gap-2 backdrop-blur px-4 py-2 rounded-full shadow-sm border text-sm">
             <button onClick={() => jumpToPath(-1)} style={{ color: path.length === 0 ? 'var(--accent-primary)' : 'var(--text-muted)' }} className={`hover:opacity-70 ${path.length === 0 ? 'font-bold' : ''}`}>Root</button>
             {path.map((item, idx) => (
@@ -1370,6 +1407,7 @@ export default function Editor() {
               const end = getHandlePosition(edge.target, nodes, 'input', edge.targetHandle);
               return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end}
                 label={edge.label}
+                routing={flowSettings.routingMode}
                 isEditing={editingEdgeId === edge.id}
                 canEdit={isActionAllowed()}
                 onDelete={(id) => {
@@ -1398,7 +1436,7 @@ export default function Editor() {
               />;
             })}
             {connectionState && (
-              <path d={getBezierPath(getHandlePosition(connectionState.sourceId, nodes, 'output', connectionState.sourceHandle), [connectionState.mousePos.x, connectionState.mousePos.y])} stroke="#3b82f6" strokeWidth="2" fill="none" strokeDasharray="5,5" className="opacity-60" />
+              <path d={getEdgePath(getHandlePosition(connectionState.sourceId, nodes, 'output', connectionState.sourceHandle), [connectionState.mousePos.x, connectionState.mousePos.y], flowSettings.routingMode)} stroke="#3b82f6" strokeWidth="2" fill="none" strokeDasharray="5,5" className="opacity-60" />
             )}
           </svg>
           {nodes.map(node => (
