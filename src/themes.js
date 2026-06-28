@@ -169,23 +169,79 @@ export const THEMES = {
     }
 };
 
+/**
+ * Editable colour fields shown in the theme editor, in display order. The
+ * connection glow is derived from the wire colour, so it isn't edited directly.
+ */
+export const THEME_FIELDS = [
+    { key: '--bg-primary', label: 'Background' },
+    { key: '--bg-secondary', label: 'Surface' },
+    { key: '--bg-tertiary', label: 'Surface (alt)' },
+    { key: '--border-primary', label: 'Border' },
+    { key: '--border-secondary', label: 'Border (alt)' },
+    { key: '--text-primary', label: 'Text' },
+    { key: '--text-secondary', label: 'Text (secondary)' },
+    { key: '--text-muted', label: 'Text (muted)' },
+    { key: '--accent-primary', label: 'Accent' },
+    { key: '--accent-secondary', label: 'Accent (alt)' },
+    { key: '--connection-stroke', label: 'Wire' },
+];
+
+const CUSTOM_THEMES_KEY = 'flowcal-custom-themes';
+
+export const getCustomThemes = () => {
+    try {
+        return JSON.parse(localStorage.getItem(CUSTOM_THEMES_KEY)) || {};
+    } catch {
+        return {};
+    }
+};
+
+// Built-in + user-defined themes, keyed by id.
+export const getAllThemes = () => ({ ...THEMES, ...getCustomThemes() });
+
+export const saveCustomTheme = (id, theme) => {
+    const all = getCustomThemes();
+    all[id] = { ...theme, custom: true };
+    localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(all));
+    return all;
+};
+
+export const deleteCustomTheme = (id) => {
+    const all = getCustomThemes();
+    delete all[id];
+    localStorage.setItem(CUSTOM_THEMES_KEY, JSON.stringify(all));
+    return all;
+};
+
+// Derive the wire-glow rgba from a hex stroke colour at a fixed alpha.
+export const glowFromHex = (hex, alpha = 0.5) => {
+    const h = String(hex || '#3b82f6').replace('#', '');
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    const r = parseInt(full.slice(0, 2), 16) || 0;
+    const g = parseInt(full.slice(2, 4), 16) || 0;
+    const b = parseInt(full.slice(4, 6), 16) || 0;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+// Complete a colours object by deriving the glow from the wire colour.
+export const withDerivedColors = (colors) => ({
+    ...colors,
+    '--connection-glow': glowFromHex(colors['--connection-stroke']),
+});
+
+// Apply raw colours to the document without persisting — used for live preview.
+export const applyThemeColors = (colors, isDark) => {
+    const root = document.documentElement;
+    Object.entries(colors).forEach(([prop, value]) => root.style.setProperty(prop, value));
+    root.classList.toggle('dark', !!isDark);
+};
+
 export const applyTheme = (themeId) => {
-    const theme = THEMES[themeId];
+    const theme = getAllThemes()[themeId];
     if (!theme) return;
 
-    const root = document.documentElement;
-
-    // Apply CSS custom properties
-    Object.entries(theme.colors).forEach(([prop, value]) => {
-        root.style.setProperty(prop, value);
-    });
-
-    // Set dark class for Tailwind
-    if (theme.isDark) {
-        root.classList.add('dark');
-    } else {
-        root.classList.remove('dark');
-    }
+    applyThemeColors(theme.colors, theme.isDark);
 
     // Store preference
     localStorage.setItem('flowcal-theme-id', themeId);

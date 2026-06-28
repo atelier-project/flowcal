@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ChevronRight, Undo, Redo, Palette, Grid, Wand2, Spline, Waypoints } from 'lucide-react';
-import { THEMES, applyTheme, getStoredTheme } from '../themes';
+import { ChevronRight, Undo, Redo, Palette, Grid, Wand2, Spline, Waypoints, SlidersHorizontal } from 'lucide-react';
+import { THEMES, applyTheme, getStoredTheme, getCustomThemes } from '../themes';
+import { ThemeEditor } from './ui/ThemeEditor';
 
 import { Node } from './flow/Node';
 import { ConnectionLine } from './flow/ConnectionLine';
@@ -231,6 +232,8 @@ export default function Editor() {
 
   // Theme State
   const [theme, setTheme] = useState(() => getStoredTheme());
+  const [customThemes, setCustomThemes] = useState(() => getCustomThemes());
+  const [themeEditorOpen, setThemeEditorOpen] = useState(false);
 
   useEffect(() => {
     applyTheme(theme);
@@ -1299,7 +1302,7 @@ export default function Editor() {
             <button onClick={redo} disabled={!canRedo} style={{ color: !canRedo ? 'var(--text-muted)' : 'var(--text-primary)' }} className="p-1 rounded hover:opacity-70" title="Redo (Ctrl+Y)"><Redo size={16} /></button>
           </div>
 
-          <div style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }} className="flex items-center gap-2 backdrop-blur px-2 py-1 rounded-lg shadow-sm border text-sm">
+          <div style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }} className="flex items-center gap-1 backdrop-blur px-2 py-1 rounded-lg shadow-sm border text-sm">
             <Palette size={16} style={{ color: 'var(--text-muted)' }} />
             <select
               value={theme}
@@ -1310,7 +1313,22 @@ export default function Editor() {
               {Object.entries(THEMES).map(([id, t]) => (
                 <option key={id} value={id} style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{t.name}</option>
               ))}
+              {Object.keys(customThemes).length > 0 && (
+                <optgroup label="Custom">
+                  {Object.entries(customThemes).map(([id, t]) => (
+                    <option key={id} value={id} style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{t.name}</option>
+                  ))}
+                </optgroup>
+              )}
             </select>
+            <button
+              onClick={() => setThemeEditorOpen(true)}
+              className="p-0.5 rounded hover:opacity-70"
+              style={{ color: 'var(--text-muted)' }}
+              title="Customize theme"
+            >
+              <SlidersHorizontal size={15} />
+            </button>
           </div>
 
           {/* Grid Settings */}
@@ -1535,6 +1553,12 @@ export default function Editor() {
       </div>
       <style>{`@keyframes dash { to { stroke-dashoffset: -20; } } .animate-dash { animation: dash 1s linear infinite; } `}</style>
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
+      <ThemeEditor
+        isOpen={themeEditorOpen}
+        currentThemeId={theme}
+        onClose={() => setThemeEditorOpen(false)}
+        onSaved={(id) => { setCustomThemes(getCustomThemes()); setTheme(id); }}
+      />
       <Snowfall enabled={THEMES[theme]?.hasSnow === true} />
       <CustomNodeModal
         isOpen={customNodeModal.isOpen}
