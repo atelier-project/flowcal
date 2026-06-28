@@ -23,3 +23,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+# Local skill build artifact + review note (not for the repo)
+calc-to-flowcal-skill.zip
+skill-review-handoff.md

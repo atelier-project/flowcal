@@ -1,0 +1,16 @@
+{
+  "title": "x*x + x",
+  "nodes": [
+    {"id":"x","type":"INPUT","position":{"x":50,"y":150},"data":{"value":5,"label":"x"}},
+    {"id":"sq","type":"MUL","position":{"x":350,"y":100},"data":{"label":"x*x"}},
+    {"id":"sum","type":"SUM","position":{"x":650,"y":150},"data":{"label":"x*x + x"}},
+    {"id":"out","type":"FINAL","position":{"x":950,"y":150},"data":{"label":"Result"}}
+  ],
+  "edges": [
+    {"id":"e1","source":"x","target":"sq","sourceHandle":"value"},
+    {"id":"e2","source":"x","target":"sq","sourceHandle":"value"},
+    {"id":"e3","source":"sq","target":"sum"},
+    {"id":"e4","source":"x","target":"sum","sourceHandle":"value"},
+    {"id":"e5","source":"sum","target":"out","targetHandle":"val"}
+  ]
+}

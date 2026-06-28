@@ -1,0 +1,18 @@
+{
+  "title": "(base + tax) * quantity",
+  "nodes": [
+    {"id":"base","type":"INPUT","position":{"x":50,"y":50},"data":{"value":100,"label":"Base"}},
+    {"id":"tax","type":"INPUT","position":{"x":50,"y":200},"data":{"value":20,"label":"Tax"}},
+    {"id":"sum","type":"SUM","position":{"x":350,"y":120},"data":{"label":"Subtotal"}},
+    {"id":"qty","type":"INPUT","position":{"x":350,"y":320},"data":{"value":2,"label":"Quantity"}},
+    {"id":"mul","type":"MUL","position":{"x":650,"y":200},"data":{"label":"Total"}},
+    {"id":"result","type":"FINAL","position":{"x":950,"y":200},"data":{"label":"Result"}}
+  ],
+  "edges": [
+    {"id":"e1","source":"base","target":"sum","sourceHandle":"value"},
+    {"id":"e2","source":"tax","target":"sum","sourceHandle":"value"},
+    {"id":"e3","source":"sum","target":"mul"},
+    {"id":"e4","source":"qty","target":"mul","sourceHandle":"value"},
+    {"id":"e5","source":"mul","target":"result","targetHandle":"val"}
+  ]
+}

@@ -1,0 +1,43 @@
+# FlowCal self-hosted stack: the app image (Express API + built SPA) and Postgres.
+#
+#   JWT_SECRET=$(openssl rand -hex 32) docker compose up --build
+#
+# Then open http://localhost:3001 and sign up. Create the first admin with:
+#   docker compose exec app npm run create-admin -- you@example.com yourpassword
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: flowcal
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-flowcal}
+      POSTGRES_DB: flowcal
+    volumes:
+      - flowcal-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowcal -d flowcal"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://flowcal:${POSTGRES_PASSWORD:-flowcal}@db:5432/flowcal
+      # Required — compose refuses to start without it. Generate with: openssl rand -hex 32
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set, e.g. JWT_SECRET=$(openssl rand -hex 32)}
+      NODE_ENV: production
+      PORT: 3001
+      STATIC_DIR: /app/public
+      # Set true when serving over HTTPS so the session cookie is marked Secure.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "${PORT:-3001}:3001"
+
+volumes:
+  flowcal-db:

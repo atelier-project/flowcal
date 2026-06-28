@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { backend } from '../services/backend';
 import { Users, FileCode, ShieldAlert, CheckCircle2, Ban, Loader2, Search, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -18,21 +18,11 @@ export default function AdminDashboard() {
         setLoading(true);
         try {
             // Fetch users from profiles table
-            const { data: userData, error: userError } = await supabase
-                .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (userError) throw userError;
+            const userData = await backend.listAllUsers();
             setUsers(userData);
 
-            // Fetch ALL flows (App Admin RLS bypasses via RPC or admin check)
-            const { data: flowData, error: flowError } = await supabase
-                .from('flows')
-                .select('*, profiles(email)')
-                .order('updated_at', { ascending: false });
-
-            if (flowError) throw flowError;
+            // Fetch ALL flows (admin-only, authorization enforced by the backend)
+            const flowData = await backend.listAllFlows();
             setFlows(flowData);
         } catch (err) {
             console.error('Failed to load admin data:', err);
@@ -43,12 +33,7 @@ export default function AdminDashboard() {
 
     const handleToggleBan = async (userId, currentStatus) => {
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ is_banned: !currentStatus })
-                .eq('id', userId);
-
-            if (error) throw error;
+            await backend.setUserBanned(userId, !currentStatus);
             setUsers(users.map(u => u.id === userId ? { ...u, is_banned: !currentStatus } : u));
         } catch (err) {
             alert('Failed to update user status');
