@@ -47,10 +47,11 @@ export const NODE_DESCRIPTIONS = {
     // Logic
     COMPARE: 'Compares two values. Returns true/false based on operator (=, ≠, <, >, ≤, ≥).',
     IF: 'Conditional logic. Returns valueIfTrue or valueIfFalse based on condition.',
+    LOOKUP: 'Maps an input key to a value via defined cases, e.g. {2:"e2-standard-2", 8:"e2-standard-8"}. Match exactly, or round up/down to the nearest threshold. Outputs the matched value (string or number), or a default if nothing matches.',
 
     // Math
     SUM: 'Adds all input numbers together.',
-    SUB: 'Subtracts numbers in sequence.',
+    SUB: 'Subtracts numbers left-to-right: a − b − c… (e.g. 10, 3, 2 → 5). This is sequential subtraction, not a sum of negatives.',
     MUL: 'Multiplies all input numbers together.',
     DIV: 'Divides the first number by the second.',
     MIN: 'Returns the smallest value from inputs.',

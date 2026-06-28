@@ -189,8 +189,19 @@ export function evaluateGraph(nodes, edges, contextInputs = {}, globals = []) {
                 const outputs = subGraph.nodes.filter(n => n.type === 'GROUP_OUTPUT' || n.type === 'GROUP_OUTPUT_LIST');
                 if (outputs.length > 0) {
                     val = {};
+                    // Key by node id first — this is the canonical handle.
                     outputs.forEach(out => {
                         val[out.id] = subResults[out.id];
+                    });
+                    // Also expose each output by its label, so an external edge can
+                    // reference a GROUP_OUTPUT by either its node id or its human-readable
+                    // label as the sourceHandle. Ids take precedence on collision; the
+                    // first output wins if two share a label.
+                    outputs.forEach(out => {
+                        const lbl = out.data?.label;
+                        if (lbl && val[lbl] === undefined) {
+                            val[lbl] = subResults[out.id];
+                        }
                     });
                 } else {
                     val = 0;

@@ -11,7 +11,7 @@ import {
     GripVertical, LayoutTemplate, ArrowLeftRight, GitBranch,
     ListOrdered, Scissors, Filter, TrendingUp,
     MessageSquare, Braces, PackageOpen, Package, Flag,
-    Repeat, IterationCw, Target, CheckCircle, Sigma
+    Repeat, IterationCw, Target, CheckCircle, Sigma, ListChecks
 } from 'lucide-react';
 
 export const NODE_UI = {
@@ -25,6 +25,7 @@ export const NODE_UI = {
     // Logic
     COMPARE: { icon: ArrowLeftRight, color: 'orange', colorClass: 'bg-orange-100 text-orange-600' },
     IF: { icon: GitBranch, color: 'orange', colorClass: 'bg-orange-100 text-orange-600' },
+    LOOKUP: { icon: ListChecks, color: 'orange', colorClass: 'bg-orange-100 text-orange-600' },
 
     // Array
     GET: { icon: List, color: 'indigo', colorClass: 'bg-indigo-100 text-indigo-600' },
