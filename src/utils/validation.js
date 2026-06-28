@@ -141,6 +141,10 @@ export const validateFlow = (config, fileSize = 0) => {
         if (!result.valid) {
             return { valid: false, error: `Edge ${i}: ${result.error}` };
         }
+        // Sanitize the optional edge label (rendered as text on the wire)
+        if (sanitized.edges[i].label) {
+            sanitized.edges[i].label = sanitizeString(sanitized.edges[i].label, 80);
+        }
     }
 
     // Warn about code nodes
