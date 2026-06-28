@@ -40,6 +40,10 @@ import { reconstructFullGraph } from '../utils/graphReconstruct';
 import { DebugToolbar } from './debugger/DebugToolbar';
 import { NodeInspector } from './debugger/NodeInspector';
 
+// Snap grid step — matches the background grid's 20px cell so nodes land on it.
+const GRID_SIZE = 20;
+const snapToGrid = (v) => Math.round(v / GRID_SIZE) * GRID_SIZE;
+
 export default function Editor() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -168,7 +172,14 @@ export default function Editor() {
   const [editor, setEditor] = useState({ isOpen: false, nodeId: null, code: '' });
   const [helpOpen, setHelpOpen] = useState(false);
   // const [projectTitle, setProjectTitle] = useState('Untitled Flow'); // Removed duplicate
-  const [gridSettings, setGridSettings] = useState({ enabled: true, style: 'technical', opacity: 0.3 });
+  const [gridSettings, setGridSettings] = useState(() => {
+    const defaults = { enabled: true, style: 'technical', opacity: 0.3, snap: false };
+    try { return { ...defaults, ...JSON.parse(localStorage.getItem('flowcal-grid-settings') || '{}') }; }
+    catch { return defaults; }
+  });
+  useEffect(() => {
+    localStorage.setItem('flowcal-grid-settings', JSON.stringify(gridSettings));
+  }, [gridSettings]);
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
   const [customNodes, setCustomNodes] = useState([]);
   const [customNodeModal, setCustomNodeModal] = useState({ isOpen: false, groupNode: null });
@@ -1009,7 +1020,12 @@ export default function Editor() {
 
     if (!isActionAllowed()) return; // Block dragging
 
-    setDragState({ type: 'node', ids: Array.from(newSelectedIds), startMouse: { x: e.clientX, y: e.clientY } });
+    // Capture each dragged node's starting position so the move is computed
+    // absolutely (origin + total delta) — required for clean grid snapping.
+    const ids = Array.from(newSelectedIds);
+    const origins = {};
+    nodes.forEach(n => { if (ids.includes(n.id)) origins[n.id] = { ...n.position }; });
+    setDragState({ type: 'node', ids, startMouse: { x: e.clientX, y: e.clientY }, origins });
     // Commit the current state to history as a checkpoint before dragging starts
     setGraph({ nodes, edges });
   };
@@ -1044,20 +1060,29 @@ export default function Editor() {
     }
 
     if (dragState) {
-      if (dragState.type === 'node') {
-        const dx = (e.clientX - dragState.startMouse.x) / scale;
-        const dy = (e.clientY - dragState.startMouse.y) / scale;
+      if (dragState.type === 'node' && dragState.origins) {
+        // Total delta from drag start, applied to captured origins (absolute).
+        const totalDx = (e.clientX - dragState.startMouse.x) / scale;
+        const totalDy = (e.clientY - dragState.startMouse.y) / scale;
+
+        // When snapping, align the anchor (first dragged node) to the grid and
+        // move the whole selection rigidly by that same offset.
+        let offsetX = totalDx, offsetY = totalDy;
+        if (gridSettings.snap) {
+          const anchor = dragState.origins[dragState.ids[0]];
+          offsetX = snapToGrid(anchor.x + totalDx) - anchor.x;
+          offsetY = snapToGrid(anchor.y + totalDy) - anchor.y;
+        }
 
         // Use updateGraph (no commit) for smooth dragging
         const newNodes = nodes.map(n => {
-          if (dragState.ids.includes(n.id)) {
-            return { ...n, position: { x: n.position.x + dx, y: n.position.y + dy } };
+          const origin = dragState.origins[n.id];
+          if (origin) {
+            return { ...n, position: { x: origin.x + offsetX, y: origin.y + offsetY } };
           }
           return n;
         });
         updateGraph({ nodes: newNodes, edges });
-
-        setDragState(prev => ({ ...prev, startMouse: { x: e.clientX, y: e.clientY } }));
 
         if (dragState.ids.length === 1) {
           const draggingNode = nodes.find(n => n.id === dragState.ids[0]);
@@ -1075,7 +1100,7 @@ export default function Editor() {
       }
     }
     if (connectionState) setConnectionState(prev => ({ ...prev, mousePos: { x, y } }));
-  }, [dragState, connectionState, pan, scale, nodes, edges, selectionBox, updateGraph]);
+  }, [dragState, connectionState, pan, scale, nodes, edges, selectionBox, updateGraph, gridSettings.snap]);
 
   const handleMouseUp = (e) => {
     // If we were dragging, we should now COMMIT the final state to history
@@ -1359,6 +1384,15 @@ export default function Editor() {
                     className={`w-10 h-5 rounded-full transition-colors ${gridSettings.enabled ? 'bg-blue-500' : 'bg-slate-300'}`}
                   >
                     <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${gridSettings.enabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between mb-3">
+                  <span style={{ color: 'var(--text-primary)' }} className="text-sm font-medium" title="Align nodes to the grid as you drag">Snap to grid</span>
+                  <button
+                    onClick={() => setGridSettings(s => ({ ...s, snap: !s.snap }))}
+                    className={`w-10 h-5 rounded-full transition-colors ${gridSettings.snap ? 'bg-blue-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full shadow transform transition-transform ${gridSettings.snap ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </button>
                 </div>
                 <div className="mb-3">
