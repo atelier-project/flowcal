@@ -7,6 +7,9 @@ export const ConnectionLine = ({
     end,
     label,
     routing,
+    selected,
+    dimmed,
+    onSelect,
     isEditing,
     canEdit = true,
     onDelete,
@@ -18,6 +21,8 @@ export const ConnectionLine = ({
 }) => {
     const d = getEdgePath(start, end, routing);
     const [mx, my] = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
+    const strokeW = selected ? 3.5 : 2;
+    const glowW = selected ? 14 : 6;
 
     // The input is uncontrolled (defaultValue + autoFocus) so no effect is
     // needed to sync a draft. Enter/Escape change parent state synchronously,
@@ -26,22 +31,22 @@ export const ConnectionLine = ({
     const cancel = () => onCommitLabel && onCommitLabel(id, label || '', true);
 
     return (
-        <g className="group">
-            {/* Glow layer */}
+        <g className="group" style={{ opacity: dimmed ? 0.18 : 1, transition: 'opacity 0.15s ease' }}>
+            {/* Glow layer (widens + brightens when the wire is highlighted) */}
             <path
                 d={d}
                 stroke="var(--connection-glow, rgba(59, 130, 246, 0.5))"
-                strokeWidth="6"
+                strokeWidth={glowW}
                 fill="none"
-                className="transition-colors duration-200"
+                className="transition-all duration-150"
             />
             {/* Main stroke */}
             <path
                 d={d}
                 stroke="var(--connection-stroke, #3b82f6)"
-                strokeWidth="2"
+                strokeWidth={strokeW}
                 fill="none"
-                className="transition-colors duration-200"
+                className="transition-all duration-150"
             />
             {/* Animated flowing dots */}
             <circle r="4" fill="var(--connection-stroke, #3b82f6)" className="opacity-80">
@@ -53,19 +58,27 @@ export const ConnectionLine = ({
             <circle r="2" fill="var(--connection-stroke, #3b82f6)" className="opacity-40">
                 <animateMotion dur="1.5s" repeatCount="indefinite" path={d} begin="1s" />
             </circle>
-            {/* Hover interaction layer */}
+            {/* Endpoint markers — show exactly which ports a highlighted wire joins */}
+            {selected && (
+                <>
+                    <circle cx={start[0]} cy={start[1]} r="5" fill="var(--connection-stroke, #3b82f6)" stroke="#fff" strokeWidth="1.5" />
+                    <circle cx={end[0]} cy={end[1]} r="5" fill="var(--connection-stroke, #3b82f6)" stroke="#fff" strokeWidth="1.5" />
+                </>
+            )}
+            {/* Hover/click interaction layer */}
             <path
                 d={d}
                 fill="none"
                 strokeWidth="12"
                 stroke="transparent"
                 className="cursor-pointer pointer-events-auto"
+                onClick={(e) => { e.stopPropagation(); onSelect && onSelect(id); }}
                 onDoubleClick={(e) => { e.stopPropagation(); onDelete(id); }}
                 onMouseEnter={(e) => onMouseEnter && onMouseEnter(e)}
                 onMouseLeave={onMouseLeave}
                 onMouseMove={(e) => onMouseEnter && onMouseEnter(e)}
             >
-                {!disableTitle && <title>Double-click to delete</title>}
+                {!disableTitle && <title>{selected ? 'Click to unhighlight · double-click to delete' : 'Click to highlight · double-click to delete'}</title>}
             </path>
 
             {/* Midpoint label / editor */}

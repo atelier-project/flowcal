@@ -84,6 +84,7 @@ export default function Editor() {
   const [debugMode, setDebugMode] = useState(false);
   const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
   const [editingEdgeId, setEditingEdgeId] = useState(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   // Load Cloud Flow on Mount
@@ -903,6 +904,9 @@ export default function Editor() {
         e.preventDefault();
         if (canRedo) redo();
       }
+      if (e.key === 'Escape') {
+        setSelectedEdgeId(null);
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -973,6 +977,7 @@ export default function Editor() {
 
       // Normal left click on canvas container only
       if (e.target === containerRef.current) {
+        setSelectedEdgeId(null); // clicking empty canvas clears any highlighted wire
         if (!e.shiftKey) setSelectedIds(new Set());
         const rect = containerRef.current.getBoundingClientRect();
         const x = (e.clientX - rect.left - pan.x) / scale;
@@ -1420,12 +1425,16 @@ export default function Editor() {
 
         <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, transformOrigin: '0 0', width: '100%', height: '100%' }} className="relative w-full h-full">
           <svg className="absolute top-0 left-0 w-full h-full overflow-visible pointer-events-none z-0">
-            {edges.map(edge => {
+            {/* Render the highlighted wire last so it paints on top of crossings */}
+            {(selectedEdgeId ? [...edges].sort((a, b) => (a.id === selectedEdgeId ? 1 : 0) - (b.id === selectedEdgeId ? 1 : 0)) : edges).map(edge => {
               const start = getHandlePosition(edge.source, nodes, 'output', edge.sourceHandle);
               const end = getHandlePosition(edge.target, nodes, 'input', edge.targetHandle);
               return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end}
                 label={edge.label}
                 routing={flowSettings.routingMode}
+                selected={selectedEdgeId === edge.id}
+                dimmed={selectedEdgeId !== null && selectedEdgeId !== edge.id}
+                onSelect={(id) => setSelectedEdgeId(prev => prev === id ? null : id)}
                 isEditing={editingEdgeId === edge.id}
                 canEdit={isActionAllowed()}
                 onDelete={(id) => {
