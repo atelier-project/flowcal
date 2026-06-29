@@ -79,6 +79,7 @@ Full list in `node-catalog.json`. The nodes you need for most calculations:
 |------|--------|------|---------|
 | `INPUT` | `value` | `{ "value": <number>, "label": "" }` | A number. Set `data.value`. |
 | `TEXT_INPUT` | `text` | `{ "text": "" }` | A string. |
+| `SELECT` | `value` | `{ "options": [{"label","value"}], "value", "display": "dropdown"\|"radio" }` | Pick one of a fixed set of options; outputs the chosen `value` (numeric-looking values are coerced to numbers). |
 
 (For array-producing sources like `RANGE`, and string/array/object/date nodes, see
 `node-catalog.json`.)

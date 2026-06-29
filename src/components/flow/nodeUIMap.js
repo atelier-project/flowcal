@@ -11,12 +11,13 @@ import {
     GripVertical, LayoutTemplate, ArrowLeftRight, GitBranch,
     ListOrdered, Scissors, Filter, TrendingUp,
     MessageSquare, Braces, PackageOpen, Package, Flag,
-    Repeat, IterationCw, Target, CheckCircle, Sigma, ListChecks
+    Repeat, IterationCw, Target, CheckCircle, Sigma, ListChecks, CircleDot
 } from 'lucide-react';
 
 export const NODE_UI = {
     // Data
     INPUT: { icon: GripVertical, color: 'green', colorClass: 'bg-green-100 text-green-600' },
+    SELECT: { icon: CircleDot, color: 'green', colorClass: 'bg-green-100 text-green-600' },
     RANGE: { icon: Activity, color: 'green', colorClass: 'bg-green-100 text-green-600' },
     COLLECTOR: { icon: ListPlus, color: 'green', colorClass: 'bg-green-100 text-green-600' },
     FORM: { icon: LayoutTemplate, color: 'purple', colorClass: 'bg-purple-100 text-purple-600' },

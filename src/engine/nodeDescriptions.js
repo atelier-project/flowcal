@@ -6,6 +6,7 @@ export const NODE_DESCRIPTIONS = {
     // Data
     INPUT: 'A number input with optional slider. Use to provide numeric values to your flow.',
     TEXT_INPUT: 'A text input field. Outputs the entered string value.',
+    SELECT: 'Pick one option from a defined list (dropdown or radio buttons). Each option has a label and a value; outputs the selected value (number or string).',
     DATE_INPUT: 'A date/time picker. Outputs timestamp in milliseconds.',
     RANGE: 'Generates an array of numbers from start to end with step increment.',
     COLLECTOR: 'Collects multiple inputs into a single array.',
