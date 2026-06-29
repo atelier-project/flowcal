@@ -23,6 +23,23 @@ export const NODE_LOGIC = {
         compute: (inputs, data) => data.text ?? '',
         data: { text: '' }
     },
+    SELECT: {
+        type: 'SELECT',
+        label: 'Select',
+        category: 'Data',
+        inputs: [],
+        outputs: ['value'],
+        compute: (inputs, data) => {
+            const opts = Array.isArray(data.options) ? data.options : [];
+            let v = data.value;
+            // Fall back to the first option if the stored selection isn't valid.
+            if (opts.length > 0 && !opts.some(o => String(o.value) === String(v))) v = opts[0].value;
+            // Coerce numeric-looking values to numbers; keep label strings as-is.
+            if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) return Number(v);
+            return v ?? '';
+        },
+        data: { options: [{ label: 'Option A', value: 'a' }, { label: 'Option B', value: 'b' }], value: 'a', display: 'dropdown' }
+    },
     DATE_INPUT: {
         type: 'DATE_INPUT',
         label: 'Date Input',

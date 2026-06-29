@@ -54,6 +54,11 @@ export const getNodeHeight = (node) => {
         return Math.max(120, (count * 24) + 60);
     }
 
+    if (node.type === 'SELECT') {
+        // picker rows + the per-option editor rows
+        const count = node.data?.options?.length || 0;
+        return Math.max(180, 110 + count * 56);
+    }
     if (node.type === 'CUSTOM') return 240;
     if (node.type === 'TEMPLATE') return 220;
     if (node.type === 'FINAL') return 120;

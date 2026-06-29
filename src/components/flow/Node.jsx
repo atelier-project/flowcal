@@ -563,6 +563,109 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
+                {type === 'SELECT' && (() => {
+                    const options = data.options || [];
+                    const display = data.display || 'dropdown';
+                    const setOptions = (next) => handleChange('options', next);
+                    // Mirror compute's fallback so the picker reflects what the node outputs.
+                    const effectiveValue = options.some(o => String(o.value) === String(data.value))
+                        ? data.value
+                        : (options[0]?.value ?? '');
+                    return (
+                        <div className="space-y-2">
+                            {/* The picker */}
+                            {display === 'radio' ? (
+                                <div className="space-y-1">
+                                    {options.map((o, i) => (
+                                        <label key={i} className="flex items-center gap-2 text-sm cursor-pointer dark:text-slate-200">
+                                            <input
+                                                type="radio"
+                                                name={`select-${id}`}
+                                                checked={String(effectiveValue) === String(o.value)}
+                                                onChange={() => handleChange('value', o.value)}
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                                disabled={!canEdit}
+                                                className="accent-green-500 disabled:opacity-50"
+                                            />
+                                            <span className="truncate">{o.label || o.value || `Option ${i + 1}`}</span>
+                                        </label>
+                                    ))}
+                                    {options.length === 0 && <p className="text-[10px] italic text-slate-400">No options yet — add some below.</p>}
+                                </div>
+                            ) : (
+                                <select
+                                    value={effectiveValue}
+                                    onChange={(e) => handleChange('value', e.target.value)}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    disabled={!canEdit}
+                                    className="w-full px-2 py-1 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-sm focus:outline-none focus:border-green-500 dark:text-slate-200 disabled:opacity-50"
+                                >
+                                    {options.length === 0 && <option value="">No options</option>}
+                                    {options.map((o, i) => (
+                                        <option key={i} value={o.value}>{o.label || o.value || `Option ${i + 1}`}</option>
+                                    ))}
+                                </select>
+                            )}
+
+                            {/* Authoring: display toggle + option list */}
+                            {canEdit && (
+                                <div className="border-t border-slate-100 dark:border-slate-700/50 pt-2 space-y-1.5">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] text-slate-400 dark:text-slate-500">Display</span>
+                                        <div className="flex gap-1">
+                                            {['dropdown', 'radio'].map(m => (
+                                                <button
+                                                    key={m}
+                                                    onClick={() => handleChange('display', m)}
+                                                    className={`px-2 py-0.5 rounded text-[10px] capitalize border ${display === m ? 'bg-green-500 text-white border-green-500' : 'border-slate-200 dark:border-slate-700 text-slate-500'}`}
+                                                >
+                                                    {m}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-[1fr_1fr_auto] gap-1 text-[10px] text-slate-400 px-0.5">
+                                        <span>Label</span><span>Value</span><span></span>
+                                    </div>
+                                    {options.map((o, i) => (
+                                        <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-center gap-1">
+                                            <input
+                                                type="text"
+                                                value={o.label ?? ''}
+                                                onChange={(e) => { const next = [...options]; next[i] = { ...next[i], label: e.target.value }; setOptions(next); }}
+                                                placeholder="label"
+                                                className="h-6 px-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs focus:outline-none focus:border-green-500"
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                            />
+                                            <input
+                                                type="text"
+                                                value={o.value ?? ''}
+                                                onChange={(e) => { const next = [...options]; next[i] = { ...next[i], value: e.target.value }; setOptions(next); }}
+                                                placeholder="value"
+                                                className="h-6 px-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-xs font-mono focus:outline-none focus:border-green-500"
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                            />
+                                            <button
+                                                onClick={() => setOptions(options.filter((_, idx) => idx !== i))}
+                                                className="w-6 h-6 flex items-center justify-center text-red-400 hover:text-red-600 text-sm"
+                                                title="Remove option"
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                    <button
+                                        onClick={() => setOptions([...options, { label: '', value: '' }])}
+                                        className="w-full mt-1 py-1 text-xs text-green-600 dark:text-green-400 border border-dashed border-green-300 dark:border-green-700 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
+                                    >
+                                        + Add option
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })()}
+
                 {type === 'DATE_INPUT' && (
                     <div>
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1 block">Date</label>

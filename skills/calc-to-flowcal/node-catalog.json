@@ -30,6 +30,23 @@
     },
     "dynamicInputs": false
   },
+  "SELECT": {
+    "label": "Select",
+    "category": "Data",
+    "inputs": [],
+    "outputs": [
+      "value"
+    ],
+    "data": {
+      "options": [
+        { "label": "Option A", "value": "a" },
+        { "label": "Option B", "value": "b" }
+      ],
+      "value": "a",
+      "display": "dropdown"
+    },
+    "dynamicInputs": false
+  },
   "DATE_INPUT": {
     "label": "Date Input",
     "category": "Data",

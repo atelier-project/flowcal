@@ -212,6 +212,32 @@ describe('evaluateGraph - GROUP Nodes', () => {
     });
 });
 
+describe('evaluateGraph - SELECT Node', () => {
+    test('outputs the selected option value, coercing numeric strings', () => {
+        const nodes = [createNode('sel', 'SELECT', {
+            value: '8',
+            options: [{ label: 'Small', value: '2' }, { label: 'Large', value: '8' }],
+        })];
+        expect(evaluateGraph(nodes, [])['sel']).toBe(8);
+    });
+
+    test('keeps non-numeric values as strings', () => {
+        const nodes = [createNode('sel', 'SELECT', {
+            value: 'prod',
+            options: [{ label: 'Dev', value: 'dev' }, { label: 'Prod', value: 'prod' }],
+        })];
+        expect(evaluateGraph(nodes, [])['sel']).toBe('prod');
+    });
+
+    test('falls back to the first option when the stored value is not valid', () => {
+        const nodes = [createNode('sel', 'SELECT', {
+            value: 'gone',
+            options: [{ label: 'A', value: 'a' }, { label: 'B', value: 'b' }],
+        })];
+        expect(evaluateGraph(nodes, [])['sel']).toBe('a');
+    });
+});
+
 describe('evaluateGraph - LOOKUP Node', () => {
     const lookupNode = (id, data) => createNode(id, 'LOOKUP', data);
 
