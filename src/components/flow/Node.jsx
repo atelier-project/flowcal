@@ -409,7 +409,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 borderColor: selected ? 'var(--accent-primary)' : 'var(--border-primary)',
                 color: 'var(--text-primary)'
             }}
-            className={`absolute ${!data.width ? 'w-64' : ''} rounded-lg shadow-lg border-2 flex flex-col transition-[box-shadow,border-color] duration-200
+            className={`group/node absolute ${!data.width ? 'w-64' : ''} rounded-lg shadow-lg border-2 flex flex-col transition-[box-shadow,border-color] duration-200
         ${selected ? 'shadow-blue-500/20 z-20 ring-2 ring-blue-400' : 'z-10'}
         ${isHovered ? 'ring-4 ring-blue-300 ring-opacity-50 scale-105 shadow-xl' : ''}
         ${type === 'FINAL' ? 'border-green-500 shadow-green-100' : ''}
@@ -1571,6 +1571,35 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                         />
                     );
                 })
+            }
+
+            {/* Width resize (right edge) for the remaining nodes — lets you widen a
+                node to read a long label. Width keeps the output handles attached;
+                height stays content-driven. The types below have their own
+                width+height corner handle, and collapsed nodes aren't resized. */}
+            {
+                canEdit && !data.collapsed &&
+                !['FORM', 'FINAL', 'GROUP', 'COMMENT', 'FRAME', 'TEXT_LABEL'].includes(type) && (
+                    <div
+                        className="absolute top-8 bottom-2 right-0 w-1.5 cursor-ew-resize z-40 rounded-full opacity-0 group-hover/node:opacity-50 hover:!opacity-100 bg-blue-400"
+                        title="Drag to resize width"
+                        onMouseDown={(e) => {
+                            e.stopPropagation();
+                            const startX = e.clientX;
+                            const startWidth = data.width || 256;
+                            const handleMouseMove = (moveEvent) => {
+                                const newWidth = Math.max(140, startWidth + (moveEvent.clientX - startX));
+                                onUpdateData(id, { ...data, width: newWidth });
+                            };
+                            const handleMouseUp = () => {
+                                window.removeEventListener('mousemove', handleMouseMove);
+                                window.removeEventListener('mouseup', handleMouseUp);
+                            };
+                            window.addEventListener('mousemove', handleMouseMove);
+                            window.addEventListener('mouseup', handleMouseUp);
+                        }}
+                    />
+                )
             }
 
             {/* Resize Handle for FORM, FINAL, GROUP, and COMMENT */}
