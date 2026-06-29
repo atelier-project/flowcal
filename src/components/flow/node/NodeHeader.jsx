@@ -53,7 +53,7 @@ export const NodeHeader = ({
                 ${type === 'FINAL' ? 'bg-green-50 border-green-100 dark:bg-green-900/20 dark:border-green-800' : ''}`}
         >
             {/* Left side: Icon and Label */}
-            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0">
+            <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200 font-semibold text-sm flex-1 min-w-0 relative group/hdr">
                 <span className={`p-1 rounded shadow-sm shrink-0 ${ui.colorClass?.split(' ')[1] ? 'bg-white dark:bg-slate-700 ' + ui.colorClass.split(' ')[1] : 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400'}`}>
                     <Icon size={16} />
                 </span>
@@ -66,6 +66,14 @@ export const NodeHeader = ({
                     onMouseDown={(e) => e.stopPropagation()}
                     disabled={!canEdit}
                 />
+                {/* Hover popover: full name + type (handy when the label is truncated) */}
+                <div
+                    className="pointer-events-none absolute -top-2 left-0 -translate-y-full opacity-0 group-hover/hdr:opacity-100 transition-opacity duration-150 z-50 max-w-[260px] rounded-md px-2.5 py-1.5 shadow-lg border"
+                    style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }}
+                >
+                    <div className="font-semibold text-xs truncate" style={{ color: 'var(--text-primary)' }}>{data.label || def.label || type}</div>
+                    <div className="text-[10px] font-normal whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>{def.label || type} · <span className="font-mono">{type}</span></div>
+                </div>
             </div>
 
             {/* Right side: Controls */}
