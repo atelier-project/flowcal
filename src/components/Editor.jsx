@@ -643,30 +643,56 @@ export default function Editor() {
     const internalEdges = edges.filter(e => selectedSet.has(e.source) && selectedSet.has(e.target));
     const externalEdges = edges.filter(e => !selectedSet.has(e.source) && !selectedSet.has(e.target));
 
-    // Create GROUP_INPUT nodes for incoming connections
+    // Derive readable boundary-port names from the connections themselves, so
+    // that inside the group (and on the group's outer ports) each port says
+    // what it wires to rather than a meaningless "Input 1 / Output 2".
+    const nodeById = new Map(nodes.map(n => [n.id, n]));
+    const nodeName = (n) => n?.data?.label || getDefinition(n?.type)?.label || n?.type || 'Node';
+    const prettyHandle = (h) => {
+      if (!h || h === 'default') return '';
+      if (/^in_\d+$/.test(h)) return `#${h.slice(3)}`; // collector ports: in_0 -> #0
+      return h.charAt(0).toUpperCase() + h.slice(1);
+    };
+
+    // Create GROUP_INPUT nodes for incoming connections.
+    // Label = the internal node/port it feeds; description = the external source.
     const inputNodes = [];
     const inputEdgeMap = new Map(); // Map from original target handle to GROUP_INPUT id
     incomingEdges.forEach((edge, idx) => {
       const inputId = generateId();
+      const target = nodeById.get(edge.target);
+      const handle = prettyHandle(edge.targetHandle);
+      const source = nodeById.get(edge.source);
       inputNodes.push({
         id: inputId,
         type: 'GROUP_INPUT',
         position: { x: 50, y: 50 + idx * 100 },
-        data: { label: `Input ${idx + 1}` }
+        data: {
+          label: handle ? `${nodeName(target)} · ${handle}` : nodeName(target),
+          description: source ? `from ${nodeName(source)}` : ''
+        }
       });
       inputEdgeMap.set(`${edge.target}-${edge.targetHandle || 'default'}`, inputId);
     });
 
-    // Create GROUP_OUTPUT nodes for outgoing connections  
+    // Create GROUP_OUTPUT nodes for outgoing connections.
+    // Label = the internal node/port it comes from; description = the external consumer.
     const outputNodes = [];
     const outputEdgeMap = new Map(); // Map from original source to GROUP_OUTPUT id
     outgoingEdges.forEach((edge, idx) => {
       const outputId = generateId();
+      const source = nodeById.get(edge.source);
+      const multiOut = (getDefinition(source?.type)?.outputs?.length || 0) > 1;
+      const handle = multiOut ? prettyHandle(edge.sourceHandle) : '';
+      const consumer = nodeById.get(edge.target);
       outputNodes.push({
         id: outputId,
         type: 'GROUP_OUTPUT',
         position: { x: 400, y: 50 + idx * 100 },
-        data: { label: `Output ${idx + 1}` }
+        data: {
+          label: handle ? `${nodeName(source)} · ${handle}` : nodeName(source),
+          description: consumer ? `to ${nodeName(consumer)}` : ''
+        }
       });
       outputEdgeMap.set(`${edge.source}-${edge.sourceHandle || 'default'}`, outputId);
     });
