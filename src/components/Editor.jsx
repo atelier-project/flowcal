@@ -20,6 +20,7 @@ import { computeAlignment } from '../utils/alignment';
 import { HANDLE_POSITIONS } from '../utils/handlePositions';
 import { getNodeHeight } from '../utils/layout';
 import { evaluateGraph } from '../engine/evaluator';
+import { getDefinition } from '../engine/nodeDefinitions';
 import { useDebounce } from '../hooks/useDebounce';
 import { useHistory } from '../hooks/useHistory';
 import { getCustomNodes, saveCustomNode, createCustomNodeFromGroup, instantiateCustomNode, deleteCustomNode, exportCustomNode, importCustomNode } from '../utils/customNodeStore';
@@ -1228,6 +1229,33 @@ export default function Editor() {
               }
             });
             targetHandle = closestKey;
+          }
+        } else {
+          // Generic case: nodes with registry-defined named inputs (DIVIDE,
+          // COMPARE, IF, …). Without this, targetHandle stays null and every
+          // wire renders at the top port (geometry falls back to base=40).
+          // Mirror geometry.getDefaultInputPosition: base + i*rowHeight, honoring
+          // inputOrder, and pick the closest port to the drop point.
+          const targetDef = getDefinition(targetNode.type);
+          if (targetDef?.inputs && !targetDef.inputs.includes('*')) {
+            let handles = [...targetDef.inputs];
+            if (targetNode.data.inputOrder && Array.isArray(targetNode.data.inputOrder)) {
+              handles.sort((a, b) => {
+                const idxA = targetNode.data.inputOrder.indexOf(a);
+                const idxB = targetNode.data.inputOrder.indexOf(b);
+                if (idxA === -1 && idxB === -1) return 0;
+                if (idxA === -1) return 1;
+                if (idxB === -1) return -1;
+                return idxA - idxB;
+              });
+            }
+            const defPos = HANDLE_POSITIONS.DEFAULT;
+            let minDist = Infinity;
+            handles.forEach((name, i) => {
+              const hy = targetNode.position.y + defPos.base + (i * defPos.rowHeight);
+              const dist = Math.abs(my - hy);
+              if (dist < minDist) { minDist = dist; targetHandle = name; }
+            });
           }
         }
 
