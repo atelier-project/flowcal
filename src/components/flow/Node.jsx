@@ -1388,7 +1388,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 {/* Render Labels for Group/Node Ports */}
                 {inputHandles.map((h, i) => h.label && !(type === 'GROUP' && data.showResults) && (
                     <div key={h.id || i} className="absolute left-3 flex items-center gap-1 group/handle cursor-help"
-                        style={{ top: typeof h.top === 'number' ? h.top : h.top, transform: 'translateY(-50%)' }}
+                        style={{ top: typeof h.top === 'number' ? h.top : h.top, marginTop: 0, transform: 'translateY(-50%)' }}
                         title={h.description || undefined}>
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{h.label}</span>
                         {h.description && <span className="text-[8px] text-pink-400 dark:text-pink-500">ⓘ</span>}
@@ -1411,7 +1411,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 ))}
                 {outputHandles.map((h, i) => h.label && type !== 'UNPACK' && !(type === 'GROUP' && (data.showResults || data.collapsed)) && (
                     <div key={h.id || i} className="absolute right-3 flex flex-row-reverse items-center gap-1 group/handle cursor-help"
-                        style={{ top: typeof h.top === 'number' ? h.top : h.top, transform: 'translateY(-50%)' }}
+                        style={{ top: typeof h.top === 'number' ? h.top : h.top, marginTop: 0, transform: 'translateY(-50%)' }}
                         title={h.description || undefined}>
                         <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono text-right">{h.label}</span>
                         {h.description && <span className="text-[8px] text-pink-400 dark:text-pink-500">ⓘ</span>}
