@@ -1133,33 +1133,48 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
 
                 {type === 'FINAL' && (
                     <div className="flex-1 flex flex-col">
+                        {data.caption && (
+                            <div className="mb-1 text-xs font-medium text-green-800/80 dark:text-green-300/80 whitespace-pre-wrap break-words">
+                                {data.caption.replace(/\\n/g, '\n')}
+                            </div>
+                        )}
                         <div className="flex-1 min-h-[60px] p-3 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg flex items-center justify-center text-center">
-                            <span className="text-lg font-bold text-green-800 dark:text-green-300 break-words w-full">
+                            <span className="text-lg font-bold text-green-800 dark:text-green-300 whitespace-pre-wrap break-words w-full">
                                 {inputs.length > 0 && inputs[0] !== undefined ? formatFinalValue(inputs[0]) : <span className="text-green-300/50 text-sm">Connect Input</span>}
                             </span>
                         </div>
                         {canEdit && (
-                            <div className="flex items-center gap-1 mt-2 text-[10px] text-slate-400 dark:text-slate-500">
-                                <span className="shrink-0">Unit</span>
-                                <input
-                                    type="text"
-                                    value={data.unit ?? ''}
-                                    onChange={(e) => handleChange('unit', e.target.value)}
-                                    placeholder="e.g. TB"
-                                    className="w-16 h-6 px-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center focus:outline-none focus:border-green-500"
+                            <div className="mt-2 space-y-1">
+                                <textarea
+                                    value={data.caption ?? ''}
+                                    onChange={(e) => handleChange('caption', e.target.value)}
+                                    placeholder={'Caption (optional) — use \\n for line breaks'}
+                                    rows={2}
+                                    className="w-full px-1.5 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[10px] resize-y focus:outline-none focus:border-green-500 text-slate-600 dark:text-slate-300"
                                     onMouseDown={(e) => e.stopPropagation()}
                                 />
-                                <span className="shrink-0 ml-1">Decimals</span>
-                                <input
-                                    type="number"
-                                    min={0}
-                                    max={10}
-                                    value={data.decimals ?? ''}
-                                    onChange={(e) => handleChange('decimals', e.target.value === '' ? null : parseInt(e.target.value, 10))}
-                                    placeholder="auto"
-                                    className="w-12 h-6 px-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center focus:outline-none focus:border-green-500"
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                />
+                                <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500">
+                                    <span className="shrink-0">Unit</span>
+                                    <input
+                                        type="text"
+                                        value={data.unit ?? ''}
+                                        onChange={(e) => handleChange('unit', e.target.value)}
+                                        placeholder="e.g. TB"
+                                        className="w-16 h-6 px-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center focus:outline-none focus:border-green-500"
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                    />
+                                    <span className="shrink-0 ml-1">Decimals</span>
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={10}
+                                        value={data.decimals ?? ''}
+                                        onChange={(e) => handleChange('decimals', e.target.value === '' ? null : parseInt(e.target.value, 10))}
+                                        placeholder="auto"
+                                        className="w-12 h-6 px-1.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-center focus:outline-none focus:border-green-500"
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>

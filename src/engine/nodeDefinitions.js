@@ -719,7 +719,7 @@ export const NODE_LOGIC = {
         category: 'Visuals',
         inputs: ['val'],
         compute: (inputs) => inputs.length > 0 ? inputs[0] : 0,
-        data: { width: 200, unit: '', decimals: null }
+        data: { width: 200, unit: '', decimals: null, caption: '' }
     },
 
     // Advanced & Grouping

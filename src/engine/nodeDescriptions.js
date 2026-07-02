@@ -69,7 +69,7 @@ export const NODE_DESCRIPTIONS = {
     BAR_CHART: 'Displays array values as a bar chart.',
     TABLE: 'Displays data in a table format.',
     TEMPLATE: 'Renders text with {{placeholder}} substitution.',
-    FINAL: 'Marks the final output of your flow. Shows the result prominently.',
+    FINAL: 'Marks the final output of your flow. Shows the result prominently, with an optional multi-line caption (use \\n for line breaks).',
 
     // Advanced
     CUSTOM: 'Write custom JavaScript code. Use inputs object and return result.',
