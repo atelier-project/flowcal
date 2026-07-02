@@ -588,6 +588,22 @@ export default function Editor() {
     return inputs;
   }, [debouncedNodes, debouncedEdges, results]);
 
+  // For dynamic-input nodes (e.g. REPORT), map each input handle index (in_N) to
+  // the connected source node's label, so rows can auto-label from their connections.
+  const nodeInputSources = useMemo(() => {
+    const map = {};
+    const nodeMap = new Map(debouncedNodes.map(n => [n.id, n]));
+    debouncedNodes.forEach(n => { map[n.id] = {}; });
+    debouncedEdges.forEach(e => {
+      if (!map[e.target]) return;
+      const m = /^in_(\d+)$/.exec(e.targetHandle || '');
+      if (!m) return;
+      const src = nodeMap.get(e.source);
+      map[e.target][parseInt(m[1], 10)] = src?.data?.label || getDefinition(src?.type)?.label || src?.type || '';
+    });
+    return map;
+  }, [debouncedNodes, debouncedEdges]);
+
   const handleNodeDelete = useCallback((id) => {
     if (!canModifyStructure()) return;
     setGraph(graph => ({
@@ -1257,6 +1273,17 @@ export default function Editor() {
             const dist = Math.abs(my - hy);
             if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = `in_${i} `; }
           }
+        } else if (targetNode.type === 'REPORT') {
+          // Report rows are dynamic (in_0..in_{n-1}); pick the closest row to the
+          // drop point using the shared HANDLE_POSITIONS.REPORT offsets.
+          const count = targetNode.data.inputCount || 2;
+          const rp = HANDLE_POSITIONS.REPORT;
+          let minDist = Infinity;
+          for (let i = 0; i < count; i++) {
+            const hy = targetNode.position.y + rp.base + (i * rp.rowHeight);
+            const dist = Math.abs(my - hy);
+            if (dist < minDist) { minDist = dist; targetHandle = `in_${i}`; }
+          }
         } else if (targetNode.type === 'RANGE') {
           if (Math.abs(my - (targetNode.position.y + 40)) < 20) targetHandle = 'start';
           else if (Math.abs(my - (targetNode.position.y + 64)) < 20) targetHandle = 'end';
@@ -1650,6 +1677,7 @@ export default function Editor() {
               key={node.id}
               {...node}
               inputs={nodeInputs[node.id] || []}
+              inputSources={nodeInputSources[node.id] || {}}
               result={results[node.id]}
               selected={selectedIds.has(node.id)}
               isHovered={hoverGroup === node.id}

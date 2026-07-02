@@ -13,7 +13,7 @@ import { NodeHeader } from './node/NodeHeader';
 import { useNodeHandles, NodeHandles } from './node/NodeHandles';
 import { GetGlobalNodeBody } from './node/bodies/GetGlobalNodeBody';
 
-export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings, availableGlobals }) => {
+export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, inputSources, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings, availableGlobals }) => {
     const nodeRef = useRef(null);
     const ui = getUI(type);
     const [showMenu, setShowMenu] = React.useState(false);
@@ -81,6 +81,23 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
     // --- Helpers ---
     const addCollectorInput = () => {
         onUpdateData(id, { ...data, inputCount: (data.inputCount || 2) + 1 });
+    };
+
+    // REPORT row helpers. Rows are handle-indexed (in_0..in_{n-1}); we only add or
+    // remove the last row so existing connections never re-index.
+    const addReportRow = () => {
+        onUpdateData(id, { ...data, inputCount: (data.inputCount || 2) + 1 });
+    };
+    const removeReportRow = () => {
+        const count = data.inputCount || 2;
+        if (count <= 1) return;
+        const rowLabels = (data.rowLabels || []).slice(0, count - 1);
+        onUpdateData(id, { ...data, inputCount: count - 1, rowLabels });
+    };
+    const updateReportLabel = (index, value) => {
+        const rowLabels = [...(data.rowLabels || [])];
+        rowLabels[index] = value;
+        onUpdateData(id, { ...data, rowLabels });
     };
 
     const addFormField = () => {
@@ -1176,6 +1193,67 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                     />
                                 </div>
                             </div>
+                        )}
+                    </div>
+                )}
+
+                {type === 'REPORT' && (
+                    <div className="flex-1 flex flex-col gap-2">
+                        {canEdit ? (
+                            <input
+                                type="text"
+                                value={data.title ?? ''}
+                                onChange={(e) => handleChange('title', e.target.value)}
+                                placeholder="Report title"
+                                className="w-full px-1 py-0.5 bg-transparent border-b border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-green-500"
+                                onMouseDown={(e) => e.stopPropagation()}
+                            />
+                        ) : (data.title ? <div className="px-1 text-sm font-bold text-slate-700 dark:text-slate-200">{data.title}</div> : null)}
+
+                        <div className="rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
+                            {Array.from({ length: data.inputCount || 2 }).map((_, i) => {
+                                const count = data.inputCount || 2;
+                                const isLast = i === count - 1;
+                                const placeholder = (inputSources && inputSources[i]) || `Value ${i + 1}`;
+                                const value = Array.isArray(result) ? result[i] : undefined;
+                                return (
+                                    <div key={i} className="flex items-center justify-between gap-2 px-2 min-h-[28px] bg-slate-50/50 dark:bg-slate-900/30">
+                                        {canEdit ? (
+                                            <input
+                                                type="text"
+                                                value={data.rowLabels?.[i] ?? ''}
+                                                onChange={(e) => updateReportLabel(i, e.target.value)}
+                                                placeholder={placeholder}
+                                                className="min-w-0 flex-1 bg-transparent text-xs text-slate-500 dark:text-slate-400 focus:outline-none placeholder:opacity-70"
+                                                onMouseDown={(e) => e.stopPropagation()}
+                                            />
+                                        ) : (
+                                            <span className="min-w-0 flex-1 text-xs text-slate-500 dark:text-slate-400 truncate">{data.rowLabels?.[i] || placeholder}</span>
+                                        )}
+                                        <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-200 text-right whitespace-pre-wrap break-words max-w-[55%]">
+                                            {formatResult(value)}
+                                        </span>
+                                        {canEdit && isLast && count > 1 && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); removeReportRow(); }}
+                                                className="shrink-0 w-4 h-4 flex items-center justify-center text-red-400 hover:text-red-600 text-sm leading-none"
+                                                title="Remove last row"
+                                            >
+                                                ×
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {canEdit && (
+                            <button
+                                onClick={(e) => { e.stopPropagation(); addReportRow(); }}
+                                className="w-full py-1 text-xs text-green-600 dark:text-green-400 border border-dashed border-green-300 dark:border-green-700 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
+                            >
+                                + Add row
+                            </button>
                         )}
                     </div>
                 )}

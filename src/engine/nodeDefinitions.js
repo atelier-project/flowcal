@@ -721,6 +721,16 @@ export const NODE_LOGIC = {
         compute: (inputs) => inputs.length > 0 ? inputs[0] : 0,
         data: { width: 200, unit: '', decimals: null, caption: '' }
     },
+    REPORT: {
+        type: 'REPORT',
+        label: 'Report',
+        category: 'Visuals',
+        dynamicInputs: true,
+        // Terminal display node: collect the connected values (handle-indexed) so
+        // the body can lay them out as labeled rows. Also emits the array if chained.
+        compute: (inputs) => Array.isArray(inputs) ? inputs : [],
+        data: { width: 240, title: '', inputCount: 2, rowLabels: [] }
+    },
 
     // Advanced & Grouping
     GROUP: {

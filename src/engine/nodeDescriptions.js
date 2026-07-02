@@ -70,6 +70,7 @@ export const NODE_DESCRIPTIONS = {
     TABLE: 'Displays data in a table format.',
     TEMPLATE: 'Renders text with {{placeholder}} substitution.',
     FINAL: 'Marks the final output of your flow. Shows the result prominently, with an optional multi-line caption (use \\n for line breaks).',
+    REPORT: 'Groups multiple results into a single titled panel of labeled rows. Rows auto-label from their connected nodes; labels are editable.',
 
     // Advanced
     CUSTOM: 'Write custom JavaScript code. Use inputs object and return result.',
