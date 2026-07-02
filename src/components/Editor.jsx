@@ -1273,6 +1273,17 @@ export default function Editor() {
             const dist = Math.abs(my - hy);
             if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = `in_${i} `; }
           }
+        } else if (targetNode.type === 'REPORT') {
+          // Report rows are dynamic (in_0..in_{n-1}); pick the closest row to the
+          // drop point using the shared HANDLE_POSITIONS.REPORT offsets.
+          const count = targetNode.data.inputCount || 2;
+          const rp = HANDLE_POSITIONS.REPORT;
+          let minDist = Infinity;
+          for (let i = 0; i < count; i++) {
+            const hy = targetNode.position.y + rp.base + (i * rp.rowHeight);
+            const dist = Math.abs(my - hy);
+            if (dist < minDist) { minDist = dist; targetHandle = `in_${i}`; }
+          }
         } else if (targetNode.type === 'RANGE') {
           if (Math.abs(my - (targetNode.position.y + 40)) < 20) targetHandle = 'start';
           else if (Math.abs(my - (targetNode.position.y + 64)) < 20) targetHandle = 'end';

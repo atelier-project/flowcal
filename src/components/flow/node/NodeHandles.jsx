@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Handle } from '../Handle';
 import { getDefinition } from '../../../engine/nodeDefinitions';
 import { getNodeHeight, collapsedGroupHandleTop } from '../../../utils/layout';
+import { HANDLE_POSITIONS } from '../../../utils/handlePositions';
 
 /**
  * useNodeHandles - Hook to calculate input and output handle positions
@@ -54,12 +55,13 @@ export const useNodeHandles = (type, data) => {
             }
         } else if (type === 'REPORT') {
             // Align each input handle with its row (rows are min-h-[28px], below the
-            // title). Explicit tops here are preserved by the assignment step below.
+            // title). Uses the shared HANDLE_POSITIONS.REPORT offsets so the rendered
+            // dots, the wire geometry, and the drop hit-test all agree. Explicit tops
+            // here are preserved by the assignment step below.
             const count = data.inputCount || 2;
-            const ROW_H = 28;
-            const FIRST_ROW_TOP = 100; // ≈ header + body padding + title + gap
+            const rp = HANDLE_POSITIONS.REPORT;
             // No numeric label — each row already shows its own (auto-)label.
-            handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: '', top: FIRST_ROW_TOP + i * ROW_H }));
+            handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: '', top: rp.base + i * rp.rowHeight }));
         } else if (type === 'COLLECTOR' || (def && def.dynamicInputs)) {
             const count = data.inputCount || 2;
             handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}` }));

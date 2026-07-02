@@ -12,6 +12,7 @@ export const HANDLE_POSITIONS = {
 
     // Nodes with indexed inputs
     COLLECTOR: { base: 40, rowHeight: 24 },
+    REPORT: { base: 100, rowHeight: 28 },
     FORM: { base: 48, rowHeight: 30 },
     FUNCTION: { base: 80, rowHeight: 30 },
     GROUP: { base: 40, rowHeight: 24 },

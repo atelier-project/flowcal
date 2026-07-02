@@ -83,6 +83,11 @@ const inputStrategies = {
         return pos.base + (idx * pos.rowHeight);
     },
 
+    REPORT: (node, handleId, def, pos) => {
+        const idx = parseHandleIndex(handleId);
+        return pos.base + (idx * pos.rowHeight);
+    },
+
     FORM: (node, handleId, def, pos) => {
         const idx = parseHandleIndex(handleId);
         return pos.base + (idx * pos.rowHeight);
