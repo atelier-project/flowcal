@@ -58,7 +58,8 @@ export const useNodeHandles = (type, data) => {
             const count = data.inputCount || 2;
             const ROW_H = 28;
             const FIRST_ROW_TOP = 100; // ≈ header + body padding + title + gap
-            handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}`, top: FIRST_ROW_TOP + i * ROW_H }));
+            // No numeric label — each row already shows its own (auto-)label.
+            handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: '', top: FIRST_ROW_TOP + i * ROW_H }));
         } else if (type === 'COLLECTOR' || (def && def.dynamicInputs)) {
             const count = data.inputCount || 2;
             handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}` }));
