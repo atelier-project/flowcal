@@ -54,6 +54,12 @@ export const getNodeHeight = (node) => {
         return Math.max(120, (count * 24) + 60);
     }
 
+    if (node.type === 'REPORT') {
+        const count = node.data.inputCount || 2;
+        // title + one row per input + add-row button
+        return Math.max(160, (count * 34) + 110);
+    }
+
     if (node.type === 'SELECT') {
         // picker rows + the per-option editor rows
         const count = node.data?.options?.length || 0;

@@ -588,6 +588,22 @@ export default function Editor() {
     return inputs;
   }, [debouncedNodes, debouncedEdges, results]);
 
+  // For dynamic-input nodes (e.g. REPORT), map each input handle index (in_N) to
+  // the connected source node's label, so rows can auto-label from their connections.
+  const nodeInputSources = useMemo(() => {
+    const map = {};
+    const nodeMap = new Map(debouncedNodes.map(n => [n.id, n]));
+    debouncedNodes.forEach(n => { map[n.id] = {}; });
+    debouncedEdges.forEach(e => {
+      if (!map[e.target]) return;
+      const m = /^in_(\d+)$/.exec(e.targetHandle || '');
+      if (!m) return;
+      const src = nodeMap.get(e.source);
+      map[e.target][parseInt(m[1], 10)] = src?.data?.label || getDefinition(src?.type)?.label || src?.type || '';
+    });
+    return map;
+  }, [debouncedNodes, debouncedEdges]);
+
   const handleNodeDelete = useCallback((id) => {
     if (!canModifyStructure()) return;
     setGraph(graph => ({
@@ -1650,6 +1666,7 @@ export default function Editor() {
               key={node.id}
               {...node}
               inputs={nodeInputs[node.id] || []}
+              inputSources={nodeInputSources[node.id] || {}}
               result={results[node.id]}
               selected={selectedIds.has(node.id)}
               isHovered={hoverGroup === node.id}

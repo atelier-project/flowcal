@@ -54,6 +54,7 @@ export const NODE_UI = {
     TABLE: { icon: Table, color: 'teal', colorClass: 'bg-teal-100 text-teal-600' },
     TEMPLATE: { icon: FileText, color: 'yellow', colorClass: 'bg-yellow-100 text-yellow-600' },
     FINAL: { icon: Flag, color: 'green', colorClass: 'bg-green-100 text-green-600' },
+    REPORT: { icon: FileText, color: 'green', colorClass: 'bg-green-100 text-green-600' },
 
     // Advanced
     GROUP: { icon: Box, color: 'indigo', colorClass: 'bg-indigo-100 text-indigo-600' },
