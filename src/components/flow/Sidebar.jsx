@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Save, FolderOpen, MousePointer2, Type, HelpCircle, Package, Share, Share2, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings, Eye } from 'lucide-react';
+import { Save, FolderOpen, MousePointer2, Type, HelpCircle, Package, Share, Share2, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings, Eye, Cloud, CloudOff, RefreshCw, AlertTriangle } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
 import { useAuth } from '../../context/AuthContext';
 
-export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSharedView, canShare, onShare, isSaving, lastSaved, onOpenSettings, isRestricted, currentIterator }) => {
+export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSharedView, canShare, onShare, isDirty, saveError, canAutosave, autosaveEnabled, onToggleAutosave, onGuardedNavigate, isSaving, lastSaved, onOpenSettings, isRestricted, currentIterator }) => {
     const { isAdmin } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
@@ -157,6 +157,32 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
                             )}
                         </button>
 
+                        {/* Autosave toggle (owners of a saved flow). Pulses as a
+                            call-to-action only while there are unsaved changes and
+                            autosave is off; calm once enabled or saved. */}
+                        {!isGuest && canAutosave && (
+                            <button
+                                onClick={onToggleAutosave}
+                                title={autosaveEnabled
+                                    ? (saveError ? 'Autosave failed — click to turn off' : 'Autosave on — click to turn off')
+                                    : (isDirty ? 'You have unsaved changes — enable autosave' : 'Enable autosave')}
+                                className={`p-1.5 rounded transition-colors shadow-sm ${autosaveEnabled
+                                    ? (saveError
+                                        ? 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300'
+                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white')
+                                    : `bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 ${isDirty ? 'ring-2 ring-amber-400 motion-safe:animate-pulse' : ''}`
+                                    }`}
+                            >
+                                {autosaveEnabled
+                                    ? (isSaving
+                                        ? <RefreshCw size={14} className="animate-spin" />
+                                        : saveError
+                                            ? <AlertTriangle size={14} />
+                                            : <Cloud size={14} />)
+                                    : <CloudOff size={14} />}
+                            </button>
+                        )}
+
                         {/* Secondary Actions */}
                         {!isGuest && (
                             <button
@@ -214,11 +240,18 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
                 <input type="file" ref={customImportRef} className="hidden" accept=".json" onChange={onImportCustomNode} />
             </div>
 
-            {/* Last Saved Status */}
-            {!isGuest && lastSaved && (
-                <div className="px-4 py-1 text-[10px] text-slate-400 border-b flex items-center justify-center gap-1" style={{ borderColor: 'var(--border-primary)' }}>
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                    Synced {lastSaved.toLocaleTimeString()}
+            {/* Save Status */}
+            {!isGuest && !isSharedView && (lastSaved || isDirty || isSaving) && (
+                <div className="px-4 py-1 text-[10px] border-b flex items-center justify-center gap-1" style={{ borderColor: 'var(--border-primary)' }}>
+                    {isSaving ? (
+                        <><RefreshCw size={9} className="animate-spin text-blue-500" /><span className="text-slate-400">Saving…</span></>
+                    ) : saveError ? (
+                        <><span className="w-1.5 h-1.5 rounded-full bg-red-500"></span><span className="text-red-500">Save failed</span></>
+                    ) : isDirty ? (
+                        <><span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span><span className="text-slate-400">Unsaved changes</span></>
+                    ) : lastSaved ? (
+                        <><span className="w-1.5 h-1.5 rounded-full bg-green-500"></span><span className="text-slate-400">Saved {lastSaved.toLocaleTimeString()}</span></>
+                    ) : null}
                 </div>
             )}
 
@@ -336,11 +369,19 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
                         Admin Panel
                     </Link>
                 )}
-                <Link to="/profile" className="flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                <Link
+                    to="/profile"
+                    onClick={onGuardedNavigate ? (e) => { e.preventDefault(); onGuardedNavigate('/profile'); } : undefined}
+                    className="flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors text-sm font-medium"
+                >
                     <User size={16} />
                     Profile & Settings
                 </Link>
-                <Link to="/dashboard" className="flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors text-sm font-medium">
+                <Link
+                    to="/dashboard"
+                    onClick={onGuardedNavigate ? (e) => { e.preventDefault(); onGuardedNavigate('/dashboard'); } : undefined}
+                    className="flex items-center gap-2 text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 transition-colors text-sm font-medium"
+                >
                     <LogOut size={16} className="rotate-180" />
                     Back to Dashboard / Login
                 </Link>
