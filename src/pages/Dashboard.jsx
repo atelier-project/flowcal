@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
-import { LogOut, Plus, Folder, Loader2, Clock, Trash2, Shield, Copy, User as UserIcon } from 'lucide-react';
+import { LogOut, Plus, Folder, Loader2, Clock, Trash2, Shield, Copy, User as UserIcon, Share2 } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { flowService } from '../services/flowService';
+import { ensurePublicAndCopy } from '../utils/shareFlow';
 
 export default function Dashboard() {
     const { user, signOut, isAdmin } = useAuth();
@@ -56,6 +57,18 @@ export default function Dashboard() {
             addToast('Flow deleted successfully', 'success');
         } catch (err) {
             addToast('Failed to delete flow', 'error');
+        }
+    };
+
+    const handleShareFlow = async (e, flow) => {
+        e.stopPropagation();
+        try {
+            await ensurePublicAndCopy(flow.id, flow);
+            // Reflect the new public state locally so the icon stays accurate.
+            setFlows(flows.map(f => f.id === flow.id ? { ...f, is_public: true } : f));
+            addToast('Share link copied to clipboard', 'success');
+        } catch (err) {
+            addToast('Failed to create share link: ' + err.message, 'error');
         }
     };
 
@@ -160,6 +173,13 @@ export default function Dashboard() {
 
                             {/* Actions */}
                             <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    onClick={(e) => handleShareFlow(e, flow)}
+                                    className={`p-2 bg-white/90 dark:bg-slate-800/90 rounded-lg shadow-sm ${flow.is_public ? 'text-purple-500' : 'text-slate-400 hover:text-purple-500'}`}
+                                    title={flow.is_public ? 'Public — copy share link' : 'Share (make public & copy link)'}
+                                >
+                                    <Share2 size={16} />
+                                </button>
                                 <button
                                     onClick={(e) => handleDuplicateFlow(e, flow.id)}
                                     className="p-2 bg-white/90 dark:bg-slate-800/90 rounded-lg text-slate-400 hover:text-blue-500 shadow-sm"

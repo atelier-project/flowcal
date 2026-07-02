@@ -31,9 +31,11 @@ import { copyToClipboard, prepareForPaste, hasClipboardContent, canCopyFromConte
 // Use centralized value resolution logic (single source of truth)
 import { resolveSourceValue } from '../engine/valueResolution';
 
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { flowService } from '../services/flowService';
+import { ensurePublicAndCopy } from '../utils/shareFlow';
 import { Loader2, Cloud, HardDrive } from 'lucide-react';
 
 // ... other imports ...
@@ -48,9 +50,15 @@ const snapToGrid = (v) => Math.round(v / GRID_SIZE) * GRID_SIZE;
 
 export default function Editor() {
   const { user, isAdmin } = useAuth();
+  const { addToast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const flowId = location.state?.flowId;
+  const params = useParams();
+  // A /guest/:flowId link opens the flow as a read-only sandbox. URL param wins
+  // over location.state so a pasted share link works when opened cold.
+  const sharedFlowId = params.flowId || null;
+  const isSharedView = !!sharedFlowId;
+  const flowId = sharedFlowId || location.state?.flowId;
 
   // Initial Data
   const initialNodes = [
@@ -84,6 +92,8 @@ export default function Editor() {
 
   const [projectTitle, setProjectTitle] = useState('Untitled Flow');
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(null);
+  const [flowIsPublic, setFlowIsPublic] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [spacePressed, setSpacePressed] = useState(false);
@@ -106,6 +116,7 @@ export default function Editor() {
       const flow = await flowService.getFlow(id);
       setProjectTitle(flow.name);
       setFlowOwnerId(flow.owner_id);
+      setFlowIsPublic(!!flow.is_public);
       if (flow.data?.nodes && flow.data?.edges) {
         setGraph({ nodes: flow.data.nodes, edges: flow.data.edges });
       }
@@ -115,8 +126,14 @@ export default function Editor() {
       setLastSaved(new Date(flow.updated_at));
     } catch (err) {
       console.error('Failed to load flow:', err);
-      alert('Could not load flow. It might have been deleted.');
-      navigate('/dashboard');
+      // A shared link may point at a flow that isn't public (or no longer exists).
+      // Show an inline message instead of bouncing a guest to the login page.
+      if (isSharedView) {
+        setLoadError("This flow isn't available. It may be private or no longer exist.");
+      } else {
+        alert('Could not load flow. It might have been deleted.');
+        navigate('/dashboard');
+      }
     } finally {
       setLoading(false);
     }
@@ -358,6 +375,25 @@ export default function Editor() {
     return true;
   }, [isContextReadOnly, user]);
 
+  // Structural edits (add/delete/move/connect/paste/duplicate) are additionally
+  // blocked in a shared view. Node *value* edits still flow through
+  // isActionAllowed(), so viewers can tweak unlocked inputs to explore results.
+  const canModifyStructure = useCallback(() => {
+    return isActionAllowed() && !isSharedView;
+  }, [isActionAllowed, isSharedView]);
+
+  // Make the current flow public (if needed) and copy its share link.
+  const handleShare = useCallback(async () => {
+    if (!flowId) return;
+    try {
+      await ensurePublicAndCopy(flowId, { is_public: flowIsPublic });
+      setFlowIsPublic(true);
+      addToast('Share link copied to clipboard', 'success');
+    } catch (err) {
+      addToast('Failed to create share link: ' + err.message, 'error');
+    }
+  }, [flowId, flowIsPublic, addToast]);
+
   // --- Copy/Paste Handlers ---
   const handleCopy = useCallback(() => {
     if (selectedIds.size === 0) return;
@@ -375,6 +411,7 @@ export default function Editor() {
 
   const handlePaste = useCallback(() => {
     if (!hasClipboardContent()) return;
+    if (isSharedView) return;
 
     // Check if action is allowed in current context
     if (isContextReadOnly && !isAdmin) {
@@ -394,10 +431,11 @@ export default function Editor() {
 
     // Select the newly pasted nodes
     setSelectedIds(new Set(pastedNodes.map(n => n.id)));
-  }, [nodes, edges, isContextReadOnly, isAdmin, setGraph]);
+  }, [nodes, edges, isContextReadOnly, isAdmin, isSharedView, setGraph]);
 
   const handleCut = useCallback(() => {
     if (selectedIds.size === 0) return;
+    if (isSharedView) return;
 
     // Check if action is allowed
     if (isContextReadOnly && !isAdmin) {
@@ -414,7 +452,7 @@ export default function Editor() {
 
     setGraph({ nodes: newNodes, edges: newEdges });
     setSelectedIds(new Set());
-  }, [nodes, edges, selectedIds, isContextReadOnly, isAdmin, handleCopy, setGraph]);
+  }, [nodes, edges, selectedIds, isContextReadOnly, isAdmin, isSharedView, handleCopy, setGraph]);
 
   // --- Engine Integration ---
   useEffect(() => {
@@ -551,12 +589,12 @@ export default function Editor() {
   }, [debouncedNodes, debouncedEdges, results]);
 
   const handleNodeDelete = useCallback((id) => {
-    if (!isActionAllowed()) return;
+    if (!canModifyStructure()) return;
     setGraph(graph => ({
       nodes: graph.nodes.filter(n => n.id !== id),
       edges: graph.edges.filter(e => e.source !== id && e.target !== id)
     }));
-  }, [isActionAllowed, setGraph]);
+  }, [canModifyStructure, setGraph]);
 
   const handleNodeUpdate = useCallback((id, data) => {
     if (!isActionAllowed()) return;
@@ -572,7 +610,7 @@ export default function Editor() {
 
   // --- Duplicate Node ---
   const duplicateNode = useCallback((nodeId) => {
-    if (!isActionAllowed()) return;
+    if (!canModifyStructure()) return;
 
     const node = nodesRef.current.find(n => n.id === nodeId);
     if (!node) return;
@@ -620,7 +658,7 @@ export default function Editor() {
 
     setGraph(graph => ({ nodes: [...graph.nodes, newNode], edges: graph.edges }));
     setSelectedIds(new Set([newId]));
-  }, [setGraph, isActionAllowed]);
+  }, [setGraph, canModifyStructure]);
 
   // Group selected nodes into a GROUP node
   const groupSelectedNodes = useCallback(() => {
@@ -1047,7 +1085,7 @@ export default function Editor() {
     }
     setSelectedIds(newSelectedIds);
 
-    if (!isActionAllowed()) return; // Block dragging
+    if (!canModifyStructure()) return; // Block dragging
 
     // Capture each dragged node's starting position so the move is computed
     // absolutely (origin + total delta) — required for clean grid snapping.
@@ -1061,7 +1099,7 @@ export default function Editor() {
 
   const handleConnectionStart = (e, sourceId, handleId) => {
     e.stopPropagation();
-    if (!isActionAllowed()) return;
+    if (!canModifyStructure()) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left - pan.x) / scale;
     const y = (e.clientY - rect.top - pan.y) / scale;
@@ -1154,7 +1192,7 @@ export default function Editor() {
   const handleMouseUp = (e) => {
     // If we were dragging, we should now COMMIT the final state to history
     if (dragState?.type === 'node' && hoverGroup && dragState.ids.length === 1) {
-      if (!isActionAllowed()) {
+      if (!canModifyStructure()) {
         setDragState(null);
         return;
       }
@@ -1308,7 +1346,7 @@ export default function Editor() {
   };
 
   const addNode = (type) => {
-    if (!isActionAllowed()) return;
+    if (!canModifyStructure()) return;
     const id = generateId();
     const rect = containerRef.current.getBoundingClientRect();
     const x = (-pan.x + rect.width / 2) / scale - 100;
@@ -1320,14 +1358,14 @@ export default function Editor() {
   };
 
   const applyAutoLayout = useCallback(() => {
-    if (!isActionAllowed()) return;
+    if (!canModifyStructure()) return;
     const positions = computeAutoLayout(nodes, edges);
     if (Object.keys(positions).length === 0) return;
     setGraph({
       nodes: nodes.map(n => positions[n.id] ? { ...n, position: positions[n.id] } : n),
       edges
     });
-  }, [nodes, edges, isActionAllowed, setGraph]);
+  }, [nodes, edges, canModifyStructure, setGraph]);
 
   const toggleRouting = useCallback(() => {
     setFlowSettings(prev => ({
@@ -1344,6 +1382,20 @@ export default function Editor() {
     setEditor({ isOpen: false, nodeId: null, code: '' });
   };
 
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center w-full h-screen bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 gap-4 p-8 text-center">
+        <h1 className="text-2xl font-bold">Flow unavailable</h1>
+        <p className="text-slate-500 dark:text-slate-400 max-w-md">{loadError}</p>
+        <Link to="/" className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+          Go to FlowCal
+        </Link>
+      </div>
+    );
+  }
+
+  const canShare = !!user && !!flowId && (user.id === flowOwnerId || isAdmin);
+
   return (
     <div className="flex w-full h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden font-sans text-slate-800 dark:text-slate-100 transition-colors duration-200">
       <CodeEditorModal
@@ -1352,7 +1404,7 @@ export default function Editor() {
         inputs={editor.inputs || []}
         onClose={() => setEditor({ ...editor, isOpen: false })}
         onSave={handleSaveEditor}
-        readOnly={nodes.find(n => n.id === editor.nodeId)?.data?.locked && nodes.find(n => n.id === editor.nodeId)?.data?.lockedBy !== user?.id && !user?.app_metadata?.claims_admin}
+        readOnly={isSharedView || (nodes.find(n => n.id === editor.nodeId)?.data?.locked && nodes.find(n => n.id === editor.nodeId)?.data?.lockedBy !== user?.id && !user?.app_metadata?.claims_admin)}
       />
 
       <Sidebar
@@ -1362,6 +1414,9 @@ export default function Editor() {
         isSaving={saving}
         lastSaved={lastSaved}
         isGuest={!user}
+        isSharedView={isSharedView}
+        canShare={canShare}
+        onShare={handleShare}
         onLoad={handleLoad}
         fileInputRef={fileInputRef}
         pathLength={path.length}
@@ -1516,7 +1571,7 @@ export default function Editor() {
           {/* Tidy layout + wire routing */}
           <button
             onClick={applyAutoLayout}
-            disabled={!isActionAllowed()}
+            disabled={!canModifyStructure()}
             style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-muted)' }}
             className="flex items-center gap-2 backdrop-blur px-2 py-1 rounded-lg shadow-sm border text-sm hover:opacity-80 disabled:opacity-40"
             title="Tidy layout (auto-arrange nodes left → right by dependency)"
@@ -1556,15 +1611,15 @@ export default function Editor() {
                 dimmed={selectedEdgeId !== null && selectedEdgeId !== edge.id}
                 onSelect={(id) => setSelectedEdgeId(prev => prev === id ? null : id)}
                 isEditing={editingEdgeId === edge.id}
-                canEdit={isActionAllowed()}
+                canEdit={canModifyStructure()}
                 onDelete={(id) => {
-                  if (!isActionAllowed()) return;
+                  if (!canModifyStructure()) return;
                   setGraph({ nodes, edges: edges.filter(e => e.id !== id) });
                 }}
-                onStartEditLabel={(id) => { if (isActionAllowed()) setEditingEdgeId(id); }}
+                onStartEditLabel={(id) => { if (canModifyStructure()) setEditingEdgeId(id); }}
                 onCommitLabel={(id, value, cancelled) => {
                   setEditingEdgeId(null);
-                  if (cancelled || !isActionAllowed()) return;
+                  if (cancelled || !canModifyStructure()) return;
                   setGraph({
                     nodes,
                     edges: edges.map(e => e.id === id
