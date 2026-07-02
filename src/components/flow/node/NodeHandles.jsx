@@ -52,6 +52,13 @@ export const useNodeHandles = (type, data) => {
                     top: 48 + (idx * 24)
                 }));
             }
+        } else if (type === 'REPORT') {
+            // Align each input handle with its row (rows are min-h-[28px], below the
+            // title). Explicit tops here are preserved by the assignment step below.
+            const count = data.inputCount || 2;
+            const ROW_H = 28;
+            const FIRST_ROW_TOP = 100; // ≈ header + body padding + title + gap
+            handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}`, top: FIRST_ROW_TOP + i * ROW_H }));
         } else if (type === 'COLLECTOR' || (def && def.dynamicInputs)) {
             const count = data.inputCount || 2;
             handles = Array.from({ length: count }).map((_, i) => ({ id: `in_${i}`, label: `${i}` }));
@@ -94,6 +101,8 @@ export const useNodeHandles = (type, data) => {
             }
             return handles.map((h) => ({ ...h, top: 20 }));
         }
+        // REPORT sets its own per-row tops (above) to line up with its rows.
+        if (type === 'REPORT') return handles;
         if (handles.length === 1 && handles[0].top) return handles;
         return handles.map((h, i) => ({ ...h, top: 40 + (i * 24) }));
 

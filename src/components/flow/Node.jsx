@@ -1217,7 +1217,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                                 const placeholder = (inputSources && inputSources[i]) || `Value ${i + 1}`;
                                 const value = Array.isArray(result) ? result[i] : undefined;
                                 return (
-                                    <div key={i} className="flex items-start justify-between gap-2 px-2 py-1.5 bg-slate-50/50 dark:bg-slate-900/30">
+                                    <div key={i} className="flex items-center justify-between gap-2 px-2 min-h-[28px] bg-slate-50/50 dark:bg-slate-900/30">
                                         {canEdit ? (
                                             <input
                                                 type="text"
