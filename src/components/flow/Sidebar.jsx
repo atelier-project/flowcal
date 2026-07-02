@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Save, FolderOpen, MousePointer2, Type, HelpCircle, Package, Share, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings } from 'lucide-react';
+import { Save, FolderOpen, MousePointer2, Type, HelpCircle, Package, Share, Share2, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings, Eye } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
 import { useAuth } from '../../context/AuthContext';
 
-export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSaving, lastSaved, onOpenSettings, isRestricted, currentIterator }) => {
+export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSharedView, canShare, onShare, isSaving, lastSaved, onOpenSettings, isRestricted, currentIterator }) => {
     const { isAdmin } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
@@ -110,6 +110,7 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
                     type="text"
                     value={projectTitle || ''}
                     onChange={(e) => onTitleChange?.(e.target.value)}
+                    readOnly={isSharedView}
                     placeholder="Project Title"
                     className="w-full mt-2 px-2 py-1 text-sm rounded border focus:outline-none"
                     style={{ backgroundColor: 'var(--bg-tertiary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}
@@ -118,64 +119,96 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
 
             {/* Toolbar */}
             <div className="px-4 py-2 border-b flex gap-2 flex-wrap items-center" style={{ borderColor: 'var(--border-primary)' }}>
-                {/* Primary Save Action */}
-                <button
-                    onClick={onSave}
-                    disabled={isSaving || (isGuest && isRestricted)}
-                    className={`p-1.5 rounded transition-colors shadow-sm ${isGuest
-                        ? 'bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed'
-                        : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-70'
-                        } `}
-                    title={isGuest ? (isRestricted ? "Download Disabled by Owner" : "Download as File") : "Save to Cloud"}
-                >
-                    {isSaving ? (
-                        <div className="animate-spin w-3 h-3 border-2 border-white/30 border-t-white rounded-full"></div>
-                    ) : isGuest ? (
-                        <Download size={14} />
-                    ) : (
-                        <Save size={14} />
-                    )}
-                </button>
+                {isSharedView ? (
+                    <>
+                        <span
+                            className="flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                            title="You are viewing a shared flow. Unlocked inputs can be changed to explore results, but nothing is saved."
+                        >
+                            <Eye size={13} /> Read-only
+                        </span>
+                        <button
+                            onClick={onHelp}
+                            title="Help & Documentation"
+                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                            className="p-1.5 rounded hover:opacity-80 transition-opacity ml-auto"
+                        >
+                            <HelpCircle size={14} />
+                        </button>
+                    </>
+                ) : (
+                    <>
+                        {/* Primary Save Action */}
+                        <button
+                            onClick={onSave}
+                            disabled={isSaving || (isGuest && isRestricted)}
+                            className={`p-1.5 rounded transition-colors shadow-sm ${isGuest
+                                ? 'bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed'
+                                : 'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-70'
+                                } `}
+                            title={isGuest ? (isRestricted ? "Download Disabled by Owner" : "Download as File") : "Save to Cloud"}
+                        >
+                            {isSaving ? (
+                                <div className="animate-spin w-3 h-3 border-2 border-white/30 border-t-white rounded-full"></div>
+                            ) : isGuest ? (
+                                <Download size={14} />
+                            ) : (
+                                <Save size={14} />
+                            )}
+                        </button>
 
-                {/* Secondary Actions */}
-                {!isGuest && (
-                    <button
-                        onClick={onLocalSave}
-                        disabled={isRestricted}
-                        title={isRestricted ? "Backup Disabled by Owner" : "Backup (.json)"}
-                        style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                        className="p-1.5 rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <Download size={14} />
-                    </button>
+                        {/* Secondary Actions */}
+                        {!isGuest && (
+                            <button
+                                onClick={onLocalSave}
+                                disabled={isRestricted}
+                                title={isRestricted ? "Backup Disabled by Owner" : "Backup (.json)"}
+                                style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                                className="p-1.5 rounded hover:opacity-80 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <Download size={14} />
+                            </button>
+                        )}
+
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            title="Load flow from file"
+                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                            className="p-1.5 rounded hover:opacity-80 transition-opacity"
+                        >
+                            <Upload size={14} />
+                        </button>
+
+                        {/* Share (owners of a saved flow) */}
+                        {!isGuest && canShare && (
+                            <button
+                                onClick={onShare}
+                                title="Copy public share link"
+                                className="p-1.5 rounded transition-colors shadow-sm bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                                <Share2 size={14} />
+                            </button>
+                        )}
+
+                        <button
+                            onClick={onOpenSettings}
+                            title="Flow Settings"
+                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                            className="p-1.5 rounded hover:opacity-80 transition-opacity"
+                        >
+                            <Settings size={14} />
+                        </button>
+
+                        <button
+                            onClick={onHelp}
+                            title="Help & Documentation"
+                            style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                            className="p-1.5 rounded hover:opacity-80 transition-opacity"
+                        >
+                            <HelpCircle size={14} />
+                        </button>
+                    </>
                 )}
-
-                <button
-                    onClick={() => fileInputRef.current?.click()}
-                    title="Load flow from file"
-                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                    className="p-1.5 rounded hover:opacity-80 transition-opacity"
-                >
-                    <Upload size={14} />
-                </button>
-
-                <button
-                    onClick={onOpenSettings}
-                    title="Flow Settings"
-                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                    className="p-1.5 rounded hover:opacity-80 transition-opacity"
-                >
-                    <Settings size={14} />
-                </button>
-
-                <button
-                    onClick={onHelp}
-                    title="Help & Documentation"
-                    style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
-                    className="p-1.5 rounded hover:opacity-80 transition-opacity"
-                >
-                    <HelpCircle size={14} />
-                </button>
 
                 <input type="file" ref={fileInputRef} className="hidden" accept=".json" onChange={onLoad} />
                 <input type="file" ref={customImportRef} className="hidden" accept=".json" onChange={onImportCustomNode} />
@@ -189,7 +222,19 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
                 </div>
             )}
 
+            {/* Shared view: no node palette — explain the read-only sandbox instead */}
+            {isSharedView && (
+                <div className="p-4 flex-1 overflow-y-auto text-sm" style={{ color: 'var(--text-muted)' }}>
+                    <div className="rounded-lg border p-3 space-y-2" style={{ borderColor: 'var(--border-primary)' }}>
+                        <p className="font-medium" style={{ color: 'var(--text-primary)' }}>Viewing a shared flow</p>
+                        <p>You can pan, zoom, and change unlocked input values to explore the calculation. Locked nodes are protected and nothing is saved.</p>
+                        <p>To make your own copy, log in and open the flow from your dashboard.</p>
+                    </div>
+                </div>
+            )}
+
             {/* Search Input */}
+            {!isSharedView && (
             <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--border-primary)' }}>
                 <div className="relative">
                     <Search size={14} className="absolute left-2 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
@@ -207,7 +252,9 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
                     />
                 </div>
             </div>
+            )}
 
+            {!isSharedView && (
             <div ref={scrollRef} className="p-4 flex-1 overflow-y-auto">
                 <CategorySection title="Data" nodes={filteredCategories['Data']} />
                 <CategorySection title="String" nodes={filteredCategories['String']} />
@@ -279,6 +326,7 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
                     <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">No nodes found</p>
                 )}
             </div>
+            )}
 
             {/* Footer */}
             <div className="p-4 border-t border-slate-200 dark:border-slate-700 space-y-3">

@@ -48,8 +48,8 @@ function App() {
               } />
 
               <Route path="/guest" element={<Editor />} />
+              <Route path="/guest/:flowId" element={<Editor />} />
 
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </ConfirmProvider>
