@@ -34,6 +34,7 @@ import { resolveSourceValue } from '../engine/valueResolution';
 import { useNavigate, useLocation, useParams, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useConfirm } from '../context/ConfirmContext';
 import { flowService } from '../services/flowService';
 import { ensurePublicAndCopy } from '../utils/shareFlow';
 import { Loader2, Cloud, HardDrive } from 'lucide-react';
@@ -48,9 +49,23 @@ import { NodeInspector } from './debugger/NodeInspector';
 const GRID_SIZE = 20;
 const snapToGrid = (v) => Math.round(v / GRID_SIZE) * GRID_SIZE;
 
+// --- Autosave tuning ---
+const AUTOSAVE_DEBOUNCE_MS = 2000;   // save this long after the last edit settles
+const AUTOSAVE_MAX_WAIT_MS = 10000;  // …but never wait longer than this while dirty
+const AUTOSAVE_RETRY_MS = 5000;      // backoff between failed autosave attempts
+const AUTOSAVE_MAX_RETRIES = 3;
+const AUTOSAVE_PREF_KEY = 'flowcal-autosave';
+
+// A stable signature of everything a save persists. Comparing it to the last
+// saved signature is how we know the flow has unsaved changes (the dirty flag).
+// Viewport (pan/scale) is intentionally excluded so panning never marks dirty.
+const computeSaveSignature = (name, nodes, edges, settings) =>
+    JSON.stringify({ name, nodes, edges, settings });
+
 export default function Editor() {
   const { user, isAdmin } = useAuth();
   const { addToast } = useToast();
+  const { confirm } = useConfirm();
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
@@ -96,6 +111,17 @@ export default function Editor() {
   const [flowIsPublic, setFlowIsPublic] = useState(false);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
+  const [saveError, setSaveError] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [autosaveEnabled, setAutosaveEnabled] = useState(() => {
+    try { return localStorage.getItem(AUTOSAVE_PREF_KEY) === '1'; } catch { return false; }
+  });
+  const [retryTick, setRetryTick] = useState(0);
+  // Signature of the last persisted state; null until a flow is loaded/saved.
+  const lastSavedSigRef = useRef(null);
+  const dirtySinceRef = useRef(null); // when the current unsaved streak began
+  const retryCountRef = useRef(0);
+  const retryTimerRef = useRef(null);
   const [spacePressed, setSpacePressed] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
   const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
@@ -110,19 +136,29 @@ export default function Editor() {
     }
   }, [flowId]);
 
+  // Persist the autosave preference (per-browser).
+  useEffect(() => {
+    try { localStorage.setItem(AUTOSAVE_PREF_KEY, autosaveEnabled ? '1' : '0'); } catch { /* ignore */ }
+  }, [autosaveEnabled]);
+
   const loadCloudFlow = async (id) => {
     setLoading(true);
     try {
       const flow = await flowService.getFlow(id);
+      const loadedNodes = flow.data?.nodes || [];
+      const loadedEdges = flow.data?.edges || [];
+      const loadedSettings = flow.data?.settings || { preventDownload: false, description: '' };
       setProjectTitle(flow.name);
       setFlowOwnerId(flow.owner_id);
       setFlowIsPublic(!!flow.is_public);
       if (flow.data?.nodes && flow.data?.edges) {
-        setGraph({ nodes: flow.data.nodes, edges: flow.data.edges });
+        setGraph({ nodes: loadedNodes, edges: loadedEdges });
       }
-      if (flow.data?.settings) {
-        setFlowSettings(flow.data.settings);
-      }
+      setFlowSettings(loadedSettings);
+      // Record the loaded state as the clean baseline for dirty detection.
+      lastSavedSigRef.current = computeSaveSignature(flow.name, loadedNodes, loadedEdges, loadedSettings);
+      setIsDirty(false);
+      setSaveError(false);
       setLastSaved(new Date(flow.updated_at));
     } catch (err) {
       console.error('Failed to load flow:', err);
@@ -139,20 +175,20 @@ export default function Editor() {
     }
   };
 
-  const handleCloudSave = async () => {
+  const handleCloudSave = async ({ auto = false } = {}) => {
     if (!user) {
       // Guest Mode: Only Local Save allowed (handled by sidebar normally, but check safety)
-      alert("Please login to save to the cloud.");
+      if (!auto) alert("Please login to save to the cloud.");
       return;
     }
+    // Autosave never creates a flow — it only persists an already-saved one.
+    if (auto && !flowId) return;
+
     setSaving(true);
+    setSaveError(false);
     try {
       let currentFlowId = flowId;
-      // If this is a new unsaved flow (started from /guest then logged in? rare edge case)
-      // ideally we create a new flow. But here we assume flowId exists if we are in this mode.
-      // Actually, what if they came from /guest -> 'New Flow' (no ID)? 
-      // We need to handle Create vs Update.
-
+      // Manual save of a brand-new unsaved flow: create it first.
       if (!currentFlowId) {
         const newFlow = await flowService.createFlow(projectTitle);
         currentFlowId = newFlow.id;
@@ -171,9 +207,24 @@ export default function Editor() {
           settings: flowSettings
         }
       });
+      // Mark this exact state as the clean baseline. If the user edited during the
+      // async save, the live signature will differ and isDirty flips back to true.
+      lastSavedSigRef.current = computeSaveSignature(projectTitle, fullGraph.nodes, fullGraph.edges, flowSettings);
+      retryCountRef.current = 0;
+      setIsDirty(false);
       setLastSaved(new Date());
     } catch (err) {
-      alert('Failed to save: ' + err.message);
+      setSaveError(true);
+      if (!auto) {
+        alert('Failed to save: ' + err.message);
+      } else if (retryCountRef.current < AUTOSAVE_MAX_RETRIES) {
+        // Backoff and retry by bumping retryTick (the autosave effect re-fires).
+        retryCountRef.current += 1;
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+        retryTimerRef.current = setTimeout(() => setRetryTick(t => t + 1), AUTOSAVE_RETRY_MS);
+      } else {
+        addToast('Autosave failed. Your changes are unsaved — try saving manually.', 'error');
+      }
     } finally {
       setSaving(false);
     }
@@ -393,6 +444,69 @@ export default function Editor() {
       addToast('Failed to create share link: ' + err.message, 'error');
     }
   }, [flowId, flowIsPublic, addToast]);
+
+  // --- Autosave & unsaved-changes tracking ---
+  // Owner of an already-saved flow (not a shared/guest view) may autosave.
+  const isOwner = !!user && (user.id === flowOwnerId || isAdmin);
+  const canAutosave = isOwner && !!flowId && !isSharedView;
+
+  // Live signature of what a save would persist. Debounced graph keeps this cheap;
+  // reconstructFullGraph makes it invariant to which nesting level is being viewed.
+  const dirtySignature = useMemo(() => {
+    const full = reconstructFullGraph(path, debouncedNodes, debouncedEdges);
+    return computeSaveSignature(projectTitle, full.nodes, full.edges, flowSettings);
+  }, [path, debouncedNodes, debouncedEdges, projectTitle, flowSettings]);
+
+  // Compare against the last saved baseline to drive the dirty flag.
+  useEffect(() => {
+    setIsDirty(!!flowId && lastSavedSigRef.current !== null && dirtySignature !== lastSavedSigRef.current);
+  }, [dirtySignature, flowId]);
+
+  // Track when the current unsaved streak began (for the max-wait flush) and
+  // give each fresh streak a full retry budget.
+  useEffect(() => {
+    if (isDirty && !dirtySinceRef.current) { dirtySinceRef.current = Date.now(); retryCountRef.current = 0; }
+    if (!isDirty) dirtySinceRef.current = null;
+  }, [isDirty]);
+
+  // Debounced autosave: fire AUTOSAVE_DEBOUNCE_MS after edits settle, but never
+  // wait longer than AUTOSAVE_MAX_WAIT_MS while continuously editing.
+  useEffect(() => {
+    if (!autosaveEnabled || !isDirty || !canAutosave || saving) return;
+    const elapsed = dirtySinceRef.current ? Date.now() - dirtySinceRef.current : 0;
+    const delay = elapsed >= AUTOSAVE_MAX_WAIT_MS ? 0 : AUTOSAVE_DEBOUNCE_MS;
+    const t = setTimeout(() => { handleCloudSave({ auto: true }); }, delay);
+    return () => clearTimeout(t);
+    // handleCloudSave intentionally omitted; the effect re-runs on every edit
+    // (dirtySignature), retry (retryTick), and when a save finishes (saving),
+    // capturing a fresh closure each time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dirtySignature, autosaveEnabled, isDirty, canAutosave, saving, retryTick]);
+
+  // Warn before leaving with unsaved changes (tab close / reload). Autosave keeps
+  // isDirty false most of the time, so this only fires when something is genuinely
+  // pending. Browsers control the dialog text.
+  useEffect(() => {
+    const handler = (e) => {
+      if (isDirty && !isSharedView) { e.preventDefault(); e.returnValue = ''; }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty, isSharedView]);
+
+  // Clean up a pending retry timer on unmount.
+  useEffect(() => () => { if (retryTimerRef.current) clearTimeout(retryTimerRef.current); }, []);
+
+  // Guarded in-app navigation: confirm before leaving the editor with unsaved work.
+  const guardedNavigate = useCallback(async (to) => {
+    if (isDirty && !isSharedView) {
+      const ok = await confirm('You have unsaved changes. Leave without saving?', {
+        title: 'Unsaved changes', type: 'danger'
+      });
+      if (!ok) return;
+    }
+    navigate(to);
+  }, [isDirty, isSharedView, confirm, navigate]);
 
   // --- Copy/Paste Handlers ---
   const handleCopy = useCallback(() => {
@@ -1444,6 +1558,12 @@ export default function Editor() {
         isSharedView={isSharedView}
         canShare={canShare}
         onShare={handleShare}
+        isDirty={isDirty}
+        saveError={saveError}
+        canAutosave={canAutosave}
+        autosaveEnabled={autosaveEnabled}
+        onToggleAutosave={() => setAutosaveEnabled(v => !v)}
+        onGuardedNavigate={guardedNavigate}
         onLoad={handleLoad}
         fileInputRef={fileInputRef}
         pathLength={path.length}
