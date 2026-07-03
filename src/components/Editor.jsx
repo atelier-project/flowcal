@@ -13,6 +13,7 @@ import { HelpModal } from './ui/HelpModal';
 import { Snowfall } from './ui/Snowfall';
 import { CustomNodeModal } from './ui/CustomNodeModal';
 import { FlowSettingsPanel } from './flow/FlowSettingsPanel';
+import { VersionHistoryPanel } from './flow/VersionHistoryPanel';
 import { generateId } from '../utils/ids';
 import { getHandlePosition, getEdgePath } from '../utils/geometry';
 import { computeAutoLayout } from '../utils/autoLayout';
@@ -257,6 +258,7 @@ export default function Editor() {
 
   // Flow Settings & Security
   const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
+  const [versionPanelOpen, setVersionPanelOpen] = useState(false);
   const [flowSettings, setFlowSettings] = useState({ preventDownload: false, description: '' });
   const [flowOwnerId, setFlowOwnerId] = useState(null);
 
@@ -444,6 +446,20 @@ export default function Editor() {
       addToast('Failed to create share link: ' + err.message, 'error');
     }
   }, [flowId, flowIsPublic, addToast]);
+
+  // Save the current editor state, then snapshot it as a named version.
+  const handleSaveVersion = useCallback(async (label) => {
+    if (!flowId) return;
+    await handleCloudSave();
+    await flowService.createVersion(flowId, label || null);
+  }, [flowId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Restore a version server-side (non-destructive), then reload it into the editor.
+  const handleRestoreVersion = useCallback(async (versionId) => {
+    if (!flowId) return;
+    await flowService.restoreVersion(flowId, versionId);
+    await loadCloudFlow(flowId);
+  }, [flowId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --- Autosave & unsaved-changes tracking ---
   // Owner of an already-saved flow (not a shared/guest view) may autosave.
@@ -1564,6 +1580,8 @@ export default function Editor() {
         autosaveEnabled={autosaveEnabled}
         onToggleAutosave={() => setAutosaveEnabled(v => !v)}
         onGuardedNavigate={guardedNavigate}
+        canVersions={canShare}
+        onOpenVersions={() => setVersionPanelOpen(true)}
         onLoad={handleLoad}
         fileInputRef={fileInputRef}
         pathLength={path.length}
@@ -1913,6 +1931,14 @@ export default function Editor() {
         onLockAll={() => setGraph({ nodes: nodes.map(n => ({ ...n, data: { ...n.data, locked: true, lockedBy: user?.id } })), edges })}
         onUnlockAll={() => setGraph({ nodes: nodes.map(n => ({ ...n, data: { ...n.data, locked: false, lockedBy: null } })), edges })}
         isOwner={user?.id === flowOwnerId}
+      />
+
+      <VersionHistoryPanel
+        isOpen={versionPanelOpen}
+        onClose={() => setVersionPanelOpen(false)}
+        flowId={flowId}
+        onSaveVersion={handleSaveVersion}
+        onRestore={handleRestoreVersion}
       />
     </div>
   );
