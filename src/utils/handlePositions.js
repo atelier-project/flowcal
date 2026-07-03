@@ -7,7 +7,11 @@
 
 export const HANDLE_POSITIONS = {
     // Nodes with dynamic key-based inputs/outputs
-    PACK: { base: 48, rowHeight: 24 },
+    // PACK base/rowHeight track the expanded key rows in Node.jsx (a text-xs
+    // "Keys to Create" label above h-6 inputs spaced by space-y-2), so the dots
+    // line up with the rows. Used by NodeHandles (render), geometry (wire), and
+    // the Editor drop hit-test alike.
+    PACK: { base: 88, rowHeight: 32 },
     UNPACK: { base: 80, rowHeight: 32 },
 
     // Nodes with indexed inputs
