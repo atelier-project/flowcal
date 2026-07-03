@@ -1621,7 +1621,7 @@ export default function Editor() {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
-        {gridSettings.enabled && <BackgroundGrid offset={pan} style={gridSettings.style} opacity={gridSettings.opacity} />}
+        {gridSettings.enabled && <BackgroundGrid offset={pan} scale={scale} style={gridSettings.style} opacity={gridSettings.opacity} />}
         {selectionBox && (
           <SelectionBox rect={selectionBox} />
         )}

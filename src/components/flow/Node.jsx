@@ -426,7 +426,7 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 borderColor: selected ? 'var(--accent-primary)' : 'var(--border-primary)',
                 color: 'var(--text-primary)'
             }}
-            className={`group/node absolute ${!data.width ? 'w-64' : ''} rounded-lg shadow-lg border-2 flex flex-col transition-[box-shadow,border-color] duration-200
+            className={`group/node absolute ${!data.width ? 'w-64' : ''} rounded-lg shadow-[0_6px_18px_-4px_rgba(0,0,0,0.22)] border-2 flex flex-col transition-[box-shadow,border-color] duration-200
         ${selected ? 'shadow-blue-500/20 z-20 ring-2 ring-blue-400' : 'z-10'}
         ${isHovered ? 'ring-4 ring-blue-300 ring-opacity-50 scale-105 shadow-xl' : ''}
         ${type === 'FINAL' ? 'border-green-500 shadow-green-100' : ''}
