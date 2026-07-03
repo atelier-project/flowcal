@@ -55,7 +55,7 @@ export default function Dashboard() {
             await flowService.deleteFlow(id);
             setFlows(flows.filter(f => f.id !== id));
             addToast('Flow deleted successfully', 'success');
-        } catch (err) {
+        } catch {
             addToast('Failed to delete flow', 'error');
         }
     };

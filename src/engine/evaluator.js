@@ -19,7 +19,7 @@ export function evaluateGraph(nodes, edges, contextInputs = {}, globals = []) {
         let val = g.value;
         if (g.type === 'number') val = Number(val);
         if (g.type === 'json' && typeof val === 'string') {
-            try { val = JSON.parse(val); } catch (e) { console.warn('Invalid JSON global', g.key); val = null; }
+            try { val = JSON.parse(val); } catch { console.warn('Invalid JSON global', g.key); val = null; }
         }
         return [g.key, val];
     }));

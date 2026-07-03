@@ -33,7 +33,6 @@ export const NODE_UI = {
     LENGTH: { icon: Hash, color: 'indigo', colorClass: 'bg-indigo-100 text-indigo-600' },
     SLICE: { icon: Scissors, color: 'indigo', colorClass: 'bg-indigo-100 text-indigo-600' },
     SORT: { icon: ListOrdered, color: 'indigo', colorClass: 'bg-indigo-100 text-indigo-600' },
-    FILTER: { icon: Filter, color: 'indigo', colorClass: 'bg-indigo-100 text-indigo-600' },
 
     // Math
     SUM: { icon: Plus, color: 'blue', colorClass: 'bg-blue-100 text-blue-600' },

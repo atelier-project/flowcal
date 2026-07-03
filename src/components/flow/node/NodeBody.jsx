@@ -25,11 +25,6 @@ export const NodeBody = ({
     removeFormField,
     // Key helpers for UNPACK/PACK
     moveKey,
-    // Group port helpers
-    moveInput,
-    moveOutput,
-    inputHandles,
-    outputHandles,
     // Result formatting
     formatResult
 }) => {

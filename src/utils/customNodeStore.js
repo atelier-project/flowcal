@@ -3,6 +3,8 @@
  * Manages saving, loading, exporting, and importing custom nodes
  */
 
+import { validateCustomNode } from './validation';
+
 const STORAGE_KEY = 'flowcal-custom-nodes';
 
 /**
@@ -71,7 +73,6 @@ export const importCustomNode = (jsonString) => {
         const parsed = JSON.parse(jsonString);
 
         // Validate and sanitize the imported custom node
-        const { validateCustomNode } = require('./validation');
         const validation = validateCustomNode(parsed);
 
         if (!validation.valid) {

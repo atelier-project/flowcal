@@ -395,30 +395,6 @@ export const NODE_LOGIC = {
         },
         data: { order: 'asc' }
     },
-    FILTER: {
-        type: 'FILTER',
-        label: 'Filter',
-        category: 'Array',
-        inputs: ['array', 'reference'],
-        computesMulti: true,
-        compute: ({ array, reference }, data) => {
-            const arr = Array.isArray(array) ? array : [];
-            const ref = reference ?? 0;
-            const op = data.operator || '>';
-            return arr.filter(item => {
-                switch (op) {
-                    case '>': return item > ref;
-                    case '<': return item < ref;
-                    case '>=': return item >= ref;
-                    case '<=': return item <= ref;
-                    case '==': return item == ref;
-                    case '!=': return item != ref;
-                    default: return false;
-                }
-            });
-        },
-        data: { operator: '>' }
-    },
     ARRAY_FLATTEN: {
         type: 'ARRAY_FLATTEN',
         label: 'Flatten Arrays',
@@ -532,7 +508,7 @@ export const NODE_LOGIC = {
         category: 'Object',
         dynamicInputs: true, // Inputs are dynamically generated based on keys
         outputs: ['object'],
-        compute: (inputs, data) => {
+        compute: (inputs) => {
             // The evaluator already builds inputs as {key1: value1, key2: value2}
             // We just return it directly
             return inputs;
