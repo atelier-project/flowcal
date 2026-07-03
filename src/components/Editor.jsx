@@ -447,19 +447,23 @@ export default function Editor() {
     }
   }, [flowId, flowIsPublic, addToast]);
 
+  // Deliberately NOT memoized: these must close over the *current* graph each
+  // render. A useCallback (even keyed on flowId) would capture handleCloudSave
+  // from the first render — before the flow loads — and snapshot the initial
+  // sample graph instead of the real one.
   // Save the current editor state, then snapshot it as a named version.
-  const handleSaveVersion = useCallback(async (label) => {
+  const handleSaveVersion = async (label) => {
     if (!flowId) return;
     await handleCloudSave();
     await flowService.createVersion(flowId, label || null);
-  }, [flowId]); // eslint-disable-line react-hooks/exhaustive-deps
+  };
 
   // Restore a version server-side (non-destructive), then reload it into the editor.
-  const handleRestoreVersion = useCallback(async (versionId) => {
+  const handleRestoreVersion = async (versionId) => {
     if (!flowId) return;
     await flowService.restoreVersion(flowId, versionId);
     await loadCloudFlow(flowId);
-  }, [flowId]); // eslint-disable-line react-hooks/exhaustive-deps
+  };
 
   // --- Autosave & unsaved-changes tracking ---
   // Owner of an already-saved flow (not a shared/guest view) may autosave.
