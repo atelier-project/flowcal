@@ -50,10 +50,13 @@ export const useNodeHandles = (type, data) => {
             } else {
                 // Expanded: the body already shows each key in its input field, so an
                 // extra port label would just overlap those rows (like FORM, keep it blank).
+                // Position dots to line up with the key rows (shared constant, so wire
+                // geometry + drop hit-test agree).
+                const pp = HANDLE_POSITIONS.PACK;
                 handles = keys.map((key, idx) => ({
                     id: key,
                     label: '',
-                    top: 48 + (idx * 24)
+                    top: pp.base + (idx * pp.rowHeight)
                 }));
             }
         } else if (type === 'REPORT') {
@@ -107,8 +110,10 @@ export const useNodeHandles = (type, data) => {
             }
             return handles.map((h) => ({ ...h, top: 20 }));
         }
-        // REPORT sets its own per-row tops (above) to line up with its rows.
+        // REPORT and expanded PACK set their own per-row tops (above) to line up
+        // with their body rows — don't overwrite them with the generic spacing.
         if (type === 'REPORT') return handles;
+        if (type === 'PACK') return handles;
         if (handles.length === 1 && handles[0].top) return handles;
         return handles.map((h, i) => ({ ...h, top: 40 + (i * 24) }));
 
