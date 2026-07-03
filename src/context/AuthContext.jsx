@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
     const [profile, setProfile] = useState(null);
     const [session, setSession] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [signupsEnabled, setSignupsEnabled] = useState(true);
 
     const fetchProfile = async (userId) => {
         if (!userId) {
@@ -23,6 +24,11 @@ export const AuthProvider = ({ children }) => {
     };
 
     useEffect(() => {
+        // Public auth config (e.g. whether signups are open) for the login page.
+        backend.getAuthConfig?.()
+            .then((cfg) => setSignupsEnabled(cfg?.signupsEnabled !== false))
+            .catch(() => setSignupsEnabled(true));
+
         // Get initial session
         backend.getSession().then((session) => {
             setSession(session);
@@ -54,7 +60,8 @@ export const AuthProvider = ({ children }) => {
         isAdmin: profile?.role === 'admin' || profile?.role === 'superuser',
         role: profile?.role || 'user',
         session,
-        loading
+        loading,
+        signupsEnabled
     };
 
     return (

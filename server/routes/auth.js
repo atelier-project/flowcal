@@ -18,8 +18,15 @@ function setSession(res, user) {
     return token;
 }
 
+// GET /api/auth/config — public auth config so the login page can adapt
+// (e.g. hide the sign-up form when registration is closed).
+authRouter.get('/config', (_req, res) => {
+    res.json({ signupsEnabled: config.signupsEnabled });
+});
+
 // POST /api/auth/signup — create a user + profile, then sign in.
 authRouter.post('/signup', asyncHandler(async (req, res) => {
+    if (!config.signupsEnabled) throw new ApiError(403, 'New registrations are disabled');
     const email = normalizeEmail(req.body?.email);
     const { password } = req.body || {};
     if (!email || !password) throw new ApiError(400, 'Email and password are required');
