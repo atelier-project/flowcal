@@ -1,8 +1,22 @@
 # FlowCal
 
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 A visual node-graph editor and calculator built with React. Create computational
 flows by wiring nodes together, with 100+ node types, custom node composition,
 real-time evaluation, and cloud storage.
+
+**FlowCal is free and open source (Apache-2.0) — and there's no lock-in.** Run it
+however you like:
+
+| | Self-host (own your data) | [Atelier](https://tryatelier.dev/) |
+|---|---|---|
+| **How** | `docker compose up` with any Postgres, or point it at Supabase | One deploy from this repo — managed database, TLS, public access |
+| **Support** | Community | **First-class** (one-click deploy, managed `flowcal-db`, official support) |
+
+Atelier is the paved road, not a requirement: the same open-source FlowCal runs
+anywhere. See [Hosting](#backends) below and [`docs/POSITIONING.md`](docs/POSITIONING.md)
+for how the open project relates to Atelier.
 
 ## Backends
 
@@ -132,6 +146,16 @@ and node catalog so an LLM can turn a calculation (e.g. `(base + tax) * qty`) in
 importable FlowCal flow. It includes the schema, the evaluation model, the full node
 reference, and verified examples.
 
+## Contributing
+
+Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). We use a
+Developer Certificate of Origin (DCO): sign off your commits with `git commit -s`.
+To report a security issue, see [`SECURITY.md`](SECURITY.md).
+
 ## License
 
-[MIT](LICENSE) © Edward Howard
+Licensed under the [Apache License 2.0](LICENSE) © Edward Howard.
+
+FlowCal is fully open source. The [Atelier](https://tryatelier.dev/) platform
+(hosting, managed database, and any future enterprise add-ons) is a separate,
+commercial product — see [`docs/POSITIONING.md`](docs/POSITIONING.md).
