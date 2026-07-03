@@ -48,6 +48,12 @@ async function getProfile(userId) {
     return data;
 }
 
+// Supabase enforces new-user signups at the project level (Auth settings). This
+// only controls the UI; set VITE_SIGNUPS_ENABLED=false to also hide the form.
+async function getAuthConfig() {
+    return { signupsEnabled: import.meta.env.VITE_SIGNUPS_ENABLED !== 'false' };
+}
+
 // ── Flows ────────────────────────────────────────────────────────────────────
 
 async function listFlows() {
@@ -289,6 +295,7 @@ export const supabaseProvider = {
     signIn,
     signOut,
     getProfile,
+    getAuthConfig,
     // Flows
     listFlows,
     createFlow,

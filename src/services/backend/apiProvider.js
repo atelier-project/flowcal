@@ -109,6 +109,16 @@ async function getProfile(userId) {
     }
 }
 
+// Public auth config (e.g. whether new registrations are open). Falls back to
+// "enabled" if the endpoint is unreachable, so the UI never wrongly hides signup.
+async function getAuthConfig() {
+    try {
+        return await api('/auth/config');
+    } catch {
+        return { signupsEnabled: true };
+    }
+}
+
 // ── Flows ────────────────────────────────────────────────────────────────────
 
 const listFlows = () => api('/flows');
@@ -185,6 +195,7 @@ export const apiProvider = {
     signIn,
     signOut,
     getProfile,
+    getAuthConfig,
     // Flows
     listFlows,
     createFlow,

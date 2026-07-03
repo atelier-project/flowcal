@@ -17,6 +17,9 @@ export const config = {
     cookieSecure: process.env.COOKIE_SECURE === 'true',
     // Path to the built SPA to serve statically (Phase 4 / prod). Empty = API only.
     staticDir: process.env.STATIC_DIR || '',
+    // Allow new user registration. Set SIGNUPS_ENABLED=false to close signups —
+    // the /signup route returns 403 and the login page hides the sign-up form.
+    signupsEnabled: process.env.SIGNUPS_ENABLED !== 'false',
     cookieName: 'fc_session',
 };
 

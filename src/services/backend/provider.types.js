@@ -29,6 +29,8 @@
  * @property {() => Promise<any>} signOut
  * @property {(userId: string) => Promise<Object|null>} getProfile
  *           Full profile row for a user, or null if missing/unreadable.
+ * @property {() => Promise<{ signupsEnabled: boolean }>} getAuthConfig
+ *           Public auth config for the login page (e.g. whether signups are open).
  *
  * // ── Flows ────────────────────────────────────────────────────────────
  * @property {() => Promise<Array>} listFlows

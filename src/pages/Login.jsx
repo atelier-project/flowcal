@@ -4,10 +4,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 
 export default function Login() {
-    const { signIn, signUp } = useAuth();
+    const { signIn, signUp, signupsEnabled } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    // Force login mode when registration is closed (never show the sign-up form).
     const [isLogin, setIsLogin] = useState(true);
+    const effectiveIsLogin = isLogin || !signupsEnabled;
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [formData, setFormData] = useState({ email: '', password: '' });
@@ -19,12 +21,12 @@ export default function Login() {
         setLoading(true);
         setError(null);
         try {
-            const { error } = isLogin
+            const { error } = effectiveIsLogin
                 ? await signIn(formData)
                 : await signUp(formData);
 
             if (error) throw error;
-            if (isLogin) navigate(from, { replace: true });
+            if (effectiveIsLogin) navigate(from, { replace: true });
             else alert('Check your email for confirmation link!');
         } catch (err) {
             setError(err.message);
@@ -39,7 +41,7 @@ export default function Login() {
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-2">FlowCal</h1>
                     <p className="text-slate-500 dark:text-slate-400">
-                        {isLogin ? 'Welcome back! Login to continue.' : 'Create an account to start building.'}
+                        {effectiveIsLogin ? 'Welcome back! Login to continue.' : 'Create an account to start building.'}
                     </p>
                 </div>
 
@@ -78,18 +80,24 @@ export default function Login() {
                         className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
                         {loading && <Loader2 className="animate-spin" size={18} />}
-                        {isLogin ? 'Sign In' : 'Sign Up'}
+                        {effectiveIsLogin ? 'Sign In' : 'Sign Up'}
                     </button>
                 </form>
 
                 <div className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                    {isLogin ? "Don't have an account? " : "Already have an account? "}
-                    <button
-                        onClick={() => setIsLogin(!isLogin)}
-                        className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                    >
-                        {isLogin ? 'Sign up' : 'Log in'}
-                    </button>
+                    {signupsEnabled ? (
+                        <>
+                            {isLogin ? "Don't have an account? " : "Already have an account? "}
+                            <button
+                                onClick={() => setIsLogin(!isLogin)}
+                                className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                            >
+                                {isLogin ? 'Sign up' : 'Log in'}
+                            </button>
+                        </>
+                    ) : (
+                        <span>New registrations are currently closed.</span>
+                    )}
 
                     <div className="my-4 border-t border-slate-200 dark:border-slate-700"></div>
 
