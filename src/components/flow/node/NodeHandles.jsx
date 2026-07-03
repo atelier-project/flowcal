@@ -45,11 +45,14 @@ export const useNodeHandles = (type, data) => {
         } else if (type === 'PACK') {
             const keys = data.keys || [];
             if (data.collapsed) {
+                // Collapsed: the body is hidden, so the port label identifies each dot.
                 handles = keys.map((key) => ({ id: key, label: key, top: 20 }));
             } else {
+                // Expanded: the body already shows each key in its input field, so an
+                // extra port label would just overlap those rows (like FORM, keep it blank).
                 handles = keys.map((key, idx) => ({
                     id: key,
-                    label: key,
+                    label: '',
                     top: 48 + (idx * 24)
                 }));
             }
