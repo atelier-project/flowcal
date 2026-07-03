@@ -38,6 +38,15 @@
  * @property {(id: string) => Promise<boolean>} deleteFlow
  * @property {(id: string) => Promise<Object>} duplicateFlow
  *
+ * // ── Flow versions ────────────────────────────────────────────────────
+ * @property {(flowId: string) => Promise<Array>} listVersions
+ *           History metadata (id, label, origin, created_at, author), newest first.
+ * @property {(flowId: string, label?: string|null) => Promise<Object>} createVersion
+ *           Snapshot the flow's current data as a manual version.
+ * @property {(flowId: string, versionId: string) => Promise<Object>} restoreVersion
+ *           Set the flow's data to the snapshot (non-destructive); returns the updated flow.
+ * @property {(flowId: string, versionId: string) => Promise<boolean>} deleteVersion
+ *
  * // ── Profile settings (current user) ──────────────────────────────────
  * @property {(userId: string) => Promise<Object|null>} getProfileSettings
  *           `{ full_name, avatar_url, support_access_granted }` for the editable form.

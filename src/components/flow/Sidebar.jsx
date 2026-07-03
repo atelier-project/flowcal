@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Save, FolderOpen, MousePointer2, Type, HelpCircle, Package, Share, Share2, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings, Eye, Cloud, CloudOff, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Save, FolderOpen, MousePointer2, Type, HelpCircle, Package, Share, Share2, Trash2, LogOut, Download, Upload, FileJson, Search, ShieldAlert, User, Settings, Eye, Cloud, CloudOff, RefreshCw, AlertTriangle, History } from 'lucide-react';
 import { NODE_LOGIC } from '../../engine/nodeDefinitions';
 import { getDescription } from '../../engine/nodeDescriptions';
 import { getUI } from './nodeUIMap';
 import { useAuth } from '../../context/AuthContext';
 
-export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSharedView, canShare, onShare, isDirty, saveError, canAutosave, autosaveEnabled, onToggleAutosave, onGuardedNavigate, isSaving, lastSaved, onOpenSettings, isRestricted, currentIterator }) => {
+export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, pathLength, theme, onHelp, projectTitle, onTitleChange, customNodes = [], onAddCustomNode, onImportCustomNode, onDeleteCustomNode, onExportCustomNode, isGuest, isSharedView, canShare, onShare, isDirty, saveError, canAutosave, autosaveEnabled, onToggleAutosave, onGuardedNavigate, canVersions, onOpenVersions, isSaving, lastSaved, onOpenSettings, isRestricted, currentIterator }) => {
     const { isAdmin } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const scrollRef = useRef(null);
@@ -213,6 +213,17 @@ export const Sidebar = ({ onAddNode, onSave, onLocalSave, onLoad, fileInputRef, 
                                 className="p-1.5 rounded transition-colors shadow-sm bg-purple-600 hover:bg-purple-700 text-white"
                             >
                                 <Share2 size={14} />
+                            </button>
+                        )}
+
+                        {!isGuest && canVersions && (
+                            <button
+                                onClick={onOpenVersions}
+                                title="Version history"
+                                style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}
+                                className="p-1.5 rounded hover:opacity-80 transition-opacity"
+                            >
+                                <History size={14} />
                             </button>
                         )}
 

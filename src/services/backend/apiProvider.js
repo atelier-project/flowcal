@@ -128,6 +128,21 @@ async function deleteFlow(id) {
 
 const duplicateFlow = (id) => api(`/flows/${id}/duplicate`, { method: 'POST' });
 
+// ── Flow versions ──────────────────────────────────────────────────────────
+
+const listVersions = (flowId) => api(`/flows/${flowId}/versions`);
+
+const createVersion = (flowId, label = null) =>
+    api(`/flows/${flowId}/versions`, { method: 'POST', body: { label } });
+
+const restoreVersion = (flowId, versionId) =>
+    api(`/flows/${flowId}/versions/${versionId}/restore`, { method: 'POST' });
+
+async function deleteVersion(flowId, versionId) {
+    await api(`/flows/${flowId}/versions/${versionId}`, { method: 'DELETE' });
+    return true;
+}
+
 // ── Profile settings (current user) ──────────────────────────────────────────
 
 async function getProfileSettings(userId) {
@@ -177,6 +192,10 @@ export const apiProvider = {
     updateFlow,
     deleteFlow,
     duplicateFlow,
+    listVersions,
+    createVersion,
+    restoreVersion,
+    deleteVersion,
     // Profile settings
     getProfileSettings,
     updateProfile,

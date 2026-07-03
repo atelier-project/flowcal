@@ -6,8 +6,22 @@ import { CAN_VIEW, CAN_UPDATE, CAN_DELETE } from './flowAccess.js';
 
 export const flowsRouter = Router();
 
-// Reject a non-UUID :id with a clean 404 before it reaches Postgres.
+// Reject a non-UUID :id / :versionId with a clean 404 before it reaches Postgres.
 flowsRouter.param('id', uuidParamGuard);
+flowsRouter.param('versionId', uuidParamGuard);
+
+// Keep only the newest N versions per flow.
+const VERSION_RETENTION = 50;
+const pruneVersions = (flowId) =>
+    query(
+        `delete from flow_versions
+         where flow_id = $1
+           and id not in (
+             select id from flow_versions where flow_id = $1
+             order by created_at desc limit ${VERSION_RETENTION}
+           )`,
+        [flowId]
+    );
 
 // Columns a client is allowed to set on a flow. Anything else is ignored.
 const UPDATABLE = new Set(['name', 'data', 'is_public', 'is_template', 'team_id']);
@@ -107,4 +121,87 @@ flowsRouter.post('/:id/duplicate', requireAuth, asyncHandler(async (req, res) =>
         [req.user.id, `${name} (Copy)`, data]
     );
     res.status(201).json(rows[0]);
+}));
+
+// ── Flow versions ────────────────────────────────────────────────────────────
+// All version operations require edit access to the parent flow (CAN_UPDATE:
+// owner or team owner/admin). This deliberately excludes public/anon/shared
+// viewers — they see only the current flow, never its history.
+
+// GET /api/flows/:id/versions — history metadata (no data payload), newest first.
+flowsRouter.get('/:id/versions', requireAuth, asyncHandler(async (req, res) => {
+    const access = await query(
+        `select 1 from flows f where f.id = $2 and ${CAN_UPDATE}`,
+        [req.user.id, req.params.id]
+    );
+    if (!access.rows[0]) throw new ApiError(404, 'Flow not found or not permitted');
+
+    const { rows } = await query(
+        `select v.id, v.label, v.origin, v.created_at,
+                json_build_object('full_name', p.full_name, 'email', p.email) as author
+         from flow_versions v
+         left join profiles p on p.id = v.author_id
+         where v.flow_id = $1
+         order by v.created_at desc`,
+        [req.params.id]
+    );
+    res.json(rows);
+}));
+
+// POST /api/flows/:id/versions — snapshot the flow's current data (label optional).
+flowsRouter.post('/:id/versions', requireAuth, asyncHandler(async (req, res) => {
+    const label = (req.body?.label ?? '').toString().trim().slice(0, 200) || null;
+    const flow = await query(
+        `select f.data from flows f where f.id = $2 and ${CAN_UPDATE}`,
+        [req.user.id, req.params.id]
+    );
+    if (!flow.rows[0]) throw new ApiError(404, 'Flow not found or not permitted');
+
+    const inserted = await query(
+        `insert into flow_versions (flow_id, author_id, data, label, origin)
+         values ($1, $2, $3::jsonb, $4, 'manual')
+         returning id, label, origin, created_at`,
+        [req.params.id, req.user.id, JSON.stringify(flow.rows[0].data), label]
+    );
+    await pruneVersions(req.params.id);
+    res.status(201).json(inserted.rows[0]);
+}));
+
+// POST /api/flows/:id/versions/:versionId/restore — set the flow's data to the
+// snapshot, after saving the current state as a "Before restore" version so the
+// restore is non-destructive.
+flowsRouter.post('/:id/versions/:versionId/restore', requireAuth, asyncHandler(async (req, res) => {
+    const target = await query(
+        `select v.data as version_data, f.data as current_data
+         from flow_versions v
+         join flows f on f.id = v.flow_id
+         where v.id = $2 and v.flow_id = $3 and ${CAN_UPDATE}`,
+        [req.user.id, req.params.versionId, req.params.id]
+    );
+    if (!target.rows[0]) throw new ApiError(404, 'Version not found or not permitted');
+
+    await query(
+        `insert into flow_versions (flow_id, author_id, data, label, origin)
+         values ($1, $2, $3::jsonb, $4, 'auto')`,
+        [req.params.id, req.user.id, JSON.stringify(target.rows[0].current_data), 'Before restore']
+    );
+    const updated = await query(
+        `update flows set data = $1::jsonb where id = $2 returning *`,
+        [JSON.stringify(target.rows[0].version_data), req.params.id]
+    );
+    await pruneVersions(req.params.id);
+    res.json(updated.rows[0]);
+}));
+
+// DELETE /api/flows/:id/versions/:versionId — remove a single version.
+flowsRouter.delete('/:id/versions/:versionId', requireAuth, asyncHandler(async (req, res) => {
+    const { rows } = await query(
+        `delete from flow_versions v
+         using flows f
+         where v.id = $2 and v.flow_id = $3 and f.id = v.flow_id and ${CAN_UPDATE}
+         returning v.id`,
+        [req.user.id, req.params.versionId, req.params.id]
+    );
+    if (!rows[0]) throw new ApiError(404, 'Version not found or not permitted');
+    res.json({ success: true });
 }));

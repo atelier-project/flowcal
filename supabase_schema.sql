@@ -68,6 +68,19 @@ create trigger handle_updated_at_flows
   before update on public.flows
   for each row execute procedure extensions.moddatetime (updated_at);
 
+-- FLOW VERSIONS (point-in-time snapshots for browse + non-destructive restore)
+create table public.flow_versions (
+  id uuid default gen_random_uuid() primary key,
+  flow_id uuid references public.flows(id) on delete cascade not null,
+  author_id uuid references public.profiles(id) on delete set null,
+  data jsonb not null,
+  label text,
+  origin text not null default 'manual',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+create index flow_versions_flow_id_created_idx on public.flow_versions (flow_id, created_at desc);
+alter table public.flow_versions enable row level security;
+
 
 -- HELPER FUNCTIONS (SECURITY DEFINER to bypass RLS) --
 
@@ -191,9 +204,48 @@ create policy "Flows: Update"
 create policy "Flows: Delete"
   on public.flows for delete
   to authenticated
-  using ( 
-    owner_id = auth.uid() 
+  using (
+    owner_id = auth.uid()
     or (team_id is not null and public.get_team_role(team_id) = 'owner')
+  );
+
+-- 5. FLOW VERSIONS
+-- Manageable by whoever can edit the parent flow (owner or team owner/admin).
+-- No anon/public grant — shared viewers see only the current flow, not history.
+create policy "Flow Versions: View"
+  on public.flow_versions for select
+  to authenticated
+  using (
+    exists (
+      select 1 from public.flows f
+      where f.id = flow_id
+        and ( f.owner_id = auth.uid()
+              or (f.team_id is not null and public.get_team_role(f.team_id) in ('owner', 'admin')) )
+    )
+  );
+
+create policy "Flow Versions: Insert"
+  on public.flow_versions for insert
+  to authenticated
+  with check (
+    exists (
+      select 1 from public.flows f
+      where f.id = flow_id
+        and ( f.owner_id = auth.uid()
+              or (f.team_id is not null and public.get_team_role(f.team_id) in ('owner', 'admin')) )
+    )
+  );
+
+create policy "Flow Versions: Delete"
+  on public.flow_versions for delete
+  to authenticated
+  using (
+    exists (
+      select 1 from public.flows f
+      where f.id = flow_id
+        and ( f.owner_id = auth.uid()
+              or (f.team_id is not null and public.get_team_role(f.team_id) in ('owner', 'admin')) )
+    )
   );
 
 
