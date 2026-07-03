@@ -2,17 +2,18 @@ name: gitleaks
 
 # Secret scanning: fail CI if a credential is ever committed. Belt-and-suspenders
 # for a public repo — .env files are gitignored, but this catches mistakes.
+#
+# Runs the gitleaks CLI directly (MIT, free) rather than the gitleaks-action
+# wrapper, which requires a paid license on GitHub *organization* repos. This way
+# the scan keeps working after the repo moves into an org — no license needed.
 
 on:
   push:
     branches: [main]
   pull_request:
 
-# The action lists PR commits to scan them, which needs read access to contents
-# and pull requests (the default GITHUB_TOKEN is restricted otherwise → 403).
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
   scan:
@@ -22,6 +23,8 @@ jobs:
         with:
           fetch-depth: 0 # full history so the whole repo is scanned
       - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=8.18.4
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          ./gitleaks detect --source . --redact --verbose --exit-code 1
