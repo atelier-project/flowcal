@@ -107,7 +107,7 @@ export default function Editor() {
   const containerRef = useRef(null);
 
   const [projectTitle, setProjectTitle] = useState('Untitled Flow');
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [flowIsPublic, setFlowIsPublic] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -500,7 +500,6 @@ export default function Editor() {
     // handleCloudSave intentionally omitted; the effect re-runs on every edit
     // (dirtySignature), retry (retryTick), and when a save finishes (saving),
     // capturing a fresh closure each time.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dirtySignature, autosaveEnabled, isDirty, canAutosave, saving, retryTick]);
 
   // Warn before leaving with unsaved changes (tab close / reload). Autosave keeps
@@ -821,8 +820,6 @@ export default function Editor() {
     // Calculate bounding box for positioning
     const minX = Math.min(...selectedNodesList.map(n => n.position.x));
     const minY = Math.min(...selectedNodesList.map(n => n.position.y));
-    const maxX = Math.max(...selectedNodesList.map(n => n.position.x + 256));
-    const maxY = Math.max(...selectedNodesList.map(n => n.position.y + 100));
 
     // Find external connections (edges from/to non-selected nodes)
     const selectedSet = new Set(selectedNodesList.map(n => n.id));
@@ -1058,15 +1055,11 @@ export default function Editor() {
   const jumpToPath = (index) => {
     const unwind = (targetIdx) => {
       // When leaving a group, we need to save the current state BACK into the parent node
-      const currentSubGraph = { nodes, edges };
-
       // We need to traverse back up the stack
       // This is tricky because `path` has the *snapshot* from when we entered.
       // But we modified the current level.
 
       // Reconstruct the stack from top to target
-      let currentLevelData = currentSubGraph;
-
       // We are currently at path.length level (not in array).
       // path[path.length-1] is the immediate parent.
 

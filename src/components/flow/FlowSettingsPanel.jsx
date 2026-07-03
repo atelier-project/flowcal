@@ -256,7 +256,7 @@ export const FlowSettingsPanel = ({ isOpen, onClose, flowData, onUpdateSettings,
                                                 try {
                                                     if (typeof gv.value === 'string') JSON.parse(gv.value);
                                                     return null;
-                                                } catch (e) {
+                                                } catch {
                                                     return <div className="text-[10px] text-red-500 mt-1">Invalid JSON</div>;
                                                 }
                                             })()}

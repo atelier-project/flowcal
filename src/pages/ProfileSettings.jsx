@@ -7,7 +7,7 @@ import { User, Shield, AlertTriangle, Save, Loader2, ArrowLeft, Trash2, LogOut }
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function ProfileSettings() {
-    const { user, profile, signOut } = useAuth();
+    const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(true);
@@ -20,7 +20,6 @@ export default function ProfileSettings() {
     const [supportAccess, setSupportAccess] = useState(false);
 
     // Deletion State
-    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
 
     useEffect(() => {
@@ -64,7 +63,7 @@ export default function ProfileSettings() {
         setSupportAccess(newValue); // Optimistic update
         try {
             await backend.setSupportAccess(user.id, newValue);
-        } catch (err) {
+        } catch {
             setSupportAccess(!newValue); // Revert
             addToast('Failed to toggle support access', 'error');
         }

@@ -35,7 +35,7 @@ export default function AdminDashboard() {
         try {
             await backend.setUserBanned(userId, !currentStatus);
             setUsers(users.map(u => u.id === userId ? { ...u, is_banned: !currentStatus } : u));
-        } catch (err) {
+        } catch {
             alert('Failed to update user status');
         }
     };

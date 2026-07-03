@@ -15,8 +15,6 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm run lint
       - run: npm run test:run
       - run: npm run build
-      # `npm run lint` is intentionally omitted until the existing lint debt is
-      # cleared (see issue: "Fix real lint errors and get eslint to zero"), so CI
-      # stays a meaningful signal. Add it here once lint is green.

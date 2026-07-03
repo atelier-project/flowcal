@@ -37,7 +37,6 @@ export const ThemeEditor = ({ isOpen, currentThemeId, onClose, onSaved }) => {
         const next = {};
         THEME_FIELDS.forEach(f => { next[f.key] = seed?.colors?.[f.key] || '#888888'; });
         setColors(next);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, currentThemeId]);
 
     // Live-apply on every edit.

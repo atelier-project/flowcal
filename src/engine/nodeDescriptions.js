@@ -33,7 +33,6 @@ export const NODE_DESCRIPTIONS = {
     LENGTH: 'Returns the number of items in an array.',
     SLICE: 'Extracts a portion of an array from start to end index.',
     SORT: 'Sorts an array in ascending or descending order.',
-    FILTER: 'Filters array items based on a comparison.',
     ARRAY_FLATTEN: 'Flattens nested arrays into a single array.',
 
     // Object
