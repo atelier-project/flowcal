@@ -41,6 +41,24 @@ composes with this open core through the existing backend provider seam — neve
 removing capabilities from the open project. Nothing here is closed today; the seam
 just keeps that option open without compromising the open edition.
 
+## Do we need to split the repo?
+
+**No — this stays a single open repo.**
+
+- **Atelier is not part of this repo.** It's a separate product (a hosting platform)
+  that FlowCal deploys *onto*; there's nothing Atelier-proprietary here to carve out.
+- **No FlowCal features are closed today**, so there's nothing to split out. Keeping
+  the open edition whole is what makes it a good introduction to Atelier — a
+  hollowed-out OSS build would work against that.
+- **You do not need to pre-split to keep the option open.** The backend provider seam
+  (`src/services/backend/`) is already the extension point. If a closed enterprise
+  tier is ever built, it goes in a **separate private repo/package** that plugs into
+  that seam — *not* a monorepo restructure of this repository, and never merged into
+  the Apache-2.0 tree (anything committed here is Apache-2.0 forever).
+
+In short: **one open repo now; a private companion package later, only if/when there's
+demand — via the seam, with no rework of this repo.**
+
 ## Trademarks
 
 The Apache-2.0 license covers the code, not the names. "FlowCal" and "Atelier"
