@@ -4,6 +4,7 @@ import { THEMES, applyTheme, getStoredTheme, getCustomThemes } from '../themes';
 import { ThemeEditor } from './ui/ThemeEditor';
 
 import { Node } from './flow/Node';
+import { NodeErrorBoundary } from './flow/node/NodeErrorBoundary';
 import { ConnectionLine } from './flow/ConnectionLine';
 import { BackgroundGrid } from './flow/BackgroundGrid';
 import { SelectionBox } from './flow/SelectionBox';
@@ -1808,26 +1809,34 @@ export default function Editor() {
             ))}
           </svg>
           {nodes.map(node => (
-            <Node
+            <NodeErrorBoundary
               key={node.id}
-              {...node}
-              inputs={nodeInputs[node.id] || []}
-              inputSources={nodeInputSources[node.id] || {}}
-              result={results[node.id]}
-              selected={selectedIds.has(node.id)}
-              isHovered={hoverGroup === node.id}
-              onDragStart={handleNodeDragStart}
+              id={node.id}
+              type={node.type}
+              position={node.position}
+              data={node.data}
               onDelete={handleNodeDelete}
-              onDuplicate={duplicateNode}
-              onUpdateData={handleNodeUpdate}
-              onStartConnect={handleConnectionStart}
-              onEnterGroup={enterGroup}
-              readOnly={node.data.readOnly || !isActionAllowed()}
-              onOpenEditor={handleOpenEditor}
-              onSaveAsCustom={handleSaveAsCustomNode}
-              typeWarnings={typeWarnings}
-              availableGlobals={flowSettings.globals || []}
-            />
+            >
+              <Node
+                {...node}
+                inputs={nodeInputs[node.id] || []}
+                inputSources={nodeInputSources[node.id] || {}}
+                result={results[node.id]}
+                selected={selectedIds.has(node.id)}
+                isHovered={hoverGroup === node.id}
+                onDragStart={handleNodeDragStart}
+                onDelete={handleNodeDelete}
+                onDuplicate={duplicateNode}
+                onUpdateData={handleNodeUpdate}
+                onStartConnect={handleConnectionStart}
+                onEnterGroup={enterGroup}
+                readOnly={node.data.readOnly || !isActionAllowed()}
+                onOpenEditor={handleOpenEditor}
+                onSaveAsCustom={handleSaveAsCustomNode}
+                typeWarnings={typeWarnings}
+                availableGlobals={flowSettings.globals || []}
+              />
+            </NodeErrorBoundary>
           ))}
           {selectionBox && <SelectionBox rect={selectionBox} />}
         </div>
