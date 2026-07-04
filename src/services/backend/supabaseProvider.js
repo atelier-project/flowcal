@@ -57,9 +57,26 @@ async function getAuthConfig() {
 // ── Flows ────────────────────────────────────────────────────────────────────
 
 async function listFlows() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    // "Shared with Me" should be owned + team flows only — not every public flow
+    // (those stay reachable by their /guest/:id link). RLS still allows viewing
+    // public flows for a direct fetch; here we additionally scope the LISTING to
+    // ours + our teams' (see #43).
+    const { data: memberships } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', user.id);
+    const teamIds = (memberships || []).map((m) => m.team_id);
+
+    const orFilters = [`owner_id.eq.${user.id}`];
+    if (teamIds.length) orFilters.push(`team_id.in.(${teamIds.join(',')})`);
+
     const { data, error } = await supabase
         .from('flows')
         .select('id, name, updated_at, is_public, is_template, owner_id, profiles:owner_id(full_name, email)')
+        .or(orFilters.join(','))
         .order('updated_at', { ascending: false });
 
     if (error) throw error;

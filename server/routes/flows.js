@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { asyncHandler, ApiError } from '../middleware/errors.js';
 import { requireAuth, optionalAuth, isAdmin, uuidParamGuard } from '../middleware/auth.js';
-import { CAN_VIEW, CAN_UPDATE, CAN_DELETE } from './flowAccess.js';
+import { CAN_VIEW, CAN_LIST, CAN_UPDATE, CAN_DELETE } from './flowAccess.js';
 
 export const flowsRouter = Router();
 
@@ -26,14 +26,15 @@ const pruneVersions = (flowId) =>
 // Columns a client is allowed to set on a flow. Anything else is ignored.
 const UPDATABLE = new Set(['name', 'data', 'is_public', 'is_template', 'team_id']);
 
-// GET /api/flows — every flow visible to the current user.
+// GET /api/flows — flows the user owns or is a team member of (NOT arbitrary
+// public flows; those are reachable by their /guest/:id link only).
 flowsRouter.get('/', requireAuth, asyncHandler(async (req, res) => {
     const { rows } = await query(
         `select f.id, f.name, f.updated_at, f.is_public, f.is_template, f.owner_id,
                 json_build_object('full_name', p.full_name, 'email', p.email) as profiles
          from flows f
          join profiles p on p.id = f.owner_id
-         where ${CAN_VIEW}
+         where ${CAN_LIST}
          order by f.updated_at desc`,
         [req.user.id, isAdmin(req.user)]
     );

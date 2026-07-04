@@ -18,11 +18,20 @@ const isTeamRole = (roles) => `
           and tm.role in (${roles})
     )`;
 
-// SELECT: owner, team member, public, or admin-with-support-access.
+// SELECT (single flow): owner, team member, public, or admin-with-support-access.
 export const CAN_VIEW = `(
     f.owner_id = $1
     or (${isTeamMember})
     or f.is_public = true
+    or ($2::boolean and p.support_access_granted = true)
+)`;
+
+// LIST (dashboard): like CAN_VIEW but WITHOUT the public grant — a publicly
+// shared flow is openable by its /guest/:id link (CAN_VIEW), but must not show
+// up in every unrelated user's "Shared with Me" list (see #43).
+export const CAN_LIST = `(
+    f.owner_id = $1
+    or (${isTeamMember})
     or ($2::boolean and p.support_access_granted = true)
 )`;
 
