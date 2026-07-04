@@ -138,6 +138,13 @@ async function deleteFlow(id) {
 
 const duplicateFlow = (id) => api(`/flows/${id}/duplicate`, { method: 'POST' });
 
+// Template flows (published by an admin) that any user can browse + duplicate.
+const listTemplates = () => api('/flows/templates');
+
+// Admin-only: publish/unpublish a flow as a shared template.
+const setFlowTemplate = (id, isTemplate) =>
+    api(`/admin/flows/${id}/template`, { method: 'PATCH', body: { isTemplate } });
+
 // ── Flow versions ──────────────────────────────────────────────────────────
 
 const listVersions = (flowId) => api(`/flows/${flowId}/versions`);
@@ -203,6 +210,7 @@ export const apiProvider = {
     updateFlow,
     deleteFlow,
     duplicateFlow,
+    listTemplates,
     listVersions,
     createVersion,
     restoreVersion,
@@ -216,4 +224,5 @@ export const apiProvider = {
     listAllUsers,
     listAllFlows,
     setUserBanned,
+    setFlowTemplate,
 };

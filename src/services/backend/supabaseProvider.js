@@ -59,7 +59,7 @@ async function getAuthConfig() {
 async function listFlows() {
     const { data, error } = await supabase
         .from('flows')
-        .select('id, name, updated_at, is_public, owner_id, profiles:owner_id(full_name, email)')
+        .select('id, name, updated_at, is_public, is_template, owner_id, profiles:owner_id(full_name, email)')
         .order('updated_at', { ascending: false });
 
     if (error) throw error;
@@ -287,6 +287,32 @@ async function setUserBanned(userId, banned) {
     if (error) throw error;
 }
 
+// Template flows an admin has published — public, so any user can browse them.
+async function listTemplates() {
+    const { data, error } = await supabase
+        .from('flows')
+        .select('id, name, updated_at, owner_id, profiles:owner_id(full_name, email)')
+        .eq('is_template', true)
+        .order('updated_at', { ascending: false });
+    if (error) throw error;
+    return data;
+}
+
+// Admin-only: publish/unpublish a flow as a shared template. Marking also makes
+// it public so it's viewable + duplicatable by everyone. Requires the "Flows:
+// Update" RLS policy to grant is_app_admin() (see supabase_schema.sql).
+async function setFlowTemplate(id, isTemplate) {
+    const updates = isTemplate ? { is_template: true, is_public: true } : { is_template: false };
+    const { data, error } = await supabase
+        .from('flows')
+        .update(updates)
+        .eq('id', id)
+        .select('id, is_template, is_public')
+        .single();
+    if (error) throw error;
+    return data;
+}
+
 export const supabaseProvider = {
     // Auth
     getSession,
@@ -303,6 +329,7 @@ export const supabaseProvider = {
     updateFlow,
     deleteFlow,
     duplicateFlow,
+    listTemplates,
     listVersions,
     createVersion,
     restoreVersion,
@@ -316,4 +343,5 @@ export const supabaseProvider = {
     listAllUsers,
     listAllFlows,
     setUserBanned,
+    setFlowTemplate,
 };

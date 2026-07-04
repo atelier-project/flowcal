@@ -25,6 +25,23 @@ adminRouter.get('/flows', asyncHandler(async (_req, res) => {
     res.json(rows);
 }));
 
+// PATCH /api/admin/flows/:id/template — publish/unpublish a flow as a shared
+// template. Marking also makes it public so any user can view and duplicate it.
+adminRouter.patch('/flows/:id/template', asyncHandler(async (req, res) => {
+    const { isTemplate } = req.body || {};
+    if (typeof isTemplate !== 'boolean') throw new ApiError(400, '`isTemplate` must be a boolean');
+    const { rows } = await query(
+        `update flows
+            set is_template = $2,
+                is_public = case when $2 then true else is_public end
+          where id = $1
+          returning id, is_template, is_public`,
+        [req.params.id, isTemplate]
+    );
+    if (!rows[0]) throw new ApiError(404, 'Flow not found');
+    res.json(rows[0]);
+}));
+
 // PATCH /api/admin/users/:id/ban — set a user's banned status.
 adminRouter.patch('/users/:id/ban', asyncHandler(async (req, res) => {
     const { banned } = req.body || {};

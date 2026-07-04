@@ -39,6 +39,10 @@
  * @property {(id: string, updates: Object) => Promise<Object>} updateFlow
  * @property {(id: string) => Promise<boolean>} deleteFlow
  * @property {(id: string) => Promise<Object>} duplicateFlow
+ * @property {() => Promise<Array>} listTemplates
+ *           Flows an admin has published as templates (public; browsable by all).
+ * @property {(id: string, isTemplate: boolean) => Promise<Object>} setFlowTemplate
+ *           Admin-only: publish/unpublish a flow as a shared template.
  *
  * // ── Flow versions ────────────────────────────────────────────────────
  * @property {(flowId: string) => Promise<Array>} listVersions
