@@ -221,6 +221,19 @@ explaining.
 - A **Final Result** node is a display sink: it shows a big headline value with
   an optional caption, decimal precision, and unit suffix.
 
+### Command palette
+
+With 100+ node types, the fastest way to add one is the **command palette** —
+no scrolling the sidebar. Press **`Ctrl/Cmd + K`** anywhere in the editor:
+
+- **Type to search.** It matches a node's **name**, type, or category, so `sum`,
+  `gauge`, or `array` each narrow the list instantly.
+- **↑ / ↓** to move the highlight, **Enter** to insert, **Esc** to close.
+- The node drops **at your cursor** — right where you were working — rather than
+  in the middle of the canvas.
+
+It's fully keyboard-driven, so you can stay on the keys while you build.
+
 ## Wiring nodes together
 
 - **Connect** — drag from an **output** port (right side of a node) to an
