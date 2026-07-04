@@ -1464,54 +1464,6 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
-                {/* Render Labels for Group/Node Ports */}
-                {inputHandles.map((h, i) => h.label && !(type === 'GROUP' && data.showResults) && (
-                    <div key={h.id || i} className="absolute left-3 flex items-center gap-1 group/handle cursor-help"
-                        style={{ top: typeof h.top === 'number' ? h.top : h.top, marginTop: 0, transform: 'translateY(-50%)' }}
-                        title={h.description || undefined}>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{h.label}</span>
-                        {h.description && <span className="text-[8px] text-pink-400 dark:text-pink-500">ⓘ</span>}
-                        {/* Reorder Inputs */}
-                        {inputHandles.length > 1 && (
-                            <div className="flex flex-col opacity-0 group-hover/handle:opacity-100 transition-opacity bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded">
-                                {i > 0 && (
-                                    <button onClick={(e) => { e.stopPropagation(); moveInput(i, 'up'); }} className="p-[1px] hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500">
-                                        <ArrowUp size={8} />
-                                    </button>
-                                )}
-                                {i < inputHandles.length - 1 && (
-                                    <button onClick={(e) => { e.stopPropagation(); moveInput(i, 'down'); }} className="p-[1px] hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500">
-                                        <ArrowDown size={8} />
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                ))}
-                {outputHandles.map((h, i) => h.label && type !== 'UNPACK' && !(type === 'GROUP' && (data.showResults || data.collapsed)) && (
-                    <div key={h.id || i} className="absolute right-3 flex flex-row-reverse items-center gap-1 group/handle cursor-help"
-                        style={{ top: typeof h.top === 'number' ? h.top : h.top, marginTop: 0, transform: 'translateY(-50%)' }}
-                        title={h.description || undefined}>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono text-right">{h.label}</span>
-                        {h.description && <span className="text-[8px] text-pink-400 dark:text-pink-500">ⓘ</span>}
-                        {/* Reorder Outputs */}
-                        {outputHandles.length > 1 && (
-                            <div className="flex flex-col opacity-0 group-hover/handle:opacity-100 transition-opacity bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded">
-                                {i > 0 && (
-                                    <button onClick={(e) => { e.stopPropagation(); moveOutput(i, 'up'); }} className="p-[1px] hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500">
-                                        <ArrowUp size={8} />
-                                    </button>
-                                )}
-                                {i < outputHandles.length - 1 && (
-                                    <button onClick={(e) => { e.stopPropagation(); moveOutput(i, 'down'); }} className="p-[1px] hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500">
-                                        <ArrowDown size={8} />
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                ))}
-
                 {(type === 'WARP_IN' || type === 'WARP_OUT') && (
                     <div className="space-y-1">
                         <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Tag Name</label>
@@ -1598,6 +1550,56 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 )}
             </div>
             }
+
+            {/* Port labels — rendered as node-level overlays (siblings of the
+                handle dots) so the first row isn't clipped by the body's
+                overflow-y-auto. */}
+            {inputHandles.map((h, i) => h.label && !(type === 'GROUP' && data.showResults) && (
+                <div key={`lbl-${h.id || i}`} className="absolute left-3 flex items-center gap-1 group/handle cursor-help"
+                    style={{ top: typeof h.top === 'number' ? h.top : h.top, marginTop: 0, transform: 'translateY(-50%)' }}
+                    title={h.description || undefined}>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">{h.label}</span>
+                    {h.description && <span className="text-[8px] text-pink-400 dark:text-pink-500">ⓘ</span>}
+                    {/* Reorder Inputs */}
+                    {inputHandles.length > 1 && (
+                        <div className="flex flex-col opacity-0 group-hover/handle:opacity-100 transition-opacity bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded">
+                            {i > 0 && (
+                                <button onClick={(e) => { e.stopPropagation(); moveInput(i, 'up'); }} className="p-[1px] hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500">
+                                    <ArrowUp size={8} />
+                                </button>
+                            )}
+                            {i < inputHandles.length - 1 && (
+                                <button onClick={(e) => { e.stopPropagation(); moveInput(i, 'down'); }} className="p-[1px] hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500">
+                                    <ArrowDown size={8} />
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            ))}
+            {outputHandles.map((h, i) => h.label && type !== 'UNPACK' && !(type === 'GROUP' && (data.showResults || data.collapsed)) && (
+                <div key={`lbl-${h.id || i}`} className="absolute right-3 flex flex-row-reverse items-center gap-1 group/handle cursor-help"
+                    style={{ top: typeof h.top === 'number' ? h.top : h.top, marginTop: 0, transform: 'translateY(-50%)' }}
+                    title={h.description || undefined}>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono text-right">{h.label}</span>
+                    {h.description && <span className="text-[8px] text-pink-400 dark:text-pink-500">ⓘ</span>}
+                    {/* Reorder Outputs */}
+                    {outputHandles.length > 1 && (
+                        <div className="flex flex-col opacity-0 group-hover/handle:opacity-100 transition-opacity bg-white dark:bg-slate-800 shadow-sm border border-slate-200 dark:border-slate-700 rounded">
+                            {i > 0 && (
+                                <button onClick={(e) => { e.stopPropagation(); moveOutput(i, 'up'); }} className="p-[1px] hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500">
+                                    <ArrowUp size={8} />
+                                </button>
+                            )}
+                            {i < outputHandles.length - 1 && (
+                                <button onClick={(e) => { e.stopPropagation(); moveOutput(i, 'down'); }} className="p-[1px] hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-blue-500">
+                                    <ArrowDown size={8} />
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            ))}
 
             {
                 inputHandles.map(h => {
