@@ -13,7 +13,7 @@ real-time evaluation, and cloud storage.
 > 📖 **New to FlowCal?** Start with the **[User Guide](docs/GUIDE.md)** — building your
 > first flow, connecting nodes, groups, custom nodes, sharing, and keyboard shortcuts.
 
-**FlowCal is free and open source (Apache-2.0) — and there's no lock-in.** Run it
+**FlowCal's core is free and open source (Apache-2.0) — and there's no lock-in.** Run it
 however you like:
 
 | | Self-host (own your data) | [Atelier](https://tryatelier.dev/) |
@@ -171,6 +171,8 @@ To report a security issue, see [`SECURITY.md`](SECURITY.md).
 
 Licensed under the [Apache License 2.0](LICENSE) © Edward Howard.
 
-FlowCal is fully open source. The [Atelier](https://tryatelier.dev/) platform
-(hosting, managed database, and any future enterprise add-ons) is a separate,
-commercial product — see [`docs/POSITIONING.md`](docs/POSITIONING.md).
+The FlowCal open core is fully open source. Hosting (via the
+[Atelier](https://tryatelier.dev/) platform) and premium team/scale features —
+real-time collaboration, deep version history, team workspaces, enterprise SSO —
+are part of the separate commercial edition. See
+[`docs/POSITIONING.md`](docs/POSITIONING.md).
