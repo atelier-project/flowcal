@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ChevronRight, Undo, Redo, Palette, Grid, Wand2, Spline, Waypoints, SlidersHorizontal } from 'lucide-react';
+import { ChevronRight, Undo, Redo, Palette, Grid, Wand2, Spline, Waypoints, SlidersHorizontal, Flame, Sparkles, Zap, Ban } from 'lucide-react';
 import { THEMES, applyTheme, getStoredTheme, getCustomThemes } from '../themes';
 import { ThemeEditor } from './ui/ThemeEditor';
 
 import { Node } from './flow/Node';
 import { NodeErrorBoundary } from './flow/node/NodeErrorBoundary';
-import { ConnectionLine } from './flow/ConnectionLine';
+import { ConnectionLine, WIRE_ANIMATIONS } from './flow/ConnectionLine';
 import { BackgroundGrid } from './flow/BackgroundGrid';
 import { SelectionBox } from './flow/SelectionBox';
 import { Sidebar } from './flow/Sidebar';
@@ -1484,6 +1484,15 @@ export default function Editor() {
     }));
   }, []);
 
+  // Cycle the flow's wire animation: pulse → fire → sparks → none.
+  const cycleWireAnimation = useCallback(() => {
+    setFlowSettings(prev => {
+      const cur = prev.wireAnimation || 'pulse';
+      const next = WIRE_ANIMATIONS[(WIRE_ANIMATIONS.indexOf(cur) + 1) % WIRE_ANIMATIONS.length];
+      return { ...prev, wireAnimation: next };
+    });
+  }, []);
+
   const handleSaveEditor = (newCode) => {
     setGraph({
       nodes: nodes.map(n => n.id === editor.nodeId ? { ...n, data: { ...n.data, func: newCode } } : n),
@@ -1704,6 +1713,21 @@ export default function Editor() {
           >
             {flowSettings.routingMode === 'orthogonal' ? <Waypoints size={16} /> : <Spline size={16} />}
           </button>
+          {(() => {
+            const anim = flowSettings.wireAnimation || 'pulse';
+            const AnimIcon = anim === 'fire' ? Flame : anim === 'sparks' ? Sparkles : anim === 'none' ? Ban : Zap;
+            const animColor = anim === 'fire' ? '#f97316' : anim === 'sparks' ? '#eab308' : anim === 'none' ? 'var(--text-muted)' : 'var(--accent-primary)';
+            return (
+              <button
+                onClick={cycleWireAnimation}
+                style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: animColor }}
+                className="flex items-center gap-2 backdrop-blur px-2 py-1 rounded-lg shadow-sm border text-sm hover:opacity-80"
+                title={`Wire animation: ${anim} (click to change)`}
+              >
+                <AnimIcon size={16} />
+              </button>
+            );
+          })()}
 
           <div style={{ backgroundColor: 'var(--bg-secondary)', borderColor: 'var(--border-primary)' }} className="flex items-center gap-2 backdrop-blur px-4 py-2 rounded-full shadow-sm border text-sm">
             <button onClick={() => jumpToPath(-1)} style={{ color: path.length === 0 ? 'var(--accent-primary)' : 'var(--text-muted)' }} className={`hover:opacity-70 ${path.length === 0 ? 'font-bold' : ''}`}>Root</button>
@@ -1725,6 +1749,7 @@ export default function Editor() {
               return <ConnectionLine key={edge.id} id={edge.id} start={start} end={end}
                 label={edge.label}
                 routing={flowSettings.routingMode}
+                animation={flowSettings.wireAnimation || 'pulse'}
                 selected={selectedEdgeId === edge.id}
                 dimmed={selectedEdgeId !== null && selectedEdgeId !== edge.id}
                 color={edge.color}

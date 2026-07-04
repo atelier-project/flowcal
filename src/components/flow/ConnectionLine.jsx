@@ -5,12 +5,64 @@ import { getEdgePath } from '../../utils/geometry';
 // again (or the reset) clears back to the theme default.
 export const WIRE_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#8b5cf6', '#ec4899'];
 
+// Selectable per-flow wire animations. 'pulse' is the original flowing dots.
+export const WIRE_ANIMATIONS = ['pulse', 'fire', 'sparks', 'none'];
+
+const FIRE_COLORS = ['#fbbf24', '#f97316', '#ef4444', '#fb923c', '#f59e0b'];
+const SPARK_COLORS = ['#ffffff', '#fde047', '#fef08a'];
+
+/**
+ * The particles that flow along a wire, per the chosen animation style. Kept as
+ * a small component so each style is self-contained. `d` is the path; `stroke`
+ * is the wire's colour (used by the default pulse).
+ */
+function WireFlow({ animation, d, stroke }) {
+    if (animation === 'none') return null;
+
+    if (animation === 'fire') {
+        // Warm embers that flow along the wire while flickering in size + opacity.
+        return FIRE_COLORS.map((c, i) => (
+            <circle key={i} r={3.5} fill={c}>
+                <animateMotion dur={`${1.1 + i * 0.12}s`} repeatCount="indefinite" path={d} begin={`${i * 0.22}s`} />
+                <animate attributeName="r" values="2;5;3;4;2" dur={`${0.5 + i * 0.05}s`} repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.25;1;0.5;0.9;0.25" dur={`${0.4 + i * 0.05}s`} repeatCount="indefinite" />
+            </circle>
+        ));
+    }
+
+    if (animation === 'sparks') {
+        // Fast, tiny, twinkling sparks.
+        return [0, 1, 2, 3, 4, 5].map((i) => (
+            <circle key={i} r={2.4 - (i % 3) * 0.5} fill={SPARK_COLORS[i % SPARK_COLORS.length]}>
+                <animateMotion dur={`${0.7 + (i % 3) * 0.15}s`} repeatCount="indefinite" path={d} begin={`${i * 0.13}s`} />
+                <animate attributeName="opacity" values="0;1;0.2;1;0" dur={`${0.35 + (i % 2) * 0.1}s`} repeatCount="indefinite" begin={`${i * 0.07}s`} />
+            </circle>
+        ));
+    }
+
+    // 'pulse' — the original three trailing dots.
+    return (
+        <>
+            <circle r="4" fill={stroke} className="opacity-80">
+                <animateMotion dur="1.5s" repeatCount="indefinite" path={d} />
+            </circle>
+            <circle r="3" fill={stroke} className="opacity-60">
+                <animateMotion dur="1.5s" repeatCount="indefinite" path={d} begin="0.5s" />
+            </circle>
+            <circle r="2" fill={stroke} className="opacity-40">
+                <animateMotion dur="1.5s" repeatCount="indefinite" path={d} begin="1s" />
+            </circle>
+        </>
+    );
+}
+
 export const ConnectionLine = ({
     id,
     start,
     end,
     label,
     routing,
+    animation = 'pulse',
     selected,
     dimmed,
     color,
@@ -69,16 +121,9 @@ export const ConnectionLine = ({
                 fill="none"
                 className="transition-all duration-150"
             />
-            {/* Animated flowing dots */}
-            <circle r="4" fill={stroke} className="opacity-80">
-                <animateMotion dur="1.5s" repeatCount="indefinite" path={d} />
-            </circle>
-            <circle r="3" fill={stroke} className="opacity-60">
-                <animateMotion dur="1.5s" repeatCount="indefinite" path={d} begin="0.5s" />
-            </circle>
-            <circle r="2" fill={stroke} className="opacity-40">
-                <animateMotion dur="1.5s" repeatCount="indefinite" path={d} begin="1s" />
-            </circle>
+            {/* Animated particles flowing along the wire (style is per-flow;
+                pulse uses the wire's own colour). */}
+            <WireFlow animation={animation} d={d} stroke={stroke} />
             {/* Endpoint markers — show exactly which ports a highlighted wire joins */}
             {selected && (
                 <>
