@@ -1290,6 +1290,9 @@ export default function Editor() {
 
   const handleConnectionStart = (e, sourceId, handleId) => {
     e.stopPropagation();
+    // Stop the mousedown from starting a native text selection as you drag the
+    // wire across the canvas (which otherwise highlights every node's text).
+    e.preventDefault();
     if (!canModifyStructure()) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left - pan.x) / scale;
@@ -1558,7 +1561,7 @@ export default function Editor() {
         ref={containerRef}
         style={{ backgroundColor: 'var(--bg-primary)' }}
         className={`flex-1 relative overflow-hidden transition-colors duration-200 ${spacePressed ? 'cursor-grab' : ''
-          } ${dragState?.type === 'pan' ? 'cursor-grabbing' : ''}`}
+          } ${dragState?.type === 'pan' ? 'cursor-grabbing' : ''} ${connectionState || dragState ? 'select-none' : ''}`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
