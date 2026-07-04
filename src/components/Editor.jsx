@@ -19,7 +19,7 @@ import { generateId } from '../utils/ids';
 import { getHandlePosition, getEdgePath } from '../utils/geometry';
 import { computeAutoLayout } from '../utils/autoLayout';
 import { computeAlignment } from '../utils/alignment';
-import { HANDLE_POSITIONS } from '../utils/handlePositions';
+import { getPortLayout, resolvePortTop } from '../utils/portLayout';
 import { getNodeHeight } from '../utils/layout';
 import { evaluateGraph } from '../engine/evaluator';
 import { getDefinition } from '../engine/nodeDefinitions';
@@ -1367,116 +1367,17 @@ export default function Editor() {
       });
 
       if (targetNode && targetNode.id !== connectionState.sourceId) {
+        // Pick the input port whose position (from the shared getPortLayout
+        // source of truth) is nearest the drop point. Render, wire geometry and
+        // this hit-test therefore always agree on where each port sits.
         let targetHandle = null;
-        // Determine Target Handle based on drop position
-        if (targetNode.type === 'GROUP') {
-          const allInputs = targetNode.data.subGraph?.nodes.filter(n => n.type === 'GROUP_INPUT' || n.type === 'GROUP_INPUT_LIST') || [];
-
-          // Use robust sorting that includes ALL inputs even if not in order array
-          let handles = [...allInputs];
-          if (targetNode.data.inputOrder && Array.isArray(targetNode.data.inputOrder)) {
-            handles.sort((a, b) => {
-              const idxA = targetNode.data.inputOrder.indexOf(a.id);
-              const idxB = targetNode.data.inputOrder.indexOf(b.id);
-              if (idxA === -1 && idxB === -1) return 0;
-              if (idxA === -1) return 1;
-              if (idxB === -1) return -1;
-              return idxA - idxB;
-            });
-          }
-
-          let minDist = 1000;
-          handles.forEach((h, i) => {
-            // Match calculation in NodeHandles/geometry: 40 + i*24
-            const hy = targetNode.position.y + 40 + (i * 24);
-            const dist = Math.abs(my - hy);
-            if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = h.id; }
-          });
-          if (!targetHandle && handles.length > 0) targetHandle = handles[0].id;
-        } else if (targetNode.type === 'COLLECTOR') {
-          const count = targetNode.data.inputCount || 2;
-          let minDist = 1000;
-          for (let i = 0; i < count; i++) {
-            const hy = targetNode.position.y + 40 + (i * 24);
-            const dist = Math.abs(my - hy);
-            if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = `in_${i} `; }
-          }
-        } else if (targetNode.type === 'REPORT') {
-          // Report rows are dynamic (in_0..in_{n-1}); pick the closest row to the
-          // drop point using the shared HANDLE_POSITIONS.REPORT offsets.
-          const count = targetNode.data.inputCount || 2;
-          const rp = HANDLE_POSITIONS.REPORT;
-          let minDist = Infinity;
-          for (let i = 0; i < count; i++) {
-            const hy = targetNode.position.y + rp.base + (i * rp.rowHeight);
-            const dist = Math.abs(my - hy);
-            if (dist < minDist) { minDist = dist; targetHandle = `in_${i}`; }
-          }
-        } else if (targetNode.type === 'RANGE') {
-          if (Math.abs(my - (targetNode.position.y + 40)) < 20) targetHandle = 'start';
-          else if (Math.abs(my - (targetNode.position.y + 64)) < 20) targetHandle = 'end';
-          else targetHandle = 'step';
-        } else if (targetNode.type === 'GAUGE') {
-          if (Math.abs(my - (targetNode.position.y + 40)) < 20) targetHandle = 'val';
-          else if (Math.abs(my - (targetNode.position.y + 64)) < 20) targetHandle = 'min';
-          else targetHandle = 'max';
-        } else if (targetNode.type === 'PROGRESS') {
-          if (Math.abs(my - (targetNode.position.y + 40)) < 20) targetHandle = 'val';
-          else targetHandle = 'max';
-        } else if (targetNode.type === 'FORM' && targetNode.data.showInputs) {
-          const fields = targetNode.data.fields || [];
-          let minDist = 1000;
-          const formPos = HANDLE_POSITIONS.FORM;
-          fields.forEach((f, i) => {
-            const hy = targetNode.position.y + formPos.base + (i * formPos.rowHeight);
-            const dist = Math.abs(my - hy);
-            if (dist < 20 && dist < minDist) { minDist = dist; targetHandle = `field_${i}`; }
-          });
-        } else if (targetNode.type === 'PACK') {
-          // PACK has dynamic inputs based on keys
-          const keys = targetNode.data.keys || [];
-          if (keys.length > 0) {
-            const packPos = HANDLE_POSITIONS.PACK;
-            let minDist = Infinity;
-            let closestKey = keys[0];
-            keys.forEach((key, i) => {
-              const hy = targetNode.position.y + packPos.base + (i * packPos.rowHeight);
-              const dist = Math.abs(my - hy);
-              if (dist < minDist) {
-                minDist = dist;
-                closestKey = key;
-              }
-            });
-            targetHandle = closestKey;
-          }
-        } else {
-          // Generic case: nodes with registry-defined named inputs (DIVIDE,
-          // COMPARE, IF, …). Without this, targetHandle stays null and every
-          // wire renders at the top port (geometry falls back to base=40).
-          // Mirror geometry.getDefaultInputPosition: base + i*rowHeight, honoring
-          // inputOrder, and pick the closest port to the drop point.
-          const targetDef = getDefinition(targetNode.type);
-          if (targetDef?.inputs && !targetDef.inputs.includes('*')) {
-            let handles = [...targetDef.inputs];
-            if (targetNode.data.inputOrder && Array.isArray(targetNode.data.inputOrder)) {
-              handles.sort((a, b) => {
-                const idxA = targetNode.data.inputOrder.indexOf(a);
-                const idxB = targetNode.data.inputOrder.indexOf(b);
-                if (idxA === -1 && idxB === -1) return 0;
-                if (idxA === -1) return 1;
-                if (idxB === -1) return -1;
-                return idxA - idxB;
-              });
-            }
-            const defPos = HANDLE_POSITIONS.DEFAULT;
-            let minDist = Infinity;
-            handles.forEach((name, i) => {
-              const hy = targetNode.position.y + defPos.base + (i * defPos.rowHeight);
-              const dist = Math.abs(my - hy);
-              if (dist < minDist) { minDist = dist; targetHandle = name; }
-            });
-          }
-        }
+        const targetInputs = getPortLayout(targetNode).inputs;
+        let minDist = Infinity;
+        targetInputs.forEach((p) => {
+          const hy = targetNode.position.y + resolvePortTop(targetNode, p.top);
+          const dist = Math.abs(my - hy);
+          if (dist < minDist) { minDist = dist; targetHandle = p.id; }
+        });
 
         const exists = edges.some(edge =>
           edge.source === connectionState.sourceId &&
