@@ -1378,6 +1378,10 @@ export default function Editor() {
         }
       } else if (dragState.type === 'pan') {
         setPan({ x: dragState.startPan.x + (e.clientX - dragState.startMouse.x), y: dragState.startPan.y + (e.clientY - dragState.startMouse.y) });
+      } else if (dragState.type === 'edgeMid') {
+        // Live-move the orthogonal bend to the cursor's x (no history commit; the
+        // pre-drag checkpoint was taken on bend mousedown).
+        updateGraph({ nodes, edges: edges.map(ed => ed.id === dragState.edgeId ? { ...ed, midX: x } : ed) });
       }
     }
     if (connectionState) setConnectionState(prev => ({ ...prev, mousePos: { x, y } }));
@@ -1730,6 +1734,21 @@ export default function Editor() {
                     nodes,
                     edges: edges.map(e => e.id === id
                       ? (c ? { ...e, color: c } : (() => { const { color: _omit, ...rest } = e; return rest; })())
+                      : e)
+                  });
+                }}
+                midX={edge.midX}
+                onBendDown={(id) => {
+                  if (!canModifyStructure()) return;
+                  setGraph({ nodes, edges }); // history checkpoint before dragging the bend
+                  setDragState({ type: 'edgeMid', edgeId: id });
+                }}
+                onBendReset={(id) => {
+                  if (!canModifyStructure()) return;
+                  setGraph({
+                    nodes,
+                    edges: edges.map(e => e.id === id
+                      ? (() => { const { midX: _omit, ...rest } = e; return rest; })()
                       : e)
                   });
                 }}

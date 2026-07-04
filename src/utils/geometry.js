@@ -19,12 +19,13 @@ export const getBezierPath = (start, end) => {
  * mid-x, run vertically to the target's row, then into the target. Corners are
  * lightly rounded with quadratic arcs so dense flows stay easy to trace.
  */
-export const getOrthogonalPath = (start, end) => {
+export const getOrthogonalPath = (start, end, midXOverride) => {
     const [sx, sy] = start;
     const [ex, ey] = end;
     if (Math.abs(sy - ey) < 1) return `M${sx},${sy} L${ex},${ey}`; // straight when level
 
-    const midX = (sx + ex) / 2;
+    // The vertical run sits at the midpoint by default, or at a user-dragged x.
+    const midX = midXOverride ?? (sx + ex) / 2;
     const r = Math.min(10, Math.abs(ex - sx) / 2, Math.abs(ey - sy) / 2);
     const dirY = ey > sy ? 1 : -1;
     const dirInX = ex > midX ? 1 : -1;
@@ -39,9 +40,10 @@ export const getOrthogonalPath = (start, end) => {
     ].join(' ');
 };
 
-// Pick a path generator by routing mode ('orthogonal' | 'bezier').
-export const getEdgePath = (start, end, routing) =>
-    routing === 'orthogonal' ? getOrthogonalPath(start, end) : getBezierPath(start, end);
+// Pick a path generator by routing mode ('orthogonal' | 'bezier'). `midX` is an
+// optional user-dragged x for the orthogonal vertical run (ignored for bezier).
+export const getEdgePath = (start, end, routing, midX) =>
+    routing === 'orthogonal' ? getOrthogonalPath(start, end, midX) : getBezierPath(start, end);
 
 /**
  * Get the [x, y] canvas position of a node's handle for wire routing.

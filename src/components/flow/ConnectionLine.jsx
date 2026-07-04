@@ -15,6 +15,9 @@ export const ConnectionLine = ({
     dimmed,
     color,
     onSetColor,
+    midX,
+    onBendDown,
+    onBendReset,
     onSelect,
     isEditing,
     canEdit = true,
@@ -25,7 +28,7 @@ export const ConnectionLine = ({
     onMouseLeave,
     disableTitle
 }) => {
-    const d = getEdgePath(start, end, routing);
+    const d = getEdgePath(start, end, routing, midX);
     const [mx, my] = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
     const strokeW = selected ? 3.5 : 2;
     const glowW = selected ? 14 : 6;
@@ -33,6 +36,13 @@ export const ConnectionLine = ({
     // wire is drawn (stroke, glow, flowing dots, endpoints).
     const stroke = color || 'var(--connection-stroke, #3b82f6)';
     const glow = color || 'var(--connection-glow, rgba(59, 130, 246, 0.5))';
+    // The draggable orthogonal bend sits on the vertical run: at the user's x if
+    // set, else the midpoint. Only meaningful when there's a vertical run.
+    const bendX = typeof midX === 'number' ? midX : (start[0] + end[0]) / 2;
+    const hasVerticalRun = Math.abs(start[1] - end[1]) >= 1;
+    // Offset the bend grabber down the vertical run so it clears the centred
+    // label (and colour palette above it), which otherwise cover it.
+    const bendY = Math.min(Math.max(start[1], end[1]) - 8, my + 24);
 
     // The input is uncontrolled (defaultValue + autoFocus) so no effect is
     // needed to sync a draft. Enter/Escape change parent state synchronously,
@@ -77,6 +87,23 @@ export const ConnectionLine = ({
                 </>
             )}
 
+            {/* Draggable orthogonal bend — drag left/right to tidy the wire's
+                vertical run; double-click to reset to the midpoint. */}
+            {routing === 'orthogonal' && selected && canEdit && onBendDown && hasVerticalRun && (
+                <g>
+                    <circle
+                        cx={bendX} cy={bendY} r="10"
+                        fill="transparent"
+                        className="cursor-ew-resize pointer-events-auto"
+                        onMouseDown={(e) => { e.stopPropagation(); onBendDown(id, e); }}
+                        onDoubleClick={(e) => { e.stopPropagation(); onBendReset && onBendReset(id); }}
+                    >
+                        <title>Drag to move the bend · double-click to reset</title>
+                    </circle>
+                    <circle cx={bendX} cy={bendY} r="4.5" fill="#fff" stroke={stroke} strokeWidth="2" className="pointer-events-none" />
+                </g>
+            )}
+
             {/* Colour swatches — pick a per-wire colour while it's selected */}
             {selected && canEdit && onSetColor && (
                 <foreignObject x={mx - 76} y={my - 44} width="152" height="26" className="overflow-visible">
@@ -105,6 +132,7 @@ export const ConnectionLine = ({
                     </div>
                 </foreignObject>
             )}
+
             {/* Hover/click interaction layer */}
             <path
                 d={d}
