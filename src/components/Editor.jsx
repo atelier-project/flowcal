@@ -1723,6 +1723,16 @@ export default function Editor() {
                 routing={flowSettings.routingMode}
                 selected={selectedEdgeId === edge.id}
                 dimmed={selectedEdgeId !== null && selectedEdgeId !== edge.id}
+                color={edge.color}
+                onSetColor={(id, c) => {
+                  if (!canModifyStructure()) return;
+                  setGraph({
+                    nodes,
+                    edges: edges.map(e => e.id === id
+                      ? (c ? { ...e, color: c } : (() => { const { color: _omit, ...rest } = e; return rest; })())
+                      : e)
+                  });
+                }}
                 onSelect={(id) => setSelectedEdgeId(prev => prev === id ? null : id)}
                 isEditing={editingEdgeId === edge.id}
                 canEdit={canModifyStructure()}

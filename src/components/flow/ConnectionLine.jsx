@@ -1,6 +1,10 @@
 import React from 'react';
 import { getEdgePath } from '../../utils/geometry';
 
+// Wire colour swatches shown when an edge is selected. Choosing the active one
+// again (or the reset) clears back to the theme default.
+export const WIRE_COLORS = ['#ef4444', '#f59e0b', '#10b981', '#06b6d4', '#8b5cf6', '#ec4899'];
+
 export const ConnectionLine = ({
     id,
     start,
@@ -9,6 +13,8 @@ export const ConnectionLine = ({
     routing,
     selected,
     dimmed,
+    color,
+    onSetColor,
     onSelect,
     isEditing,
     canEdit = true,
@@ -23,6 +29,10 @@ export const ConnectionLine = ({
     const [mx, my] = [(start[0] + end[0]) / 2, (start[1] + end[1]) / 2];
     const strokeW = selected ? 3.5 : 2;
     const glowW = selected ? 14 : 6;
+    // A per-wire colour overrides the theme's connection colour everywhere the
+    // wire is drawn (stroke, glow, flowing dots, endpoints).
+    const stroke = color || 'var(--connection-stroke, #3b82f6)';
+    const glow = color || 'var(--connection-glow, rgba(59, 130, 246, 0.5))';
 
     // The input is uncontrolled (defaultValue + autoFocus) so no effect is
     // needed to sync a draft. Enter/Escape change parent state synchronously,
@@ -35,7 +45,8 @@ export const ConnectionLine = ({
             {/* Glow layer (widens + brightens when the wire is highlighted) */}
             <path
                 d={d}
-                stroke="var(--connection-glow, rgba(59, 130, 246, 0.5))"
+                stroke={glow}
+                strokeOpacity={color ? 0.4 : 1}
                 strokeWidth={glowW}
                 fill="none"
                 className="transition-all duration-150"
@@ -43,27 +54,56 @@ export const ConnectionLine = ({
             {/* Main stroke */}
             <path
                 d={d}
-                stroke="var(--connection-stroke, #3b82f6)"
+                stroke={stroke}
                 strokeWidth={strokeW}
                 fill="none"
                 className="transition-all duration-150"
             />
             {/* Animated flowing dots */}
-            <circle r="4" fill="var(--connection-stroke, #3b82f6)" className="opacity-80">
+            <circle r="4" fill={stroke} className="opacity-80">
                 <animateMotion dur="1.5s" repeatCount="indefinite" path={d} />
             </circle>
-            <circle r="3" fill="var(--connection-stroke, #3b82f6)" className="opacity-60">
+            <circle r="3" fill={stroke} className="opacity-60">
                 <animateMotion dur="1.5s" repeatCount="indefinite" path={d} begin="0.5s" />
             </circle>
-            <circle r="2" fill="var(--connection-stroke, #3b82f6)" className="opacity-40">
+            <circle r="2" fill={stroke} className="opacity-40">
                 <animateMotion dur="1.5s" repeatCount="indefinite" path={d} begin="1s" />
             </circle>
             {/* Endpoint markers — show exactly which ports a highlighted wire joins */}
             {selected && (
                 <>
-                    <circle cx={start[0]} cy={start[1]} r="5" fill="var(--connection-stroke, #3b82f6)" stroke="#fff" strokeWidth="1.5" />
-                    <circle cx={end[0]} cy={end[1]} r="5" fill="var(--connection-stroke, #3b82f6)" stroke="#fff" strokeWidth="1.5" />
+                    <circle cx={start[0]} cy={start[1]} r="5" fill={stroke} stroke="#fff" strokeWidth="1.5" />
+                    <circle cx={end[0]} cy={end[1]} r="5" fill={stroke} stroke="#fff" strokeWidth="1.5" />
                 </>
+            )}
+
+            {/* Colour swatches — pick a per-wire colour while it's selected */}
+            {selected && canEdit && onSetColor && (
+                <foreignObject x={mx - 76} y={my - 44} width="152" height="26" className="overflow-visible">
+                    <div className="w-full h-full flex items-center justify-center gap-1 pointer-events-none">
+                        <div className="flex items-center gap-1 px-1.5 py-1 rounded-full bg-white/95 dark:bg-slate-800/95 border border-slate-200 dark:border-slate-600 shadow-sm pointer-events-auto"
+                            onMouseDown={(e) => e.stopPropagation()}>
+                            {WIRE_COLORS.map((c) => (
+                                <button
+                                    key={c}
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); onSetColor(id, color === c ? null : c); }}
+                                    className={`w-3.5 h-3.5 rounded-full border transition-transform hover:scale-125 ${color === c ? 'ring-2 ring-offset-1 ring-slate-400 dark:ring-offset-slate-800' : 'border-black/10'}`}
+                                    style={{ backgroundColor: c }}
+                                    title={color === c ? 'Clear colour' : `Colour this wire`}
+                                />
+                            ))}
+                            <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); onSetColor(id, null); }}
+                                className="w-3.5 h-3.5 rounded-full border border-slate-300 dark:border-slate-500 text-[9px] leading-none text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center"
+                                title="Reset to default colour"
+                            >
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                </foreignObject>
             )}
             {/* Hover/click interaction layer */}
             <path
