@@ -6,58 +6,67 @@ what to expect.
 
 ## The short version
 
-- **FlowCal is fully open source** under Apache-2.0 — the editor, the evaluation
-  engine, all node types, custom nodes, import/export, sharing, autosave, and
-  versioning. No feature is held back from the open project.
+- **The FlowCal open core is fully open source** under Apache-2.0 — the editor, the
+  evaluation engine, all node types, custom nodes, import/export, sharing, autosave,
+  and version history. It is a complete, genuinely useful tool on its own for
+  individuals and self-hosted teams. No part of the open core is crippled or
+  time-limited.
 - **You can run it anywhere** — `docker compose up` with any Postgres, or point it
   at Supabase. There is no lock-in; the backend is pluggable
   (`src/services/backend/`).
 - **Atelier is a separate commercial product** that provides *first-class hosting*
-  for FlowCal: one-click deploy from this repo, a managed database, TLS, public
-  access, and official support. Atelier is the paved road — a convenience, not a
-  requirement.
+  for FlowCal (one-click deploy, a managed database, TLS, public access, support)
+  **and a commercial edition** with premium features aimed at teams and scale.
+  Atelier is the paved road — a convenience, not a requirement for using the open
+  core.
 
 ## Why open source
 
-FlowCal is open because a great, unencumbered tool is the best introduction to
-Atelier. Every self-hoster is a potential Atelier user; every publicly shared flow
-is hosted somewhere and shows what the platform can do. Adoption is the goal, so we
-optimise for a genuinely useful, portable, no-strings tool.
+FlowCal's core is open because a great, unencumbered tool is the best introduction
+to Atelier. Every self-hoster is a potential Atelier user; every publicly shared
+flow is hosted somewhere and shows what the platform can do. Adoption is the goal,
+so we keep the open core genuinely useful, portable, and no-strings — never a
+hollowed-out teaser.
 
 ## Where the commercial line sits
 
-The line is **hosting and platform operations**, not FlowCal source:
+This is an **open-core** model. The line falls between *individual/self-host
+capability* (open) and *team, scale, and governance* features plus hosting
+(commercial):
 
-| Open source (this repo, Apache-2.0) | Atelier (commercial) |
+| Open core (public repo, Apache-2.0) | Commercial edition + Atelier |
 |---|---|
-| Editor, engine, all node types | One-click deploy + managed hosting |
+| Editor, engine, all node types, custom nodes | One-click deploy + managed hosting |
 | Self-host on any Postgres / Supabase | Managed `flowcal-db`, backups, TLS, public access |
-| Sharing, autosave, versioning | Official support / SLA |
-| Single-user and self-hosted multi-user | Hosted multi-tenant convenience |
+| Sharing, autosave, **basic** version history (recent versions, preview, basic diff) | **Deep** version history: long retention, advanced diff, one-click restore |
+| Single-user and self-hosted multi-user | **Real-time collaboration** (live presence + co-editing) |
+| Personal cloud flows | **Team workspaces**: shared folders, role management, plan-based flow limits |
+| — | **Enterprise**: SSO, audit log, priority support / SLA |
 
-If FlowCal ever grows an **enterprise tier** (e.g. SSO, org governance, advanced
-collaboration), those features would live in a **separate, non-open package** that
-composes with this open core through the existing backend provider seam — never by
-removing capabilities from the open project. Nothing here is closed today; the seam
-just keeps that option open without compromising the open edition.
+The principle: **the open core is whole and standalone**, and premium features
+*add* team/scale/governance capability on top — we never remove a working
+capability from the open core to sell it back. If in doubt, the open core should
+always be a tool you'd happily use by yourself or in a small self-hosted team
+without hitting an artificial wall.
 
-## Do we need to split the repo?
+## Repository structure
 
-**No — this stays a single open repo.**
+FlowCal uses **two repositories**:
 
-- **Atelier is not part of this repo.** It's a separate product (a hosting platform)
-  that FlowCal deploys *onto*; there's nothing Atelier-proprietary here to carve out.
-- **No FlowCal features are closed today**, so there's nothing to split out. Keeping
-  the open edition whole is what makes it a good introduction to Atelier — a
-  hollowed-out OSS build would work against that.
-- **You do not need to pre-split to keep the option open.** The backend provider seam
-  (`src/services/backend/`) is already the extension point. If a closed enterprise
-  tier is ever built, it goes in a **separate private repo/package** that plugs into
-  that seam — *not* a monorepo restructure of this repository, and never merged into
-  the Apache-2.0 tree (anything committed here is Apache-2.0 forever).
+- **Public repo (Apache-2.0)** — the open core. This is what self-hosters clone and
+  what contributors work in. Anything committed here is Apache-2.0 forever.
+- **Private repo** — the commercial edition (the open core plus the premium features
+  above). It is the superset from which the public open core is published.
 
-In short: **one open repo now; a private companion package later, only if/when there's
-demand — via the seam, with no rework of this repo.**
+Premium work is tracked as issues labelled **`premium`** in the private repo. The
+promotion rule is simple: **everything except `premium`-labelled work belongs in the
+public open core.** Contributions from the community always land in the public
+Apache-2.0 repo; premium features never migrate *into* it.
+
+> **Status:** as of this writing the repository is still private and the public open
+> core has not yet been published. When it is, the public repo is created from the
+> open (non-`premium`) subset with a clean history. This section describes the target
+> structure.
 
 ## Trademarks
 
