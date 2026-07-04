@@ -53,20 +53,22 @@ without hitting an artificial wall.
 
 FlowCal uses **two repositories**:
 
-- **Public repo (Apache-2.0)** — the open core. This is what self-hosters clone and
-  what contributors work in. Anything committed here is Apache-2.0 forever.
-- **Private repo** — the commercial edition (the open core plus the premium features
-  above). It is the superset from which the public open core is published.
+- **Public repo (Apache-2.0)** — the open core, and the *canonical* home for core
+  development: what self-hosters clone, where contributors open PRs, and where the
+  open roadmap lives. Anything committed here is Apache-2.0 forever.
+- **Private companion repo** — the commercial edition. It builds the premium features
+  above *on top of* the public open core (an overlay), rather than forking or
+  hollowing it out. The premium roadmap is tracked here.
 
-Premium work is tracked as issues labelled **`premium`** in the private repo. The
-promotion rule is simple: **everything except `premium`-labelled work belongs in the
-public open core.** Contributions from the community always land in the public
-Apache-2.0 repo; premium features never migrate *into* it.
+Premium work is tracked as issues labelled **`premium`** in the private companion.
+The rule is simple: **core development happens in the open; only `premium` work stays
+private.** Community contributions land in the public Apache-2.0 repo, which is
+canonical — premium code never migrates *into* it, and the open core is never
+degraded to sell a capability back.
 
-> **Status:** as of this writing the repository is still private and the public open
-> core has not yet been published. When it is, the public repo is created from the
-> open (non-`premium`) subset with a clean history. This section describes the target
-> structure.
+> **Status:** the premium features above are roadmap, not yet built — the private
+> companion currently holds only their tracking issues. The public open core is
+> complete and standalone today.
 
 ## Trademarks
 
