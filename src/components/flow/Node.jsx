@@ -793,23 +793,9 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                 )}
 
                 {type === 'FILTER' && (
-                    <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-700/50 p-1 rounded border border-slate-200 dark:border-slate-700">
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 pl-1">Input</span>
-                        <select
-                            value={data.operator || '>'}
-                            onChange={(e) => handleChange('operator', e.target.value)}
-                            className="flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs py-1 px-1 font-mono text-center focus:outline-none focus:border-blue-500 cursor-pointer dark:text-slate-200"
-                            onMouseDown={e => e.stopPropagation()}
-                        >
-                            <option value=">">&gt;</option>
-                            <option value="<">&lt;</option>
-                            <option value=">=">&ge;</option>
-                            <option value="<=">&le;</option>
-                            <option value="==">==</option>
-                            <option value="!=">!=</option>
-                        </select>
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 pr-1">Ref</span>
-                    </div>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                        Enter inside to define the condition: Item, Index, and Include nodes
+                    </p>
                 )}
 
                 {type === 'GET' && (
