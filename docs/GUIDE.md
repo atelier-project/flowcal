@@ -166,7 +166,8 @@ With a nod to the [Zen of Python](https://peps.python.org/pep-0020/)
 - **Pan** — hold **Space** and drag, or drag an empty part of the canvas.
 - **Zoom** — the `+ / – / %` controls (bottom-right), or scroll.
 - **Add nodes** — open the **sidebar** (node palette) and pick a node; it drops
-  onto the canvas.
+  onto the canvas. Or press **`Ctrl/Cmd + K`** for the **command palette** —
+  type to search all 100+ nodes and insert the one you want right at the cursor.
 - **Select** — click a node. **Shift-click** to add/remove nodes from the
   selection, or drag a box around several. **Esc** clears the selection.
 - **Move** — drag a selected node. Turn on grid **snap** / **align** from the
@@ -219,6 +220,19 @@ explaining.
 - Most nodes show their computed output inline.
 - A **Final Result** node is a display sink: it shows a big headline value with
   an optional caption, decimal precision, and unit suffix.
+
+### Command palette
+
+With 100+ node types, the fastest way to add one is the **command palette** —
+no scrolling the sidebar. Press **`Ctrl/Cmd + K`** anywhere in the editor:
+
+- **Type to search.** It matches a node's **name**, type, or category, so `sum`,
+  `gauge`, or `array` each narrow the list instantly.
+- **↑ / ↓** to move the highlight, **Enter** to insert, **Esc** to close.
+- The node drops **at your cursor** — right where you were working — rather than
+  in the middle of the canvas.
+
+It's fully keyboard-driven, so you can stay on the keys while you build.
 
 ## Wiring nodes together
 
@@ -321,6 +335,8 @@ Switch from the theme control; your choice is remembered per browser.
 
 | Action | Shortcut |
 |---|---|
+| **Command palette** (search + insert a node at the cursor) | `Ctrl/Cmd + K` |
+| Save | `Ctrl/Cmd + S` |
 | Copy / Cut / Paste | `Ctrl/Cmd + C` / `X` / `V` |
 | Duplicate selection | `Ctrl/Cmd + D` |
 | Group selection | `Ctrl/Cmd + G` |
