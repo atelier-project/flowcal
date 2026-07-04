@@ -40,6 +40,18 @@ export default function AdminDashboard() {
         }
     };
 
+    const handleToggleTemplate = async (flowId, currentStatus) => {
+        try {
+            const updated = await backend.setFlowTemplate(flowId, !currentStatus);
+            // Marking a template also publishes it (server enforces this).
+            setFlows(flows.map(f => f.id === flowId
+                ? { ...f, is_template: updated.is_template, is_public: updated.is_public }
+                : f));
+        } catch {
+            alert('Failed to update template status');
+        }
+    };
+
     const filteredUsers = users.filter(u =>
         u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         u.role?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -181,6 +193,7 @@ export default function AdminDashboard() {
                                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Owner</th>
                                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Last Updated</th>
                                         <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Visibility</th>
+                                        <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Template</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
@@ -202,6 +215,17 @@ export default function AdminDashboard() {
                                                 ) : (
                                                     <span className="px-2 py-1 rounded bg-slate-100 text-slate-500 dark:bg-slate-700 text-[10px] font-bold uppercase">Private</span>
                                                 )}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <button
+                                                    onClick={() => handleToggleTemplate(f.id, f.is_template)}
+                                                    className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors ${f.is_template
+                                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 hover:bg-emerald-200'
+                                                        : 'bg-slate-100 text-slate-500 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600'}`}
+                                                    title={f.is_template ? 'Unpublish template' : 'Publish as template (makes it public)'}
+                                                >
+                                                    {f.is_template ? 'Template ✓' : 'Make template'}
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}

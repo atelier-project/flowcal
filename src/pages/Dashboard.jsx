@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useConfirm } from '../context/ConfirmContext';
-import { LogOut, Plus, Folder, Loader2, Clock, Trash2, Shield, Copy, User as UserIcon, Share2 } from 'lucide-react';
+import { LogOut, Plus, Folder, Loader2, Clock, Trash2, Shield, Copy, User as UserIcon, Share2, LayoutTemplate } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { flowService } from '../services/flowService';
 import { ensurePublicAndCopy } from '../utils/shareFlow';
@@ -11,6 +11,7 @@ export default function Dashboard() {
     const { user, signOut, isAdmin } = useAuth();
     const navigate = useNavigate();
     const [flows, setFlows] = useState([]);
+    const [templates, setTemplates] = useState([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
     const { addToast } = useToast();
@@ -22,8 +23,12 @@ export default function Dashboard() {
 
     const loadFlows = async () => {
         try {
-            const data = await flowService.listFlows();
+            const [data, tpl] = await Promise.all([
+                flowService.listFlows(),
+                flowService.listTemplates().catch(() => []),
+            ]);
             setFlows(data);
+            setTemplates(tpl);
         } catch (err) {
             console.error('Failed to load flows:', err);
         } finally {
@@ -84,9 +89,21 @@ export default function Dashboard() {
         }
     };
 
-    // Filter flows
+    const handleUseTemplate = async (e, id) => {
+        e.stopPropagation();
+        try {
+            const newFlow = await flowService.duplicateFlow(id);
+            addToast('Started a new flow from the template', 'success');
+            navigate('/editor', { state: { flowId: newFlow.id } });
+        } catch (err) {
+            addToast('Failed to use template: ' + err.message, 'error');
+        }
+    };
+
+    // Filter flows. Templates are surfaced in their own gallery, so keep them out
+    // of "Shared with Me" even though they're public.
     const myFlows = flows.filter(f => f.owner_id === user?.id);
-    const sharedFlows = flows.filter(f => f.owner_id !== user?.id);
+    const sharedFlows = flows.filter(f => f.owner_id !== user?.id && !f.is_template);
 
     const handleSignOut = async () => {
         await signOut();
@@ -197,6 +214,44 @@ export default function Dashboard() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Templates Gallery */}
+            {!loading && templates.length > 0 && (
+                <div className="mt-12">
+                    <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-1 flex items-center gap-2">
+                        <LayoutTemplate className="text-emerald-500" size={24} />
+                        Templates
+                    </h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Start a new flow from a ready-made template.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        {templates.map(tpl => (
+                            <div
+                                key={tpl.id}
+                                onClick={(e) => handleUseTemplate(e, tpl.id)}
+                                className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-md hover:border-emerald-400 dark:hover:border-emerald-500 transition-all cursor-pointer group relative"
+                            >
+                                <div className="h-32 bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center">
+                                    <LayoutTemplate className="text-emerald-300 dark:text-emerald-600" size={48} />
+                                </div>
+                                <div className="p-4">
+                                    <h3 className="font-semibold text-slate-800 dark:text-white mb-1 truncate">{tpl.name}</h3>
+                                    <div className="flex items-center gap-1 text-xs text-slate-400">
+                                        <UserIcon size={12} />
+                                        <span className="truncate">
+                                            {tpl.profiles?.full_name || tpl.profiles?.email || 'FlowCal'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="absolute inset-x-0 bottom-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-emerald-500 text-white text-sm font-medium shadow-sm">
+                                        <Copy size={14} /> Use template
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
 

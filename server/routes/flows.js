@@ -29,7 +29,7 @@ const UPDATABLE = new Set(['name', 'data', 'is_public', 'is_template', 'team_id'
 // GET /api/flows — every flow visible to the current user.
 flowsRouter.get('/', requireAuth, asyncHandler(async (req, res) => {
     const { rows } = await query(
-        `select f.id, f.name, f.updated_at, f.is_public, f.owner_id,
+        `select f.id, f.name, f.updated_at, f.is_public, f.is_template, f.owner_id,
                 json_build_object('full_name', p.full_name, 'email', p.email) as profiles
          from flows f
          join profiles p on p.id = f.owner_id
@@ -51,6 +51,21 @@ flowsRouter.post('/', requireAuth, asyncHandler(async (req, res) => {
         [req.user.id, teamId, name]
     );
     res.status(201).json(rows[0]);
+}));
+
+// GET /api/flows/templates — flows an admin has published as templates. They're
+// public by construction, so any authenticated user can browse and duplicate
+// them. Declared before `/:id` so "templates" isn't parsed as an id.
+flowsRouter.get('/templates', requireAuth, asyncHandler(async (req, res) => {
+    const { rows } = await query(
+        `select f.id, f.name, f.updated_at, f.owner_id,
+                json_build_object('full_name', p.full_name, 'email', p.email) as profiles
+         from flows f
+         join profiles p on p.id = f.owner_id
+         where f.is_template = true
+         order by f.updated_at desc`
+    );
+    res.json(rows);
 }));
 
 // GET /api/flows/:id — viewable by the owner, team members, admins, OR anyone

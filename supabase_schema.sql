@@ -192,13 +192,15 @@ create policy "Flows: Insert"
   to authenticated
   with check ( auth.uid() = owner_id );
 
--- Update: Owner OR Team Editor/Admin
+-- Update: Owner OR Team Editor/Admin OR app admin (the last so admins can
+-- publish any flow as a template — see setFlowTemplate).
 create policy "Flows: Update"
   on public.flows for update
   to authenticated
-  using ( 
-    owner_id = auth.uid() 
+  using (
+    owner_id = auth.uid()
     or (team_id is not null and public.get_team_role(team_id) in ('owner', 'admin'))
+    or public.is_app_admin()
   );
 
 create policy "Flows: Delete"
