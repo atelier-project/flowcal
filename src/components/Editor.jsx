@@ -13,6 +13,7 @@ import { CodeEditorModal } from './ui/Modal';
 import { HelpModal } from './ui/HelpModal';
 import { Snowfall } from './ui/Snowfall';
 import { CustomNodeModal } from './ui/CustomNodeModal';
+import { CommandPalette } from './ui/CommandPalette';
 import { FlowSettingsPanel } from './flow/FlowSettingsPanel';
 import { VersionHistoryPanel } from './flow/VersionHistoryPanel';
 import { generateId } from '../utils/ids';
@@ -137,6 +138,10 @@ export default function Editor() {
   const [editingEdgeId, setEditingEdgeId] = useState(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState(null);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  // Last pointer position in canvas coordinates, so the command palette can drop
+  // a node where you were working rather than always at the viewport centre.
+  const lastCanvasPosRef = useRef(null);
 
   // Load Cloud Flow on Mount
   useEffect(() => {
@@ -1304,6 +1309,7 @@ export default function Editor() {
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left - pan.x) / scale;
     const y = (e.clientY - rect.top - pan.y) / scale;
+    lastCanvasPosRef.current = { x, y };
 
     if (selectionBox) {
       setSelectionBox(prev => ({ ...prev, current: { x, y } }));
@@ -1466,6 +1472,46 @@ export default function Editor() {
       edges
     });
   };
+
+  // Insert a node at the last canvas cursor position (used by the command
+  // palette), falling back to the viewport centre when we have no cursor yet.
+  const addNodeAtCursor = (type) => {
+    if (!canModifyStructure()) return;
+    const id = generateId();
+    let x, y;
+    if (lastCanvasPosRef.current) {
+      x = lastCanvasPosRef.current.x - 100;
+      y = lastCanvasPosRef.current.y - 30;
+    } else {
+      const rect = containerRef.current.getBoundingClientRect();
+      x = (-pan.x + rect.width / 2) / scale - 100;
+      y = (-pan.y + rect.height / 2) / scale - 50;
+    }
+    setGraph({
+      nodes: [...nodes, { id, type, position: { x, y }, data: { value: 0, label: '', subGraph: { nodes: [], edges: [] } } }],
+      edges
+    });
+  };
+
+  // Keep a live reference to the current save action for the Cmd/Ctrl-S shortcut,
+  // so the (mount-once) key listener never captures a stale closure.
+  const saveActionRef = useRef(null);
+  saveActionRef.current = () => { if (user) handleCloudSave(); else handleSave(); };
+
+  // Global editor shortcuts: Cmd/Ctrl-K opens the command palette, Cmd/Ctrl-S saves.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveActionRef.current?.();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const applyAutoLayout = useCallback(() => {
     if (!canModifyStructure()) return;
@@ -1918,6 +1964,11 @@ export default function Editor() {
       </div>
       <style>{`@keyframes dash { to { stroke-dashoffset: -20; } } .animate-dash { animation: dash 1s linear infinite; } `}</style>
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
+      <CommandPalette
+        isOpen={paletteOpen && canModifyStructure()}
+        onClose={() => setPaletteOpen(false)}
+        onSelect={addNodeAtCursor}
+      />
       <ThemeEditor
         isOpen={themeEditorOpen}
         currentThemeId={theme}

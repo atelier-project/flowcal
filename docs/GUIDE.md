@@ -166,7 +166,8 @@ With a nod to the [Zen of Python](https://peps.python.org/pep-0020/)
 - **Pan** — hold **Space** and drag, or drag an empty part of the canvas.
 - **Zoom** — the `+ / – / %` controls (bottom-right), or scroll.
 - **Add nodes** — open the **sidebar** (node palette) and pick a node; it drops
-  onto the canvas.
+  onto the canvas. Or press **`Ctrl/Cmd + K`** for the **command palette** —
+  type to search all 100+ nodes and insert the one you want right at the cursor.
 - **Select** — click a node. **Shift-click** to add/remove nodes from the
   selection, or drag a box around several. **Esc** clears the selection.
 - **Move** — drag a selected node. Turn on grid **snap** / **align** from the
@@ -321,6 +322,8 @@ Switch from the theme control; your choice is remembered per browser.
 
 | Action | Shortcut |
 |---|---|
+| **Command palette** (search + insert a node at the cursor) | `Ctrl/Cmd + K` |
+| Save | `Ctrl/Cmd + S` |
 | Copy / Cut / Paste | `Ctrl/Cmd + C` / `X` / `V` |
 | Duplicate selection | `Ctrl/Cmd + D` |
 | Group selection | `Ctrl/Cmd + G` |
