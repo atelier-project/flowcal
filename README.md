@@ -6,6 +6,13 @@ A visual node-graph editor and calculator built with React. Create computational
 flows by wiring nodes together, with 100+ node types, custom node composition,
 real-time evaluation, and cloud storage.
 
+<p align="center">
+  <img src="public/flowcal.png" alt="FlowCal — a visual node-graph editor and calculator" width="820">
+</p>
+
+> 📖 **New to FlowCal?** Start with the **[User Guide](docs/GUIDE.md)** — building your
+> first flow, connecting nodes, groups, custom nodes, sharing, and keyboard shortcuts.
+
 **FlowCal is free and open source (Apache-2.0) — and there's no lock-in.** Run it
 however you like:
 
@@ -138,6 +145,14 @@ npm run test:run     # Vitest (single run)
   `server/README.md`.
 
 No TypeScript — JSX only. Styling via Tailwind (six themes in `src/themes.js`).
+
+## Documentation
+
+- **[User Guide](docs/GUIDE.md)** — how to use FlowCal: your first flow, nodes and
+  wiring, groups and custom nodes, iterators, sharing, and shortcuts.
+- [`docs/POSITIONING.md`](docs/POSITIONING.md) — how the open project relates to Atelier.
+- [`server/README.md`](server/README.md) — the self-hosted API.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`SECURITY.md`](SECURITY.md)
 
 ## Generating flows from a calculation
 
