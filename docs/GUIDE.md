@@ -116,6 +116,51 @@ contribute — the way a spreadsheet invites scrutiny, but with the logic laid o
 in the open instead of buried in cells. Calculations you can *see and discuss*,
 not just run — that's what FlowCal is for.
 
+### 3. Keep the flow explicit
+
+> *"Explicit is better than implicit."*
+
+The whole strength of a flow is that you can *see* how values move — so protect
+that visibility:
+
+- **Prefer visible wires.** A **Warp (wireless) link** can untangle a busy
+  canvas, but it also hides a dependency. Use it only when a real wire would
+  genuinely knot things up — not as a default.
+- **Name constants; don't scatter numbers.** A bare `0.2` makes a reader ask
+  "0.2 of *what*?" A **global variable** `VAT = 0.2` answers the question in
+  place.
+- **Let problems show.** Don't leave inputs dangling or ignore a type-mismatch
+  warning — *errors should never pass silently.* A flow that's visibly
+  incomplete beats one that's quietly wrong.
+
+### 4. Keep it simple
+
+> *"Simple is better than complex"* — and the sharpest test of all:
+> *"if the implementation is hard to explain, it's a bad idea."*
+
+- **Reach for the smallest flow that solves the problem.** Clever wiring you have
+  to puzzle over is a cost every future reader pays.
+- **Hard to explain? Simplify.** If a corner of your flow resists a one-sentence
+  description, that's the signal to break it up — or wrap it in a well-named
+  group so the complexity at least has a label.
+- **Build once, reuse.** Turn a recurring step into a **group or custom node**
+  named after the idea it captures — one canonical version everyone shares,
+  instead of the same clump re-drawn (and re-broken) each time.
+
+### The Zen of FlowCal
+
+With a nod to the [Zen of Python](https://peps.python.org/pep-0020/)
+(Tim Peters, PEP 20):
+
+> - Beautiful is better than tangled.
+> - Explicit is better than implicit.
+> - Simple is better than clever.
+> - A named concept beats a clump of nodes.
+> - Visible wires beat hidden ones.
+> - Errors should be seen, not buried.
+> - If a flow is hard to explain, simplify it.
+> - Readability counts.
+
 ## The canvas
 
 - **Pan** — hold **Space** and drag, or drag an empty part of the canvas.
