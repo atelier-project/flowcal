@@ -71,6 +71,10 @@ flowsRouter.get('/:id', optionalAuth, asyncHandler(async (req, res) => {
 // PATCH /api/flows/:id — owner or team owner/admin.
 flowsRouter.patch('/:id', requireAuth, asyncHandler(async (req, res) => {
     const updates = req.body || {};
+    // Optional optimistic-concurrency guard: the client sends the updated_at it
+    // last loaded. If another tab/device has saved since, the row's updated_at
+    // has moved on and we refuse the write (409) instead of clobbering it.
+    const baseUpdatedAt = updates.baseUpdatedAt ?? null;
     const cols = Object.keys(updates).filter((k) => UPDATABLE.has(k));
     if (cols.length === 0) throw new ApiError(400, 'No updatable fields provided');
 
@@ -81,13 +85,35 @@ flowsRouter.patch('/:id', requireAuth, asyncHandler(async (req, res) => {
         .join(', ');
     const values = cols.map((c) => (c === 'data' ? JSON.stringify(updates[c]) : updates[c]));
 
+    // Compare at millisecond precision: node-postgres reads timestamptz as a JS
+    // Date (ms), so the value the client echoes back is already ms-truncated.
+    const guard = baseUpdatedAt
+        ? ` and date_trunc('milliseconds', f.updated_at) = $${values.length + 3}::timestamptz`
+        : '';
+    const guardValues = baseUpdatedAt ? [baseUpdatedAt] : [];
+
     const { rows } = await query(
         `update flows f set ${setClause}
-         where f.id = $2 and ${CAN_UPDATE}
+         where f.id = $2 and ${CAN_UPDATE}${guard}
          returning f.*`,
-        [req.user.id, req.params.id, ...values]
+        [req.user.id, req.params.id, ...values, ...guardValues]
     );
-    if (!rows[0]) throw new ApiError(404, 'Flow not found or not permitted');
+
+    if (!rows[0]) {
+        // Distinguish a stale-write conflict from a genuine 404/permission miss:
+        // if the guard was set and the flow is still visible+updatable to us,
+        // the mismatch was the version guard.
+        if (baseUpdatedAt) {
+            const { rows: current } = await query(
+                `select f.updated_at from flows f where f.id = $2 and ${CAN_UPDATE}`,
+                [req.user.id, req.params.id]
+            );
+            if (current[0]) {
+                throw new ApiError(409, 'This flow was changed somewhere else since you opened it.');
+            }
+        }
+        throw new ApiError(404, 'Flow not found or not permitted');
+    }
     res.json(rows[0]);
 }));
 

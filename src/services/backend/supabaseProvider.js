@@ -97,18 +97,40 @@ async function getFlow(id) {
 }
 
 async function updateFlow(id, updates) {
-    const { data, error } = await supabase
+    // Optional optimistic-concurrency guard (see #38): baseUpdatedAt is the
+    // updated_at the client last loaded; if it no longer matches, another writer
+    // has saved since and we refuse rather than clobber. It's not a column.
+    const { baseUpdatedAt, ...fields } = updates;
+
+    let q = supabase
         .from('flows')
         .update({
-            ...updates,
+            ...fields,
             updated_at: new Date().toISOString()
         })
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('id', id);
+    if (baseUpdatedAt) q = q.eq('updated_at', baseUpdatedAt);
 
+    const { data, error } = await q.select();
     if (error) throw error;
-    return data;
+
+    if (!data || data.length === 0) {
+        // No row updated. If the flow is still there for us, the version guard
+        // was what failed — surface a 409 so the editor can prompt to resolve.
+        if (baseUpdatedAt) {
+            let stillExists = false;
+            try { stillExists = !!(await getFlow(id)); } catch { stillExists = false; }
+            if (stillExists) {
+                const err = new Error('This flow was changed somewhere else since you opened it.');
+                err.status = 409;
+                throw err;
+            }
+        }
+        const err = new Error('Flow not found or not permitted');
+        err.status = 404;
+        throw err;
+    }
+    return data[0];
 }
 
 async function deleteFlow(id) {
