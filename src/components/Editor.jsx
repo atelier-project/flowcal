@@ -121,6 +121,13 @@ export default function Editor() {
   const [retryTick, setRetryTick] = useState(0);
   // Signature of the last persisted state; null until a flow is loaded/saved.
   const lastSavedSigRef = useRef(null);
+  // The flow's updated_at as we last loaded/saved it — the base for the
+  // optimistic-concurrency guard (#38). If the server's value has moved on,
+  // another tab/device saved and we must not clobber it.
+  const baseUpdatedAtRef = useRef(null);
+  // True while the stale-write conflict dialog is open, so background autosaves
+  // don't stack more dialogs or clobber while the user is deciding.
+  const conflictOpenRef = useRef(false);
   const dirtySinceRef = useRef(null); // when the current unsaved streak began
   const retryCountRef = useRef(0);
   const retryTimerRef = useRef(null);
@@ -162,6 +169,7 @@ export default function Editor() {
       setIsDirty(false);
       setSaveError(false);
       setLastSaved(new Date(flow.updated_at));
+      baseUpdatedAtRef.current = flow.updated_at;
     } catch (err) {
       console.error('Failed to load flow:', err);
       // A shared link may point at a flow that isn't public (or no longer exists).
@@ -177,7 +185,7 @@ export default function Editor() {
     }
   };
 
-  const handleCloudSave = async ({ auto = false } = {}) => {
+  const handleCloudSave = async ({ auto = false, force = false } = {}) => {
     if (!user) {
       // Guest Mode: Only Local Save allowed (handled by sidebar normally, but check safety)
       if (!auto) alert("Please login to save to the cloud.");
@@ -185,6 +193,9 @@ export default function Editor() {
     }
     // Autosave never creates a flow — it only persists an already-saved one.
     if (auto && !flowId) return;
+    // While the conflict dialog is up, don't start more saves (autosave keeps
+    // firing on the dirty flow); the user's choice will resume things.
+    if (conflictOpenRef.current) return;
 
     setSaving(true);
     setSaveError(false);
@@ -194,6 +205,7 @@ export default function Editor() {
       if (!currentFlowId) {
         const newFlow = await flowService.createFlow(projectTitle);
         currentFlowId = newFlow.id;
+        baseUpdatedAtRef.current = newFlow.updated_at;
         setFlowOwnerId(user.id);
         // Update URL without reload
         navigate('/editor', { state: { flowId: newFlow.id }, replace: true });
@@ -202,20 +214,40 @@ export default function Editor() {
       // Reconstruct full graph if we are inside a group
       const fullGraph = reconstructFullGraph(path, nodes, edges, { pan, scale });
 
-      await flowService.updateFlow(currentFlowId, {
+      const payload = {
         name: projectTitle,
         data: {
           ...fullGraph,
           settings: flowSettings
         }
-      });
+      };
+      // Optimistic-concurrency guard (#38): send the version we based this edit
+      // on so the server refuses to clobber a newer save — unless the user has
+      // explicitly chosen to overwrite.
+      if (!force && baseUpdatedAtRef.current) {
+        payload.baseUpdatedAt = baseUpdatedAtRef.current;
+      }
+
+      const saved = await flowService.updateFlow(currentFlowId, payload);
+
+      // Advance our base to what we just wrote, so the next save guards against it.
+      if (saved?.updated_at) baseUpdatedAtRef.current = saved.updated_at;
       // Mark this exact state as the clean baseline. If the user edited during the
       // async save, the live signature will differ and isDirty flips back to true.
       lastSavedSigRef.current = computeSaveSignature(projectTitle, fullGraph.nodes, fullGraph.edges, flowSettings);
       retryCountRef.current = 0;
       setIsDirty(false);
-      setLastSaved(new Date());
+      setLastSaved(saved?.updated_at ? new Date(saved.updated_at) : new Date());
     } catch (err) {
+      // A stale-write conflict (another tab/device saved first) is not a
+      // transient failure — don't retry-loop it; ask the user how to resolve.
+      if (err?.status === 409) {
+        if (!conflictOpenRef.current) {
+          conflictOpenRef.current = true;
+          handleSaveConflict();
+        }
+        return;
+      }
       setSaveError(true);
       if (!auto) {
         alert('Failed to save: ' + err.message);
@@ -229,6 +261,21 @@ export default function Editor() {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Resolve a stale-write conflict: reload the other tab's version (discarding
+  // local edits) or overwrite it with ours. Either choice clears the conflict.
+  const handleSaveConflict = async () => {
+    const reload = await confirm(
+      'Another tab or device saved this flow after you opened it. Reload their version (your unsaved changes here will be lost), or overwrite it with your version?',
+      { title: 'Flow changed elsewhere', type: 'danger', confirmText: 'Reload', cancelText: 'Overwrite' }
+    );
+    conflictOpenRef.current = false;
+    if (reload) {
+      if (flowId) await loadCloudFlow(flowId);
+    } else {
+      await handleCloudSave({ force: true });
     }
   };
 

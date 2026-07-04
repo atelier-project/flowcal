@@ -8,13 +8,15 @@ export const ConfirmProvider = ({ children }) => {
         isOpen: false,
         message: '',
         title: '',
-        type: 'warning'
+        type: 'warning',
+        confirmText: undefined,
+        cancelText: 'Cancel'
     });
 
     const resolveRef = useRef(null);
 
     const confirm = useCallback((message, options = {}) => {
-        const { title = "Are you sure?", type = 'warning' } = options;
+        const { title = "Are you sure?", type = 'warning', confirmText, cancelText = 'Cancel' } = options;
 
         return new Promise((resolve) => {
             resolveRef.current = resolve;
@@ -22,7 +24,9 @@ export const ConfirmProvider = ({ children }) => {
                 isOpen: true,
                 message,
                 title,
-                type
+                type,
+                confirmText,
+                cancelText
             });
         });
     }, []);
@@ -45,6 +49,8 @@ export const ConfirmProvider = ({ children }) => {
                 message={state.message}
                 title={state.title}
                 type={state.type}
+                confirmText={state.confirmText}
+                cancelText={state.cancelText}
                 onConfirm={handleConfirm}
                 onCancel={handleCancel}
             />

@@ -1,8 +1,10 @@
 import React from 'react';
 import { AlertTriangle, HelpCircle } from 'lucide-react';
 
-export const ConfirmDialog = ({ isOpen, message, title = "Confirm Action", onConfirm, onCancel, type = 'warning' }) => {
+export const ConfirmDialog = ({ isOpen, message, title = "Confirm Action", onConfirm, onCancel, type = 'warning', confirmText, cancelText = 'Cancel' }) => {
     if (!isOpen) return null;
+
+    const confirmLabel = confirmText || (type === 'danger' ? 'Delete' : 'Confirm');
 
     return (
         <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -23,7 +25,7 @@ export const ConfirmDialog = ({ isOpen, message, title = "Confirm Action", onCon
                         onClick={onCancel}
                         className="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-colors"
                     >
-                        Cancel
+                        {cancelText}
                     </button>
                     <button
                         onClick={onConfirm}
@@ -32,7 +34,7 @@ export const ConfirmDialog = ({ isOpen, message, title = "Confirm Action", onCon
                                 : 'bg-blue-600 hover:bg-blue-700'
                             }`}
                     >
-                        {type === 'danger' ? 'Delete' : 'Confirm'}
+                        {confirmLabel}
                     </button>
                 </div>
             </div>
