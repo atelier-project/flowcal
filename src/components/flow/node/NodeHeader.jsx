@@ -237,7 +237,7 @@ export const NodeHeader = ({
                                         <Copy size={14} />
                                     </button>
                                 )}
-                                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1">
+                                <button onClick={(e) => { e.stopPropagation(); onDelete(id); }} title="Delete node" className="text-slate-400 hover:text-red-500 dark:hover:text-red-400 p-1">
                                     <Trash2 size={14} />
                                 </button>
                             </>
