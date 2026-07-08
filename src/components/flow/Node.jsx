@@ -2,8 +2,6 @@ import React, { useRef } from 'react';
 import { Plus, Maximize2, Trash2, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getNodeHeight } from '../../utils/layout';
-import { GaugeChart, LineChart, BarChart } from '../ui/Charts';
-import { DataTable } from '../ui/DataTable';
 import { Handle } from './Handle';
 import { getUI } from './nodeUIMap';
 import { getDefinition } from '../../engine/nodeDefinitions';
@@ -12,6 +10,7 @@ import { getTypeDisplayName, validateFormFields } from '../../utils/typeUtils';
 import { NodeHeader } from './node/NodeHeader';
 import { useNodeHandles, NodeHandles } from './node/NodeHandles';
 import { GetGlobalNodeBody } from './node/bodies/GetGlobalNodeBody';
+import { resolveNodeBody } from './node/bodies';
 
 export const Node = ({ id, type, data, position, selected, isHovered, onDragStart, onDelete, onDuplicate, onUpdateData, onStartConnect, onOpenEditor, inputs, inputSources, result, onEnterGroup, onSaveAsCustom, readOnly, typeWarnings, availableGlobals }) => {
     const nodeRef = useRef(null);
@@ -840,24 +839,14 @@ export const Node = ({ id, type, data, position, selected, isHovered, onDragStar
                     </div>
                 )}
 
-                {/* Generic descriptions */}
-                {type === 'RANGE' && <div className="text-xs text-slate-500 dark:text-slate-400">Generates array from Start to End.</div>}
-                {type === 'COLLECTOR' && <div className="text-xs text-slate-500 dark:text-slate-400">Collects inputs into a single array.</div>}
-
-                {/* Visualizations */}
-                {type === 'GAUGE' && <GaugeChart value={inputs[0] || 0} min={inputs[1] || 0} max={inputs[2] || 100} />}
-                {type === 'PROGRESS' && (
-                    <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-4 overflow-hidden border border-slate-200 dark:border-slate-600">
-                        <div
-                            className="bg-blue-500 h-full transition-all duration-500"
-                            style={{ width: `${Math.min(100, Math.max(0, ((typeof inputs[0] === 'number' ? inputs[0] : 0) / (typeof inputs[1] === 'number' ? inputs[1] : 100)) * 100))}%` }}
-                        />
-                    </div>
-                )}
-                {(type === 'LINE_CHART' || type === 'BAR_CHART') && (
-                    type === 'LINE_CHART' ? <LineChart data={inputs[0]} /> : <BarChart data={inputs[0]} />
-                )}
-                {type === 'TABLE' && <DataTable data={inputs[0]} />}
+                {/* Registry-resolved bodies (issue #34): display/visualization
+                    nodes migrated out of this switch. Exactly one body matches a
+                    given node type, so this renders in place of the old inline
+                    blocks. */}
+                {(() => {
+                    const RegistryBody = resolveNodeBody(type);
+                    return RegistryBody ? <RegistryBody type={type} inputs={inputs} /> : null;
+                })()}
 
                 {type === 'CUSTOM' && (
                     <div>
