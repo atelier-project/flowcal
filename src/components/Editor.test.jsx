@@ -47,8 +47,19 @@ import { flowService } from '../services/flowService';
 afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    localStorage.clear();
     authValue = { user: null, isAdmin: false };
 });
+
+// Render the editor as the owner of an already-saved cloud flow, whose graph
+// (given by `nodes`) replaces the default sample on load.
+function mockLoadedFlow(nodes, { ownerId = 'owner' } = {}) {
+    flowService.getFlow.mockResolvedValueOnce({
+        id: 'abc', name: 'My Flow', is_public: false, owner_id: ownerId,
+        updated_at: '2026-01-01T00:00:00.000Z',
+        data: { nodes, edges: [] },
+    });
+}
 
 describe('Editor (integration)', () => {
     test('mounts and renders the default sample graph', () => {
@@ -114,5 +125,46 @@ describe('Editor (integration)', () => {
         // Structure editing is blocked, so Cmd+K must not surface the palette.
         fireEvent.keyDown(window, { key: 'k', ctrlKey: true });
         expect(screen.queryByPlaceholderText(/search nodes to insert/i)).toBeNull();
+    });
+});
+
+describe('Editor (cloud save)', () => {
+    test('a manual save persists the current edited graph, not a stale snapshot (guards #30)', async () => {
+        authValue = { user: { id: 'owner' }, isAdmin: false };
+        mockLoadedFlow([
+            { id: 'n1', type: 'INPUT', position: { x: 100, y: 100 }, data: { label: 'Loaded Node', value: 1 } },
+        ]);
+        renderWithProviders(<Editor />, { route: { pathname: '/editor', state: { flowId: 'abc' } } });
+
+        // Wait for the cloud flow to replace the sample graph, then edit it.
+        const input = await screen.findByDisplayValue('Loaded Node');
+        fireEvent.change(input, { target: { value: 'Edited Node' } });
+
+        // Cmd+S. The #30 regression was a stale closure that saved the initial
+        // sample graph instead of the loaded/edited one.
+        fireEvent.keyDown(window, { key: 's', ctrlKey: true });
+
+        await waitFor(() => expect(flowService.updateFlow).toHaveBeenCalled());
+        const payload = flowService.updateFlow.mock.calls.at(-1)[1];
+        const savedLabels = payload.data.nodes.map((n) => n.data.label);
+        expect(savedLabels).toContain('Edited Node');   // current edit persisted
+        expect(savedLabels).not.toContain('Base Price'); // not the stale sample
+    });
+
+    test('autosave fires after an edit settles for the owner of a saved flow', async () => {
+        localStorage.setItem('flowcal-autosave', '1');
+        authValue = { user: { id: 'owner' }, isAdmin: false };
+        mockLoadedFlow([
+            { id: 'n1', type: 'INPUT', position: { x: 100, y: 100 }, data: { label: 'Auto Node', value: 1 } },
+        ]);
+        renderWithProviders(<Editor />, { route: { pathname: '/editor', state: { flowId: 'abc' } } });
+
+        const input = await screen.findByDisplayValue('Auto Node');
+        expect(flowService.updateFlow).not.toHaveBeenCalled(); // clean right after load
+
+        fireEvent.change(input, { target: { value: 'Auto Node edited' } });
+
+        // No manual save — the debounced autosave (2s) should persist on its own.
+        await waitFor(() => expect(flowService.updateFlow).toHaveBeenCalled(), { timeout: 5000 });
     });
 });
