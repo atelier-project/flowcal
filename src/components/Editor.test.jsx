@@ -88,6 +88,27 @@ describe('Editor (integration)', () => {
         expect(screen.getByDisplayValue('Grand Total')).toBeTruthy();
     });
 
+    test('deleting a node removes it from the canvas', () => {
+        renderWithProviders(<Editor />);
+        expect(screen.getByDisplayValue('Base Price')).toBeTruthy();
+
+        // The nodes render in order, so the first delete button is Base Price's.
+        fireEvent.click(screen.getAllByTitle('Delete node')[0]);
+
+        expect(screen.queryByDisplayValue('Base Price')).toBeNull();
+        // Its neighbours are untouched.
+        expect(screen.getByDisplayValue('Tax Rate')).toBeTruthy();
+    });
+
+    test('duplicating a node adds a copy with the same label', () => {
+        renderWithProviders(<Editor />);
+        expect(screen.getAllByDisplayValue('Base Price')).toHaveLength(1);
+
+        fireEvent.click(screen.getAllByTitle('Duplicate (Ctrl+D)')[0]);
+
+        expect(screen.getAllByDisplayValue('Base Price')).toHaveLength(2);
+    });
+
     test('the command palette inserts a node at the cursor', () => {
         renderWithProviders(<Editor />);
         // No Subtract node in the default graph.
