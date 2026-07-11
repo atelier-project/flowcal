@@ -27,7 +27,9 @@ describe('resolveNodeBody registry', () => {
     });
 
     test('returns null for types still handled by the inline switch', () => {
-        for (const type of ['LOOKUP', 'SUM', 'GROUP', 'FINAL', 'GET_GLOBAL']) {
+        // The GROUP family stays inline by design (it renders two body blocks);
+        // SUM has no body at all.
+        for (const type of ['SUM', 'GROUP', 'GROUP_INPUT', 'GROUP_OUTPUT', 'FRAME']) {
             expect(resolveNodeBody(type)).toBeNull();
         }
     });
