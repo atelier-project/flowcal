@@ -27,7 +27,7 @@ describe('resolveNodeBody registry', () => {
     });
 
     test('returns null for types still handled by the inline switch', () => {
-        for (const type of ['INPUT', 'SUM', 'GROUP', 'PACK', 'GET_GLOBAL']) {
+        for (const type of ['INPUT', 'SUM', 'GROUP', 'FINAL', 'GET_GLOBAL']) {
             expect(resolveNodeBody(type)).toBeNull();
         }
     });
