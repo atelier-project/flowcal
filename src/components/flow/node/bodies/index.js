@@ -1,5 +1,6 @@
 import { DisplayNodeBody } from './DisplayNodeBody';
 import { ControlNodeBody } from './ControlNodeBody';
+import { StructuredNodeBody } from './StructuredNodeBody';
 
 // Registry of extracted node-body renderers (issue #34). Each component declares
 // the node types it handles via a static `handlesType(type)`. `resolveNodeBody`
@@ -7,7 +8,7 @@ import { ControlNodeBody } from './ControlNodeBody';
 // in Node.jsx should handle it. Migrating a type here is how that monolithic
 // switch shrinks over time — add the extracted component to REGISTRY and delete
 // the corresponding inline block.
-const REGISTRY = [DisplayNodeBody, ControlNodeBody];
+const REGISTRY = [DisplayNodeBody, ControlNodeBody, StructuredNodeBody];
 
 export function resolveNodeBody(type) {
     return REGISTRY.find((Component) => Component.handlesType(type)) || null;
