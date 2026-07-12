@@ -4,7 +4,9 @@
  * @param {Array} path - Stack of parent contexts [{ id, nodes, edges, viewport }]
  * @param {Array} nodes - Current level nodes
  * @param {Array} edges - Current level edges
- * @param {Object} viewport - Current viewport state { pan, scale }
+ * @param {Object} [viewport] - Current viewport state { pan, scale }. Optional: the
+ *   dirty-signature check deliberately omits it so panning/zooming never marks the
+ *   flow as having unsaved changes.
  * @returns {Object} - The full root graph data { nodes, edges, viewport }
  */
 export const reconstructFullGraph = (path, nodes, edges, viewport) => {

@@ -1,0 +1,50 @@
+{
+  // Incremental type checking (#37). FlowCal stays JSX-only — this type-checks
+  // plain JS via JSDoc, it does not migrate anything to TypeScript.
+  //
+  // `include` is deliberately narrow: the pure, high-value core (engine, services,
+  // utils, hooks) where the shape/stale-value bugs actually happened. Widen it a
+  // directory at a time — each addition should land green, not with a pile of
+  // suppressions. Components are out of scope for now (JSX + untyped props would
+  // drown the signal).
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+
+    // Catch real mistakes, not stylistic ones. Deliberately NOT `strict`: this is
+    // untyped JS with JSDoc, so full strictness would be noise, not signal.
+    "strict": false,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true,
+    "allowUnreachableCode": false,
+
+    // Vite's client types, so `import.meta.env` is known.
+    "types": ["vite/client"],
+
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "src/engine/**/*.js",
+    "src/services/**/*.js",
+    "src/utils/**/*.js",
+    "src/hooks/**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.test.js",
+    "**/*.test.jsx"
+  ]
+}
