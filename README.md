@@ -124,6 +124,45 @@ npm run dev              # http://localhost:3001
 Point the frontend at it with `VITE_API_URL=http://localhost:3001` in the root
 `.env`.
 
+## Administration
+
+### Closing sign-ups
+
+Once you've created your accounts, you'll usually want to stop new ones. How you
+do that depends on the backend — and the difference matters, because only one of
+these actually enforces anything.
+
+**Self-hosted (`VITE_BACKEND=api`)** — set the **server-side** variable:
+
+```bash
+SIGNUPS_ENABLED=false     # in server/.env, then restart the API
+```
+
+`POST /api/auth/signup` now returns **403** and the login page hides the sign-up
+form. Existing users can still sign in.
+
+On **Atelier**, set it as a secret (the pods restart automatically):
+
+```bash
+curl -s -X PUT "$ATELIER_API_URL/api/apps/<app>/secrets" \
+  -H "Authorization: Bearer $ATELIER_API_TOKEN" -H 'Content-Type: application/json' \
+  -d '{"secrets":{"SIGNUPS_ENABLED":"false"}}'
+```
+
+**Supabase (`VITE_BACKEND=supabase`)** — disable **"Allow new users to sign up"**
+in your Supabase project's *Authentication → Providers* settings. That's the real
+enforcement. Optionally also set `VITE_SIGNUPS_ENABLED=false` to hide the form in
+the UI.
+
+> ⚠️ `VITE_SIGNUPS_ENABLED` is a **build-time, UI-only** flag — it hides the
+> sign-up form but does not close the endpoint. Don't rely on it alone; use
+> `SIGNUPS_ENABLED` (api) or your Supabase Auth setting (supabase).
+
+### Making someone an admin
+
+Set `ADMIN_EMAIL` on the API server and restart — that already-registered account
+is promoted to admin on startup, so you don't need container access.
+
 ## Commands
 
 ```bash
