@@ -213,6 +213,18 @@ async function listVersions(flowId) {
     return data;
 }
 
+// One version *with* its data payload — for read-only preview and diff (#39).
+async function getVersion(flowId, versionId) {
+    const { data, error } = await supabase
+        .from('flow_versions')
+        .select('id, label, origin, created_at, data')
+        .eq('flow_id', flowId)
+        .eq('id', versionId)
+        .single();
+    if (error) throw error;
+    return data;
+}
+
 async function createVersion(flowId, label = null) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -370,6 +382,7 @@ export const supabaseProvider = {
     duplicateFlow,
     listTemplates,
     listVersions,
+    getVersion,
     createVersion,
     restoreVersion,
     deleteVersion,

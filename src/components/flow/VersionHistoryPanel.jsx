@@ -1,21 +1,30 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, History, RotateCcw, Trash2, Save, Loader2, Clock } from 'lucide-react';
+import { X, History, RotateCcw, Trash2, Save, Loader2, Clock, Eye, GitCompare } from 'lucide-react';
 import { flowService } from '../../services/flowService';
+import { diffGraphs, summarizeDiff } from '../../utils/graphDiff';
 import { useToast } from '../../context/ToastContext';
 import { useConfirm } from '../../context/ConfirmContext';
 
 /**
- * Right-hand drawer listing a flow's saved versions. Save/list/restore/delete;
- * saving and restoring touch editor state, so those go through the parent
- * (onSaveVersion / onRestore); listing and deletion are pure data.
+ * Right-hand drawer listing a flow's saved versions. Save/list/restore/delete,
+ * plus read-only preview and a diff against the current graph (#39).
+ *
+ * Saving, restoring and previewing touch editor state, so those go through the
+ * parent (onSaveVersion / onRestore / onPreview); listing, deletion and diffing
+ * are pure data.
  */
-export const VersionHistoryPanel = ({ isOpen, onClose, flowId, onSaveVersion, onRestore }) => {
+export const VersionHistoryPanel = ({
+    isOpen, onClose, flowId, onSaveVersion, onRestore, onPreview,
+    currentGraph, previewingVersionId,
+}) => {
     const { addToast } = useToast();
     const { confirm } = useConfirm();
     const [versions, setVersions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [busy, setBusy] = useState(false);
     const [label, setLabel] = useState('');
+    // versionId -> diff summary vs the current graph (lazily fetched on demand).
+    const [diffs, setDiffs] = useState({});
 
     const load = useCallback(async () => {
         if (!flowId) return;
@@ -78,6 +87,38 @@ export const VersionHistoryPanel = ({ isOpen, onClose, flowId, onSaveVersion, on
         }
     };
 
+    // Fetch a version's graph and show it read-only in the editor.
+    const handlePreview = async (v) => {
+        setBusy(true);
+        try {
+            const full = await flowService.getVersion(flowId, v.id);
+            onPreview({ ...v, data: full.data });
+        } catch (e) {
+            addToast('Failed to load version: ' + e.message, 'error');
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    // Compare a version against the current graph. Click again to collapse.
+    const handleDiff = async (v) => {
+        if (diffs[v.id]) {
+            setDiffs((d) => ({ ...d, [v.id]: undefined }));
+            return;
+        }
+        setBusy(true);
+        try {
+            const full = await flowService.getVersion(flowId, v.id);
+            // Reads as "what would change if I restored this": current → version.
+            const diff = diffGraphs(currentGraph, full.data || { nodes: [], edges: [] });
+            setDiffs((d) => ({ ...d, [v.id]: summarizeDiff(diff) }));
+        } catch (e) {
+            addToast('Failed to diff: ' + e.message, 'error');
+        } finally {
+            setBusy(false);
+        }
+    };
+
     if (!isOpen) return null;
 
     const authorName = (a) => a?.full_name || a?.email || 'Unknown';
@@ -124,37 +165,69 @@ export const VersionHistoryPanel = ({ isOpen, onClose, flowId, onSaveVersion, on
                     <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8">No versions yet. Save one above.</p>
                 ) : (
                     versions.map((v) => (
-                        <div key={v.id} className="group p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                                <div className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate flex items-center gap-1.5">
-                                    {v.label || (v.origin === 'auto' ? 'Before restore' : 'Untitled version')}
-                                    {v.origin === 'auto' && (
-                                        <span className="text-[9px] uppercase tracking-wide px-1 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">auto</span>
-                                    )}
+                        <div
+                            key={v.id}
+                            className={`group p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 ${previewingVersionId === v.id ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-amber-300 dark:ring-amber-700' : ''}`}
+                        >
+                            <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                    <div className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate flex items-center gap-1.5">
+                                        {v.label || (v.origin === 'auto' ? 'Before restore' : 'Untitled version')}
+                                        {v.origin === 'auto' && (
+                                            <span className="text-[9px] uppercase tracking-wide px-1 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">auto</span>
+                                        )}
+                                        {previewingVersionId === v.id && (
+                                            <span className="text-[9px] uppercase tracking-wide px-1 py-0.5 rounded bg-amber-400 text-amber-950">previewing</span>
+                                        )}
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                        <Clock size={10} />
+                                        <span className="truncate">{new Date(v.created_at).toLocaleString()} · {authorName(v.author)}</span>
+                                    </div>
                                 </div>
-                                <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                                    <Clock size={10} />
-                                    <span className="truncate">{new Date(v.created_at).toLocaleString()} · {authorName(v.author)}</span>
+                                <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                                    <button
+                                        onClick={() => handlePreview(v)}
+                                        disabled={busy}
+                                        title="Preview this version (read-only)"
+                                        className="p-1.5 rounded text-slate-400 hover:text-amber-500 disabled:opacity-40"
+                                    >
+                                        <Eye size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDiff(v)}
+                                        disabled={busy}
+                                        title="Compare with the current flow"
+                                        className="p-1.5 rounded text-slate-400 hover:text-violet-500 disabled:opacity-40"
+                                    >
+                                        <GitCompare size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleRestore(v)}
+                                        disabled={busy}
+                                        title="Restore this version"
+                                        className="p-1.5 rounded text-slate-400 hover:text-blue-500 disabled:opacity-40"
+                                    >
+                                        <RotateCcw size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete(v)}
+                                        disabled={busy}
+                                        title="Delete this version"
+                                        className="p-1.5 rounded text-slate-400 hover:text-red-500 disabled:opacity-40"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
                                 </div>
                             </div>
-                            <div className="flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button
-                                    onClick={() => handleRestore(v)}
-                                    disabled={busy}
-                                    title="Restore this version"
-                                    className="p-1.5 rounded text-slate-400 hover:text-blue-500 disabled:opacity-40"
-                                >
-                                    <RotateCcw size={14} />
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(v)}
-                                    disabled={busy}
-                                    title="Delete this version"
-                                    className="p-1.5 rounded text-slate-400 hover:text-red-500 disabled:opacity-40"
-                                >
-                                    <Trash2 size={14} />
-                                </button>
-                            </div>
+
+                            {diffs[v.id] && (
+                                <div className="mt-1.5 px-2 py-1 rounded bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800">
+                                    <div className="text-[10px] font-medium text-violet-700 dark:text-violet-300">
+                                        Restoring this would: {diffs[v.id].toLowerCase()}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ))
                 )}
