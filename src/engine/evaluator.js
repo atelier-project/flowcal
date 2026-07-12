@@ -6,7 +6,24 @@
 import { NODE_LOGIC } from './nodeDefinitions';
 import { resolveSourceValue } from './valueResolution';
 
-// Evaluates the graph and returns computed results for all nodes
+/**
+ * @typedef {import('../types').Node} Node
+ * @typedef {import('../types').Edge} Edge
+ */
+
+/**
+ * Evaluate the graph and return computed results for every node.
+ *
+ * Depth-first with cycle detection; a node's value can be any shape (number,
+ * string, array, object) depending on its type.
+ *
+ * @param {Node[]} nodes
+ * @param {Edge[]} edges
+ * @param {Object.<string, any>} [contextInputs]  Inbound values when evaluating a
+ *   subgraph (GROUP/iterator bodies) — keyed by the context node's id.
+ * @param {Array<{key: string, value: any, type?: string}>} [globals]
+ * @returns {Object.<string, any>} results, keyed by node id
+ */
 export function evaluateGraph(nodes, edges, contextInputs = {}, globals = []) {
 
     const results = {};
@@ -143,6 +160,8 @@ export function evaluateGraph(nodes, edges, contextInputs = {}, globals = []) {
 
         const inputVals = getInputs();
 
+        // A node's value can be any shape: number, string, array, object.
+        /** @type {any} */
         let val = 0;
         try {
             if (node.type === 'GROUP') {

@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "typecheck": "tsc -p jsconfig.json --noEmit",
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run"
@@ -33,6 +34,7 @@
     "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
+    "typescript": "^7.0.2",
     "vite": "^8.1.0",
     "vitest": "^4.1.9"
   }

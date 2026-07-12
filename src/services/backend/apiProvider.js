@@ -22,6 +22,10 @@ class ApiError extends Error {
     }
 }
 
+/**
+ * @param {string} path
+ * @param {{ method?: string, body?: any }} [options]
+ */
 async function api(path, { method = 'GET', body } = {}) {
     const res = await fetch(`${API_BASE}/api${path}`, {
         method,

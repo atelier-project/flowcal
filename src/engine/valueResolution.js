@@ -59,6 +59,16 @@ export const TARGET_WHITELIST = new Set([
  * @param {string} targetType - The type of the target node
  * @returns {any} The resolved value to pass to the target
  */
+/**
+ * Coerce a value as it crosses a wire, based on the port and the node types at
+ * each end.
+ *
+ * @param {any} rawVal          The source node's computed value.
+ * @param {string|null} handle  Source port id (null = the default port).
+ * @param {string} sourceType   Node type producing the value.
+ * @param {string} targetType   Node type consuming it.
+ * @returns {any}
+ */
 export const resolveSourceValue = (rawVal, handle, sourceType, targetType) => {
     // STEP 1: Special extraction for nodes with wrapped output format
 

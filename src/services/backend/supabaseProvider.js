@@ -7,8 +7,6 @@ import { supabase } from '../../lib/supabase';
  * RPCs, and auth specifics. It preserves the exact behavior the app had when
  * these calls lived inline in flowService / AuthContext / ProfileSettings /
  * AdminDashboard.
- *
- * @type {import('./provider.types').BackendProvider}
  */
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
@@ -138,12 +136,14 @@ async function updateFlow(id, updates) {
             let stillExists = false;
             try { stillExists = !!(await getFlow(id)); } catch { stillExists = false; }
             if (stillExists) {
-                const err = new Error('This flow was changed somewhere else since you opened it.');
+                const err = /** @type {Error & { status?: number }} */ (
+                    new Error('This flow was changed somewhere else since you opened it.')
+                );
                 err.status = 409;
                 throw err;
             }
         }
-        const err = new Error('Flow not found or not permitted');
+        const err = /** @type {Error & { status?: number }} */ (new Error('Flow not found or not permitted'));
         err.status = 404;
         throw err;
     }
@@ -364,6 +364,7 @@ async function setFlowTemplate(id, isTemplate) {
     return data;
 }
 
+/** @type {import('./provider.types').BackendProvider} */
 export const supabaseProvider = {
     // Auth
     getSession,

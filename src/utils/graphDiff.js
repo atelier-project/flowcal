@@ -9,16 +9,39 @@
  * around the canvas shouldn't read the same as changing what it computes.
  */
 
-const byId = (items) => new Map((items || []).map((item) => [item.id, item]));
+/**
+ * @typedef {import('../types').Graph} Graph
+ * @typedef {import('../types').Node} Node
+ * @typedef {import('../types').Edge} Edge
+ */
 
-/** Stable identity for an edge: the same wire between the same ports. */
+/**
+ * @typedef {Object} GraphDiff
+ * @property {{ added: Node[], removed: Node[], changed: Array<{id: string, before: Node, after: Node}>, moved: Array<{id: string, before: Node, after: Node}> }} nodes
+ * @property {{ added: Edge[], removed: Edge[] }} edges
+ */
+
+/**
+ * @param {Node[]} [items]
+ * @returns {Map<string, Node>}
+ */
+const byId = (items) => new Map((items || []).map((item) => /** @type {[string, Node]} */([item.id, item])));
+
+/**
+ * Stable identity for an edge: the same wire between the same ports.
+ * @param {Edge} e
+ */
 const edgeKey = (e) => `${e.source}:${e.sourceHandle ?? ''}→${e.target}:${e.targetHandle ?? ''}`;
 
+/** @param {Node} a @param {Node} b */
 const samePosition = (a, b) =>
     (a.position?.x ?? 0) === (b.position?.x ?? 0) &&
     (a.position?.y ?? 0) === (b.position?.y ?? 0);
 
-/** Did anything other than the node's canvas position change? */
+/**
+ * Did anything other than the node's canvas position change?
+ * @param {Node} a @param {Node} b
+ */
 const sameSubstance = (a, b) =>
     a.type === b.type && JSON.stringify(a.data ?? {}) === JSON.stringify(b.data ?? {});
 
@@ -27,6 +50,10 @@ const sameSubstance = (a, b) =>
  * graph). Returns nodes added/removed/changed/moved and edges added/removed.
  *
  * `changed` entries carry both sides so a UI can show before → after.
+ *
+ * @param {Graph|null|undefined} base
+ * @param {Graph|null|undefined} target
+ * @returns {GraphDiff}
  */
 export function diffGraphs(base, target) {
     const baseNodes = byId(base?.nodes);
@@ -68,6 +95,8 @@ export function diffGraphs(base, target) {
 /**
  * True when the two graphs are identical in every way the diff reports —
  * including position-only moves.
+ * @param {GraphDiff} diff
+ * @returns {boolean}
  */
 export function isEmptyDiff(diff) {
     const { nodes, edges } = diff;
@@ -76,7 +105,11 @@ export function isEmptyDiff(diff) {
         edges.added.length === 0 && edges.removed.length === 0;
 }
 
-/** One-line human summary, e.g. "2 added, 1 changed, 3 wires added". */
+/**
+ * One-line human summary, e.g. "2 added, 1 changed, 3 wires added".
+ * @param {GraphDiff} diff
+ * @returns {string}
+ */
 export function summarizeDiff(diff) {
     const parts = [];
     const { nodes, edges } = diff;

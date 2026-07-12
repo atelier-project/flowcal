@@ -7,6 +7,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 // must NOT construct the client (which throws on a missing URL) at load time
 // unless Supabase is actually configured. When it isn't, export a stub that
 // only errors if something genuinely tries to use the Supabase backend.
+/** @returns {any} A stand-in that only throws if the Supabase backend is actually used. */
 function createUnconfiguredStub() {
     return new Proxy(
         {},

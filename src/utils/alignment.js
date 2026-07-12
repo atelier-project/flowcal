@@ -13,8 +13,9 @@ const yLines = (b) => [b.y, b.y + b.h / 2, b.y + b.h];
  * @param anchor  tentative box of the dragged node (already at origin + delta)
  * @param others  boxes of the static nodes to align against
  * @param threshold  max gap (canvas px) that still counts as aligned
- * @returns { dx, dy, hasX, hasY, guides } — dx/dy are the extra offset to apply
- *          to the anchor; guides are line segments {x1,y1,x2,y2} to render.
+ * @returns {{dx: number, dy: number, hasX: boolean, hasY: boolean, guides: Array<{x1: number, y1: number, x2: number, y2: number}>}}
+ *          dx/dy are the extra offset to apply to the anchor; guides are line
+ *          segments to render.
  */
 export function computeAlignment(anchor, others, threshold = 6) {
     let dx = 0, dy = 0, bestX = threshold + 1, bestY = threshold + 1;
