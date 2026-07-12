@@ -190,6 +190,21 @@ flowsRouter.get('/:id/versions', requireAuth, asyncHandler(async (req, res) => {
     res.json(rows);
 }));
 
+// GET /api/flows/:id/versions/:versionId — one version *including* its data
+// payload, for read-only preview and diffing (#39). Same CAN_UPDATE gate as the
+// rest of the history: viewers never see a flow's past.
+flowsRouter.get('/:id/versions/:versionId', requireAuth, asyncHandler(async (req, res) => {
+    const { rows } = await query(
+        `select v.id, v.label, v.origin, v.created_at, v.data
+         from flow_versions v
+         join flows f on f.id = v.flow_id
+         where v.id = $2 and v.flow_id = $3 and ${CAN_UPDATE}`,
+        [req.user.id, req.params.versionId, req.params.id]
+    );
+    if (!rows[0]) throw new ApiError(404, 'Version not found or not permitted');
+    res.json(rows[0]);
+}));
+
 // POST /api/flows/:id/versions — snapshot the flow's current data (label optional).
 flowsRouter.post('/:id/versions', requireAuth, asyncHandler(async (req, res) => {
     const label = (req.body?.label ?? '').toString().trim().slice(0, 200) || null;

@@ -17,6 +17,7 @@ export const flowService = {
     listTemplates: (...args) => backend.listTemplates(...args),
     setFlowTemplate: (...args) => backend.setFlowTemplate(...args),
     listVersions: (...args) => backend.listVersions(...args),
+    getVersion: (...args) => backend.getVersion(...args),
     createVersion: (...args) => backend.createVersion(...args),
     restoreVersion: (...args) => backend.restoreVersion(...args),
     deleteVersion: (...args) => backend.deleteVersion(...args),

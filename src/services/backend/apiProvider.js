@@ -149,6 +149,9 @@ const setFlowTemplate = (id, isTemplate) =>
 
 const listVersions = (flowId) => api(`/flows/${flowId}/versions`);
 
+// One version *with* its data payload — for read-only preview and diff (#39).
+const getVersion = (flowId, versionId) => api(`/flows/${flowId}/versions/${versionId}`);
+
 const createVersion = (flowId, label = null) =>
     api(`/flows/${flowId}/versions`, { method: 'POST', body: { label } });
 
@@ -212,6 +215,7 @@ export const apiProvider = {
     duplicateFlow,
     listTemplates,
     listVersions,
+    getVersion,
     createVersion,
     restoreVersion,
     deleteVersion,

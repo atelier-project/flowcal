@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ChevronRight, Undo, Redo, Palette, Grid, Wand2, Spline, Waypoints, SlidersHorizontal, Flame, Sparkles, Zap, Ban } from 'lucide-react';
+import { ChevronRight, Undo, Redo, Palette, Grid, Wand2, Spline, Waypoints, SlidersHorizontal, Flame, Sparkles, Zap, Ban, History } from 'lucide-react';
 import { THEMES, applyTheme, getStoredTheme, getCustomThemes } from '../themes';
 import { ThemeEditor } from './ui/ThemeEditor';
 
@@ -269,12 +269,21 @@ export default function Editor() {
     });
   }, [path, user, isAdmin]);
 
+  // --- Version preview (#39) ---
+  // While previewing, the canvas shows an old version's graph. It is strictly
+  // read-only and the real flow is stashed so exiting restores exactly what the
+  // user had. useCloudFlow additionally refuses to save/autosave while previewing,
+  // so the previewed graph can never be written over the live flow.
+  const [preview, setPreview] = useState(null); // { version, stashedGraph }
+  const isPreviewing = !!preview;
+
   const isActionAllowed = useCallback(() => {
+    if (isPreviewing) return false;
     if (isContextReadOnly && !user?.app_metadata?.claims_admin) {
       return false;
     }
     return true;
-  }, [isContextReadOnly, user]);
+  }, [isContextReadOnly, user, isPreviewing]);
 
   // Structural edits (add/delete/move/connect/paste/duplicate) are additionally
   // blocked in a shared view. Node *value* edits still flow through
@@ -313,11 +322,47 @@ export default function Editor() {
     setAutosaveEnabled,
     canAutosave,
   } = useCloudFlow({
-    flowId, isSharedView, user, isAdmin, navigate, confirm, addToast,
+    flowId, isSharedView, isPreviewing, user, isAdmin, navigate, confirm, addToast,
     path, nodes, edges, pan, scale, debouncedNodes, debouncedEdges,
     projectTitle, flowSettings, flowOwnerId,
     setGraph, setProjectTitle, setFlowSettings, setFlowOwnerId, setFlowIsPublic,
   });
+
+  // Enter preview: stash the live graph, then show the version's. Uses updateGraph
+  // so previewing never lands in the undo history.
+  const enterPreview = useCallback((version) => {
+    setPreview((current) => {
+      if (current) return current; // already previewing — keep the original stash
+      return { version, stashedGraph: { nodes, edges } };
+    });
+    updateGraph(version.data || { nodes: [], edges: [] });
+    setSelectedIds(new Set());
+    setPath([]);
+  }, [nodes, edges, updateGraph]);
+
+  // Exit preview: put back exactly what the user had.
+  const exitPreview = useCallback(() => {
+    setPreview((current) => {
+      if (current) updateGraph(current.stashedGraph);
+      return null;
+    });
+    setSelectedIds(new Set());
+  }, [updateGraph]);
+
+  // Restore the version being previewed: the server handles it (saving a
+  // "Before restore" snapshot first), then the flow reloads — so just drop the
+  // preview without re-applying the stash.
+  const restorePreviewed = useCallback(async () => {
+    if (!preview) return;
+    const ok = await confirm(
+      `Restore "${preview.version.label || 'this version'}"? Your current version is snapshotted first, so this can be undone.`,
+      { title: 'Restore version', confirmText: 'Restore' }
+    );
+    if (!ok) return;
+    setPreview(null);
+    await handleRestoreVersion(preview.version.id);
+    addToast('Version restored', 'success');
+  }, [preview, confirm, handleRestoreVersion, addToast]);
 
   // --- Copy/Paste (extracted to useClipboard: handlers + Ctrl/Cmd+C/V/X shortcuts) ---
   useClipboard({
@@ -1677,7 +1722,36 @@ export default function Editor() {
         flowId={flowId}
         onSaveVersion={handleSaveVersion}
         onRestore={handleRestoreVersion}
+        onPreview={(version) => { enterPreview(version); setVersionPanelOpen(false); }}
+        currentGraph={{ nodes, edges }}
+        previewingVersionId={preview?.version?.id || null}
       />
+
+      {/* Read-only version preview banner (#39) */}
+      {isPreviewing && (
+        <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-3 px-4 py-2 text-sm shadow-lg bg-amber-400 text-amber-950">
+          <History size={16} className="shrink-0" />
+          <span className="truncate">
+            Previewing <strong>{preview.version.label || 'a version'}</strong>
+            {preview.version.created_at && (
+              <span className="opacity-70"> · {new Date(preview.version.created_at).toLocaleString()}</span>
+            )}
+            <span className="opacity-70"> — read-only, nothing is saved</span>
+          </span>
+          <button
+            onClick={restorePreviewed}
+            className="shrink-0 px-3 py-1 rounded bg-amber-950 text-amber-50 hover:bg-amber-900 transition-colors font-medium"
+          >
+            Restore this version
+          </button>
+          <button
+            onClick={exitPreview}
+            className="shrink-0 px-3 py-1 rounded border border-amber-950/40 hover:bg-amber-500 transition-colors font-medium"
+          >
+            Exit preview
+          </button>
+        </div>
+      )}
     </div>
   );
 }

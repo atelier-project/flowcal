@@ -29,6 +29,7 @@ const computeSaveSignature = (name, nodes, edges, settings) =>
 export function useCloudFlow({
     flowId,
     isSharedView,
+    isPreviewing,
     user,
     isAdmin,
     navigate,
@@ -114,6 +115,9 @@ export function useCloudFlow({
     };
 
     const handleCloudSave = async ({ auto = false, force = false } = {}) => {
+        // Previewing an old version swaps the graph on screen; persisting that
+        // would silently overwrite the flow with the version being previewed.
+        if (isPreviewing) return;
         if (!user) {
             // Guest Mode: Only Local Save allowed (handled by sidebar normally, but check safety)
             if (!auto) alert("Please login to save to the cloud.");
@@ -233,7 +237,7 @@ export function useCloudFlow({
     // --- Autosave & unsaved-changes tracking ---
     // Owner of an already-saved flow (not a shared/guest view) may autosave.
     const isOwner = !!user && (user.id === flowOwnerId || isAdmin);
-    const canAutosave = isOwner && !!flowId && !isSharedView;
+    const canAutosave = isOwner && !!flowId && !isSharedView && !isPreviewing;
 
     // Live signature of what a save would persist. Debounced graph keeps this cheap;
     // reconstructFullGraph makes it invariant to which nesting level is being viewed.
@@ -244,8 +248,8 @@ export function useCloudFlow({
 
     // Compare against the last saved baseline to drive the dirty flag.
     useEffect(() => {
-        setIsDirty(!!flowId && lastSavedSigRef.current !== null && dirtySignature !== lastSavedSigRef.current);
-    }, [dirtySignature, flowId]);
+        setIsDirty(!isPreviewing && !!flowId && lastSavedSigRef.current !== null && dirtySignature !== lastSavedSigRef.current);
+    }, [dirtySignature, flowId, isPreviewing]);
 
     // Track when the current unsaved streak began (for the max-wait flush) and
     // give each fresh streak a full retry budget.

@@ -46,6 +46,7 @@
  *
  * // ── Flow versions ────────────────────────────────────────────────────
  * @property {(flowId: string) => Promise<Array>} listVersions
+ * @property {(flowId: string, versionId: string) => Promise<Object>} getVersion
  *           History metadata (id, label, origin, created_at, author), newest first.
  * @property {(flowId: string, label?: string|null) => Promise<Object>} createVersion
  *           Snapshot the flow's current data as a manual version.
