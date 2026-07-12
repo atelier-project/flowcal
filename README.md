@@ -1,6 +1,7 @@
 # FlowCal
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![Stars](https://img.shields.io/github/stars/atelier-project/flowcal?style=flat&logo=github&color=f5c518)](https://github.com/atelier-project/flowcal/stargazers)
 
 A visual node-graph editor and calculator built with React. Create computational
 flows by wiring nodes together, with 100+ node types, custom node composition,
@@ -205,6 +206,15 @@ reference, and verified examples.
 Contributions are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). We use a
 Developer Certificate of Origin (DCO): sign off your commits with `git commit -s`.
 To report a security issue, see [`SECURITY.md`](SECURITY.md).
+
+### ⭐ Enjoying FlowCal?
+
+If FlowCal is useful to you, please **[give it a star](https://github.com/atelier-project/flowcal/stargazers)**.
+It's a small thing, but it's genuinely the clearest signal that this is worth
+continuing — and it keeps me building. Thank you.
+
+Not a coder? Sharing a flow you've built, filing an issue, or telling someone who'd
+find it useful all help just as much.
 
 ## License
 
