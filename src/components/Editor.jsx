@@ -20,7 +20,7 @@ import { generateId } from '../utils/ids';
 import { getHandlePosition, getEdgePath } from '../utils/geometry';
 import { computeAutoLayout } from '../utils/autoLayout';
 import { computeAlignment } from '../utils/alignment';
-import { getPortLayout, resolvePortTop } from '../utils/portLayout';
+import { resolveConnectionTarget, connectionExists } from '../utils/connectionTarget';
 import { getNodeHeight } from '../utils/layout';
 import { evaluateGraph } from '../engine/evaluator';
 import { getDefinition } from '../engine/nodeDefinitions';
@@ -1104,37 +1104,24 @@ export default function Editor() {
 
     if (connectionState) {
       const rect = containerRef.current.getBoundingClientRect();
-      const mx = (e.clientX - rect.left - pan.x) / scale;
-      const my = (e.clientY - rect.top - pan.y) / scale;
-      const targetNode = [...nodes].reverse().find(n => {
-        const height = getNodeHeight(n);
-        return mx >= n.position.x - 20 && mx <= n.position.x + NODE_WIDTH + 20 && my >= n.position.y - 20 && my <= n.position.y + height + 20;
-      });
+      const drop = {
+        x: (e.clientX - rect.left - pan.x) / scale,
+        y: (e.clientY - rect.top - pan.y) / scale,
+      };
+      // Where does this wire land? (pure — see utils/connectionTarget)
+      const hit = resolveConnectionTarget(nodes, drop, connectionState.sourceId);
 
-      if (targetNode && targetNode.id !== connectionState.sourceId) {
-        // Pick the input port whose position (from the shared getPortLayout
-        // source of truth) is nearest the drop point. Render, wire geometry and
-        // this hit-test therefore always agree on where each port sits.
-        let targetHandle = null;
-        const targetInputs = getPortLayout(targetNode).inputs;
-        let minDist = Infinity;
-        targetInputs.forEach((p) => {
-          const hy = targetNode.position.y + resolvePortTop(targetNode, p.top);
-          const dist = Math.abs(my - hy);
-          if (dist < minDist) { minDist = dist; targetHandle = p.id; }
-        });
-
-        const exists = edges.some(edge =>
-          edge.source === connectionState.sourceId &&
-          edge.target === targetNode.id &&
-          edge.targetHandle === targetHandle &&
-          edge.sourceHandle === connectionState.sourceHandle
-        );
-
-        if (!exists) {
+      if (hit) {
+        const edge = {
+          source: connectionState.sourceId,
+          sourceHandle: connectionState.sourceHandle,
+          target: hit.targetNode.id,
+          targetHandle: hit.targetHandle,
+        };
+        if (!connectionExists(edges, edge)) {
           setGraph({ // Commit connection
             nodes,
-            edges: [...edges, { id: `e - ${generateId()} `, source: connectionState.sourceId, target: targetNode.id, targetHandle, sourceHandle: connectionState.sourceHandle }]
+            edges: [...edges, { id: `e - ${generateId()} `, ...edge }]
           });
         }
       }
