@@ -2,6 +2,7 @@
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/atelier-project/flowcal?style=flat&logo=github&color=f5c518)](https://github.com/atelier-project/flowcal/stargazers)
+[![Follow @tryatelierai](https://img.shields.io/badge/Follow-@tryatelierai-black?logo=x)](https://x.com/tryatelierai)
 
 A visual node-graph editor and calculator built with React. Create computational
 flows by wiring nodes together, with 100+ node types, custom node composition,
@@ -215,6 +216,9 @@ continuing — and it keeps me building. Thank you.
 
 Not a coder? Sharing a flow you've built, filing an issue, or telling someone who'd
 find it useful all help just as much.
+
+You can also follow **[@tryatelierai](https://x.com/tryatelierai)** on X for updates on
+FlowCal and what's next.
 
 ## License
 
