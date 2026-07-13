@@ -49,6 +49,17 @@ env:
   - name: POSTGRES_DB
     default: flowcal
 
+  # Postgres must NOT use a mount point directly as its data directory. A
+  # provisioned volume arrives formatted, so it already contains a `lost+found`,
+  # and initdb refuses to initialise into a non-empty directory:
+  #
+  #   initdb: error: directory "/var/lib/postgresql/data" exists but is not empty
+  #
+  # Point PGDATA at a subdirectory of the mount instead. This is standard for
+  # Postgres on Kubernetes, not an Atelier quirk.
+  - name: PGDATA
+    default: /var/lib/postgresql/data/pgdata
+
   # Minted by Atelier on first deploy. Nobody types these, and nobody needs to
   # read them: the password is only ever used between these two containers, and
   # the JWT secret only signs this app's own sessions.
