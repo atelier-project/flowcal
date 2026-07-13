@@ -4,8 +4,31 @@ dotenv.config();
 
 const DEFAULT_JWT_SECRET = 'dev-insecure-secret-change-me';
 
+// Assemble a connection URL from discrete PG* parts.
+//
+// Orchestrators hand credentials over as separate environment variables rather
+// than one pre-baked URL — the database's own container needs POSTGRES_USER /
+// POSTGRES_PASSWORD / POSTGRES_DB anyway, and its hostname often isn't known
+// until deploy time. That's exactly how atelier-spec.yaml wires this app up.
+// DATABASE_URL, when set, still wins (docker-compose sets it), so nothing about
+// the existing setup changes.
+function databaseUrlFromParts() {
+    const host = process.env.PGHOST;
+    const user = process.env.POSTGRES_USER;
+    const password = process.env.POSTGRES_PASSWORD;
+    const database = process.env.POSTGRES_DB;
+    if (!host || !user || !password || !database) return null;
+
+    const port = process.env.PGPORT || '5432';
+    // A generated password can contain characters that are not URL-safe.
+    return `postgres://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
+}
+
 export const config = {
-    databaseUrl: process.env.DATABASE_URL || 'postgres://flowcal:flowcal@localhost:5432/flowcal',
+    databaseUrl:
+        process.env.DATABASE_URL ||
+        databaseUrlFromParts() ||
+        'postgres://flowcal:flowcal@localhost:5432/flowcal',
     jwtSecret: process.env.JWT_SECRET || DEFAULT_JWT_SECRET,
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
     port: parseInt(process.env.PORT || '3001', 10),

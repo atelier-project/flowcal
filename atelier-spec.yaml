@@ -1,0 +1,60 @@
+# Atelier app spec — how FlowCal runs on an Atelier platform.
+#
+# FlowCal is two containers: the Express app (which also serves the built SPA)
+# and a Postgres database. Dockerfiles alone can't express "…and also run a
+# Postgres", which is what this file is for. Mirrors docker-compose.yml.
+#
+# Without this file Atelier would infer a single service from the Dockerfile and
+# deploy an app with no database.
+
+name: flowcal
+description: A visual node-editor and calculator. Wire nodes together to build computational flows.
+
+services:
+  # Built by Atelier from the repo's Dockerfile.
+  - name: app
+    port: 3001
+    dockerfile: Dockerfile
+
+  # The stock Postgres image, run as-is — never built.
+  - name: db
+    port: 5432
+    image: postgres:16-alpine
+    volumes:
+      - mount_path: /var/lib/postgresql/data
+        size_gi: 5
+
+# Every var below is visible to *both* containers. That's deliberate: it's how
+# Postgres initialises with the same credentials the app connects with.
+env:
+  - name: NODE_ENV
+    default: production
+  - name: PORT
+    default: "3001"
+  # The Dockerfile builds the SPA into /app/public; the API serves it from there.
+  - name: STATIC_DIR
+    default: /app/public
+  # Set to "true" when serving over HTTPS, so the session cookie is marked Secure.
+  - name: COOKIE_SECURE
+    default: "false"
+
+  # ${APP} is replaced with the app's name at deploy time. The database's
+  # in-cluster host is {app}-db, and the app's name is chosen when it's created,
+  # so this cannot be hardcoded. server/config.js assembles DATABASE_URL from
+  # these parts when DATABASE_URL itself isn't set.
+  - name: PGHOST
+    default: "${APP}-db"
+  - name: POSTGRES_USER
+    default: flowcal
+  - name: POSTGRES_DB
+    default: flowcal
+
+  # Minted by Atelier on first deploy. Nobody types these, and nobody needs to
+  # read them: the password is only ever used between these two containers, and
+  # the JWT secret only signs this app's own sessions.
+  - name: POSTGRES_PASSWORD
+    secret: true
+    generate: true
+  - name: JWT_SECRET
+    secret: true
+    generate: true
