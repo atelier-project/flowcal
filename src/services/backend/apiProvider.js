@@ -198,6 +198,13 @@ const listAllUsers = () => api('/admin/users');
 
 const listAllFlows = () => api('/admin/flows');
 
+const createUserAsAdmin = (user) => api('/admin/users', { method: 'POST', body: user });
+
+const getAdminSettings = () => api('/admin/settings');
+
+const setSignupsEnabled = (enabled) =>
+    api('/admin/settings/signups', { method: 'PUT', body: { enabled } });
+
 const setUserBanned = (userId, banned) =>
     api(`/admin/users/${userId}/ban`, { method: 'PATCH', body: { banned } });
 
@@ -231,6 +238,9 @@ export const apiProvider = {
     // Admin
     listAllUsers,
     listAllFlows,
+    createUserAsAdmin,
+    getAdminSettings,
+    setSignupsEnabled,
     setUserBanned,
     setFlowTemplate,
 };

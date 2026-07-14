@@ -65,6 +65,12 @@
  * @property {() => Promise<Array>} listAllUsers
  * @property {() => Promise<Array>} listAllFlows
  * @property {(userId: string, banned: boolean) => Promise<void>} setUserBanned
+ * @property {(user: { email: string, password: string, role?: string }) => Promise<{ id: string, email: string, role: string }>} createUserAsAdmin
+ *           Create an account directly. Bypasses the signups-enabled check by
+ *           design. Not supported on the Supabase backend (needs service-role).
+ * @property {() => Promise<{ signupsEnabled: boolean, signupsSource: string, readOnly?: boolean }>} getAdminSettings
+ *           `readOnly` means this backend can't change the setting from the app.
+ * @property {(enabled: boolean) => Promise<{ signupsEnabled: boolean, signupsSource: string }>} setSignupsEnabled
  */
 
 export {};

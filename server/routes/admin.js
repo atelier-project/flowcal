@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { asyncHandler, ApiError } from '../middleware/errors.js';
 import { requireAuth, requireAdmin, uuidParamGuard } from '../middleware/auth.js';
+import { createUser, CREATABLE_ROLES } from '../auth/users.js';
+import { getEffectiveSettings, setSignupsEnabled } from '../settings.js';
 
 export const adminRouter = Router();
 adminRouter.param('id', uuidParamGuard);
@@ -57,4 +59,41 @@ adminRouter.patch('/users/:id/ban', asyncHandler(async (req, res) => {
         [req.params.id, banned]
     );
     res.json(rows[0]);
+}));
+
+// ── App settings ─────────────────────────────────────────────────────────────
+
+// GET /api/admin/settings — effective runtime settings, and where each came from
+// (an admin's stored choice, or the deployment's environment default).
+adminRouter.get('/settings', asyncHandler(async (_req, res) => {
+    res.json(await getEffectiveSettings());
+}));
+
+// PUT /api/admin/settings/signups — open or close new registrations at runtime.
+// Persisted, so it survives restarts and applies to every instance on this DB.
+adminRouter.put('/settings/signups', asyncHandler(async (req, res) => {
+    const { enabled } = req.body || {};
+    if (typeof enabled !== 'boolean') throw new ApiError(400, '`enabled` must be a boolean');
+    await setSignupsEnabled(enabled, req.user.id);
+    res.json(await getEffectiveSettings());
+}));
+
+// ── Users ────────────────────────────────────────────────────────────────────
+
+// POST /api/admin/users — create an account directly.
+//
+// Deliberately bypasses the signups-enabled check: being able to add a user
+// *while registration is closed* is the entire point. Does not sign the new user
+// in — the admin stays in their own session.
+adminRouter.post('/users', asyncHandler(async (req, res) => {
+    const { email, password, role = 'user' } = req.body || {};
+    if (!CREATABLE_ROLES.includes(role)) {
+        throw new ApiError(400, `Role must be one of: ${CREATABLE_ROLES.join(', ')}`);
+    }
+    // Only a superuser may mint another admin.
+    if (role === 'admin' && req.user.role !== 'superuser') {
+        throw new ApiError(403, 'Only a superuser can create an admin');
+    }
+    const user = await createUser({ email, password, role });
+    res.status(201).json(user);
 }));

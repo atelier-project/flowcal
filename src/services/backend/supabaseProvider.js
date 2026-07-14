@@ -330,6 +330,39 @@ async function listAllFlows() {
     return data;
 }
 
+// Creating users and flipping auth settings need Supabase service-role
+// privileges, which a browser must never hold. On Supabase these are done in the
+// Supabase dashboard (Authentication → Users / Providers) instead. Failing loudly
+// beats a button that silently does nothing.
+const UNSUPPORTED = 'Not supported on the Supabase backend — use the Supabase dashboard (Authentication → Users / Providers).';
+
+/**
+ * @param {{ email: string, password: string, role?: string }} _user
+ * @returns {Promise<{ id: string, email: string, role: string }>}
+ */
+// eslint-disable-next-line no-unused-vars
+async function createUserAsAdmin(_user) {
+    throw new Error(UNSUPPORTED);
+}
+
+async function getAdminSettings() {
+    // The UI can still show the build-time flag; it just cannot change it here.
+    return {
+        signupsEnabled: import.meta.env.VITE_SIGNUPS_ENABLED !== 'false',
+        signupsSource: 'environment',
+        readOnly: true,
+    };
+}
+
+/**
+ * @param {boolean} _enabled
+ * @returns {Promise<{ signupsEnabled: boolean, signupsSource: string }>}
+ */
+// eslint-disable-next-line no-unused-vars
+async function setSignupsEnabled(_enabled) {
+    throw new Error(UNSUPPORTED);
+}
+
 async function setUserBanned(userId, banned) {
     const { error } = await supabase
         .from('profiles')
@@ -395,6 +428,9 @@ export const supabaseProvider = {
     // Admin
     listAllUsers,
     listAllFlows,
+    createUserAsAdmin,
+    getAdminSettings,
+    setSignupsEnabled,
     setUserBanned,
     setFlowTemplate,
 };

@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { backend } from '../services/backend';
+import { useAuth } from '../context/AuthContext';
+import { AdminSettingsPanel } from '../components/admin/AdminSettingsPanel';
 import { Users, FileCode, ShieldAlert, CheckCircle2, Ban, Loader2, Search, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminDashboard() {
+    const { profile } = useAuth();
     const [users, setUsers] = useState([]);
     const [flows, setFlows] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -111,6 +114,12 @@ export default function AdminDashboard() {
                         <div className="text-3xl font-bold text-red-500">{users.filter(u => u.is_banned).length}</div>
                     </div>
                 </div>
+
+                {/* Registration toggle + add-a-user */}
+                <AdminSettingsPanel
+                    isSuperuser={profile?.role === 'superuser'}
+                    onUserCreated={loadData}
+                />
 
                 {/* Tabs */}
                 <div className="flex gap-4 mb-6 border-b border-slate-200 dark:border-slate-700">

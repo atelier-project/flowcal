@@ -1,16 +1,14 @@
 import { Router } from 'express';
-import { query, withTransaction } from '../db.js';
-import { hashPassword, verifyPassword, DUMMY_HASH, MAX_PASSWORD_BYTES } from '../auth/password.js';
+import { query } from '../db.js';
+import { verifyPassword, DUMMY_HASH } from '../auth/password.js';
 import { issueToken, sessionCookieOptions } from '../auth/jwt.js';
 import { config } from '../config.js';
 import { asyncHandler, ApiError } from '../middleware/errors.js';
 import { resolveUser } from '../middleware/auth.js';
+import { getSignupsEnabled } from '../settings.js';
+import { createUser, normalizeEmail } from '../auth/users.js';
 
 export const authRouter = Router();
-
-// Normalize emails so case/whitespace variants map to one account (matches
-// Supabase, and the users.email UNIQUE constraint is case-sensitive).
-const normalizeEmail = (email) => String(email || '').trim().toLowerCase();
 
 function setSession(res, user) {
     const token = issueToken(user);
@@ -20,40 +18,17 @@ function setSession(res, user) {
 
 // GET /api/auth/config — public auth config so the login page can adapt
 // (e.g. hide the sign-up form when registration is closed).
-authRouter.get('/config', (_req, res) => {
-    res.json({ signupsEnabled: config.signupsEnabled });
-});
+authRouter.get('/config', asyncHandler(async (_req, res) => {
+    res.json({ signupsEnabled: await getSignupsEnabled() });
+}));
 
 // POST /api/auth/signup — create a user + profile, then sign in.
 authRouter.post('/signup', asyncHandler(async (req, res) => {
-    if (!config.signupsEnabled) throw new ApiError(403, 'New registrations are disabled');
-    const email = normalizeEmail(req.body?.email);
-    const { password } = req.body || {};
-    if (!email || !password) throw new ApiError(400, 'Email and password are required');
-    if (password.length < 6) throw new ApiError(400, 'Password must be at least 6 characters');
-    if (Buffer.byteLength(password, 'utf8') > MAX_PASSWORD_BYTES) {
-        throw new ApiError(400, `Password must be at most ${MAX_PASSWORD_BYTES} bytes`);
-    }
+    if (!(await getSignupsEnabled())) throw new ApiError(403, 'New registrations are disabled');
 
-    const existing = await query('select 1 from users where email = $1', [email]);
-    if (existing.rowCount > 0) throw new ApiError(409, 'An account with that email already exists');
-
-    const passwordHash = await hashPassword(password);
-
-    // Create the auth user and its profile atomically (replaces the Supabase
-    // handle_new_user trigger).
-    const user = await withTransaction(async (client) => {
-        const { rows } = await client.query(
-            'insert into users (email, password_hash) values ($1, $2) returning id, email',
-            [email, passwordHash]
-        );
-        const created = rows[0];
-        await client.query(
-            "insert into profiles (id, email, role) values ($1, $2, 'user')",
-            [created.id, created.email]
-        );
-        return created;
-    });
+    // Shared with the admin "add user" route, so the two can't drift apart on
+    // validation, hashing, or the user+profile invariant.
+    const user = await createUser({ email: req.body?.email, password: req.body?.password });
 
     setSession(res, user);
     res.status(201).json({ user: { id: user.id, email: user.email } });

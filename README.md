@@ -134,7 +134,11 @@ Once you've created your accounts, you'll usually want to stop new ones. How you
 do that depends on the backend — and the difference matters, because only one of
 these actually enforces anything.
 
-**Self-hosted (`VITE_BACKEND=api`)** — set the **server-side** variable:
+**Self-hosted (`VITE_BACKEND=api`)** — easiest is the **Admin panel → Registration**:
+toggle sign-ups open/closed at runtime. No redeploy, it persists, and it applies to
+every instance sharing the database.
+
+To set it at deploy time instead, use the **server-side** variable:
 
 ```bash
 SIGNUPS_ENABLED=false     # in server/.env, then restart the API
@@ -142,6 +146,11 @@ SIGNUPS_ENABLED=false     # in server/.env, then restart the API
 
 `POST /api/auth/signup` now returns **403** and the login page hides the sign-up
 form. Existing users can still sign in.
+
+> **Precedence:** the env var is the **default**; an admin's toggle is stored in the
+> database and **takes precedence over it**. So `SIGNUPS_ENABLED` seeds the initial
+> behaviour rather than acting as a hard lock — anyone you trust with admin can
+> re-open registration from the panel.
 
 On **Atelier**, set it as a secret (the pods restart automatically):
 
@@ -159,6 +168,16 @@ the UI.
 > ⚠️ `VITE_SIGNUPS_ENABLED` is a **build-time, UI-only** flag — it hides the
 > sign-up form but does not close the endpoint. Don't rely on it alone; use
 > `SIGNUPS_ENABLED` (api) or your Supabase Auth setting (supabase).
+
+### Adding a user directly
+
+**Admin panel → Add a user** creates an account immediately — and deliberately works
+**even while sign-ups are closed**, which is the usual reason you'd want it. The new
+user can sign in straight away; you're not signed in as them. Only a superuser can
+create another admin.
+
+*(Self-hosted `api` backend only. On Supabase, add users from the Supabase dashboard —
+creating users needs service-role privileges a browser must never hold.)*
 
 ### Making someone an admin
 
