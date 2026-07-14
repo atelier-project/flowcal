@@ -17,7 +17,12 @@ services:
     dockerfile: Dockerfile
 
   # The stock Postgres image, run as-is — never built.
-  - name: db
+  #
+  # Named `postgres`, not `db`: Atelier names the resource `${APP}-<service>`, and
+  # `flowcal-db` is a name people commonly already have for a standalone Postgres
+  # app. Colliding with it fails the build (Atelier refuses to take over a name it
+  # doesn't own) — so this deliberately sidesteps that.
+  - name: postgres
     port: 5432
     image: postgres:16-alpine
     volumes:
@@ -43,7 +48,7 @@ env:
   # so this cannot be hardcoded. server/config.js assembles DATABASE_URL from
   # these parts when DATABASE_URL itself isn't set.
   - name: PGHOST
-    default: "${APP}-db"
+    default: "${APP}-postgres"
   - name: POSTGRES_USER
     default: flowcal
   - name: POSTGRES_DB
